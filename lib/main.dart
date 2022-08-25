@@ -273,17 +273,17 @@ class _WebViewContainerState extends State<WebViewContainer> {
               onPressed: _pushSearchPage)
         ],
       ),
-      body: Stack(
+      body: Column(
         children: <Widget>[
-          Positioned(
-              bottom: 0,
-              left: 0,
-              child: Container(
-                  height: 50,
-                  width: MediaQuery.of(context).size.width,
-                  child: const Align(
-                      alignment: Alignment.center,
-                      child: Text("Swipe here to change page")))),
+          // Positioned(
+          //     bottom: 0,
+          //     left: 0,
+          //     child: Container(
+          //         height: 50,
+          //         width: MediaQuery.of(context).size.width,
+          //         child: const Align(
+          //             alignment: Alignment.center,
+          //             child: Text("Swipe here to change page")))),
           Flexible(
             child: _searchResult.length > 0
                 ? Swiper(
