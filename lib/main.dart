@@ -107,8 +107,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
 
 void main() {
-  final Completer<WebViewController> controller;
-
   runApp(
     const MaterialApp(
       home: WebViewContainer(),
@@ -122,14 +120,11 @@ class WebViewContainer extends StatefulWidget {
   // const WebViewContainer({required this.controller, Key? key}): super(key: key);
   const WebViewContainer({super.key});
 
-  // final Completer<WebViewController> controller;
-
   @override
   State<WebViewContainer> createState() => _WebViewContainerState();
 }
 
 class _WebViewContainerState extends State<WebViewContainer> {
-  // final controller = Completer<WebViewController>();
   final _key = UniqueKey();
   final URL_list = [
     "https://www.cuhk.edu.hk/",
@@ -180,7 +175,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
   }
 
   // TextEditingController _handleSearch = TextEditingController();
-  List<WebViewController> controller = [];
+  List<WebViewController> _controller = [];
   // late WebViewController controller;
 
   SwiperController _swiperController = new SwiperController();
@@ -225,13 +220,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
       _isSearching = false;
 
-      print("controller ${controller.length}");
+      print("controller ${_controller.length}");
 
       // force reload the webview with new URL
-      if (controller.isNotEmpty && _searchResult.isNotEmpty) {
+      if (_controller.isNotEmpty && _searchResult.isNotEmpty) {
         // _swiperController.move(0, animation: false);
         _swiperController.move(0); // kinda buggy with animation set to false
-        controller[0].loadUrl(_searchResult[0]);
+        _controller[0].loadUrl(_searchResult[0]);
         _currentIndex = 0;
       }
 
@@ -278,151 +273,169 @@ class _WebViewContainerState extends State<WebViewContainer> {
     Factory(() => EagerGestureRecognizer())
   };
 
+  Future<bool> _onWillPop(BuildContext context) async {
+    if (_controller.isNotEmpty) {
+      if (await _controller[0].canGoBack()) {
+        print("onwill goback");
+        _controller[0].goBack();
+        return Future.value(false);
+      } else {
+        debugPrint("_exit will not go back");
+        return Future.value(true);
+      }
+    }
+    return Future.value(false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: _searchText == ""
-            ? const Text("Explore")
-            : _searchResult.isNotEmpty
-                ? Text(
-                    'Results for $_searchText (${_currentIndex + 1} of ${_searchResult.length})')
-                : Text('Results for $_searchText'),
-        actions: <Widget>[
-          IconButton(
-              // icon: const Icon(Icons.search), onPressed: _toggleSearchBar)
-              icon: const Icon(Icons.search),
-              onPressed: _pushSearchPage)
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          Container(
-            child: _searchResult.isNotEmpty
-                ? Flexible(
-                    child: Stack(
-                      children: <Widget>[
-                        Positioned(
-                            bottom: 0,
-                            height: 50,
-                            width: MediaQuery.of(context).size.width,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color.fromARGB(255, 57, 57, 57)
-                                        .withOpacity(0.2),
-                                    spreadRadius: 3,
-                                    blurRadius: 5,
-                                    offset: const Offset(
-                                        0, -50), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child: const Align(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  "Swipe here to change page",
-                                ),
-                              ),
-                            )),
-                        Swiper(
-                          itemBuilder: (BuildContext context, int index) {
-                            return Container(
-                              padding: const EdgeInsets.only(bottom: 50),
-                              child: Offstage(
-                                offstage: false,
-                                child: Stack(
-                                  children: <Widget>[
-                                    WebView(
-                                      key: _key,
-                                      gestureRecognizers: gestureRecognizers,
-                                      javascriptMode:
-                                          JavascriptMode.unrestricted,
-                                      initialUrl: _searchResult[index],
-                                      onWebViewCreated: (webViewController) {
-                                        if (controller.isNotEmpty) {
-                                          controller.removeLast();
-                                        }
-                                        controller.add(webViewController);
-                                      },
-                                      onPageStarted: (url) {
-                                        setState(() {
-                                          _loadingPercentage = 0;
-                                        });
-                                      },
-                                      onProgress: (progress) {
-                                        setState(() {
-                                          _loadingPercentage = progress;
-                                        });
-                                      },
-                                      onPageFinished: (url) {
-                                        setState(() {
-                                          _loadingPercentage = 100;
-                                        });
-                                      },
+    return WillPopScope(
+      onWillPop: () => _onWillPop(context),
+      child: Scaffold(
+        appBar: AppBar(
+          title: _searchText == ""
+              ? const Text("Explore")
+              : _searchResult.isNotEmpty
+                  ? Text(
+                      'Results for $_searchText (${_currentIndex + 1} of ${_searchResult.length})')
+                  : Text('Results for $_searchText'),
+          actions: <Widget>[
+            IconButton(
+                // icon: const Icon(Icons.search), onPressed: _toggleSearchBar)
+                icon: const Icon(Icons.search),
+                onPressed: _pushSearchPage)
+          ],
+        ),
+        body: Column(
+          children: <Widget>[
+            Container(
+              child: _searchResult.isNotEmpty
+                  ? Flexible(
+                      child: Stack(
+                        children: <Widget>[
+                          Positioned(
+                              bottom: 0,
+                              height: 50,
+                              width: MediaQuery.of(context).size.width,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          const Color.fromARGB(255, 57, 57, 57)
+                                              .withOpacity(0.2),
+                                      spreadRadius: 3,
+                                      blurRadius: 5,
+                                      offset: const Offset(
+                                          0, -50), // changes position of shadow
                                     ),
-                                    if (_loadingPercentage < 100)
-                                      LinearProgressIndicator(
-                                        value: _loadingPercentage / 100.0,
-                                        minHeight: 5,
-                                        color: Colors.yellow,
-                                      ),
                                   ],
                                 ),
+                                child: const Align(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "Swipe here to change page",
+                                  ),
+                                ),
+                              )),
+                          Swiper(
+                            itemBuilder: (BuildContext context, int index) {
+                              return Container(
+                                padding: const EdgeInsets.only(bottom: 50),
+                                child: Offstage(
+                                  offstage: false,
+                                  child: Stack(
+                                    children: <Widget>[
+                                      WebView(
+                                        key: _key,
+                                        gestureRecognizers: gestureRecognizers,
+                                        javascriptMode:
+                                            JavascriptMode.unrestricted,
+                                        initialUrl: _searchResult[index],
+                                        onWebViewCreated: (webViewController) {
+                                          if (_controller.isNotEmpty) {
+                                            _controller.removeLast();
+                                          }
+                                          _controller.add(webViewController);
+                                        },
+                                        onPageStarted: (url) {
+                                          setState(() {
+                                            _loadingPercentage = 0;
+                                          });
+                                        },
+                                        onProgress: (progress) {
+                                          setState(() {
+                                            _loadingPercentage = progress;
+                                          });
+                                        },
+                                        onPageFinished: (url) {
+                                          setState(() {
+                                            _loadingPercentage = 100;
+                                          });
+                                        },
+                                      ),
+                                      if (_loadingPercentage < 100)
+                                        LinearProgressIndicator(
+                                          value: _loadingPercentage / 100.0,
+                                          minHeight: 5,
+                                          color: Colors.yellow,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            itemCount: _searchResult.length,
+                            loop: false,
+                            onIndexChanged: (index) {
+                              setState(() {
+                                _currentIndex = index;
+                                print("index $index");
+                              });
+                            },
+                            controller: _swiperController,
+                            // pagination: SwiperPagination(),
+                            // control: SwiperControl(),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Flexible(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: _searchText == ""
+                            ? const Text(
+                                "Try to search for something :)",
+                                style: TextStyle(fontSize: 22),
+                              )
+                            : const Text(
+                                "No result found",
+                                style: TextStyle(fontSize: 22),
                               ),
-                            );
-                          },
-                          itemCount: _searchResult.length,
-                          loop: false,
-                          onIndexChanged: (index) {
-                            setState(() {
-                              _currentIndex = index;
-                              print("index $index");
-                            });
-                          },
-                          controller: _swiperController,
-                          // pagination: SwiperPagination(),
-                          // control: SwiperControl(),
-                        ),
-                      ],
+                      ),
                     ),
-                  )
-                : Flexible(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: _searchText == ""
-                          ? const Text(
-                              "Try to search for something :)",
-                              style: TextStyle(fontSize: 22),
-                            )
-                          : const Text(
-                              "No result found",
-                              style: TextStyle(fontSize: 22),
-                            ),
-                    ),
-                  ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark),
-            label: 'Bookmark',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-        // currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue[800],
-        // onTap: _onItemTapped,
+            ),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.explore),
+              label: 'Explore',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark),
+              label: 'Bookmark',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: 'Settings',
+            ),
+          ],
+          // currentIndex: _selectedIndex,
+          selectedItemColor: Colors.blue[800],
+          // onTap: _onItemTapped,
+        ),
       ),
     );
   }
