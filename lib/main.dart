@@ -97,6 +97,7 @@
 //   }
 // }
 
+import 'dart:async';
 import 'dart:ffi';
 
 import 'package:flutter/foundation.dart';
@@ -106,6 +107,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
 
 void main() {
+  final Completer<WebViewController> controller;
+
   runApp(
     const MaterialApp(
       home: WebViewContainer(),
@@ -116,13 +119,17 @@ void main() {
 final webViewKey = GlobalKey<_WebViewContainerState>();
 
 class WebViewContainer extends StatefulWidget {
+  // const WebViewContainer({required this.controller, Key? key}): super(key: key);
   const WebViewContainer({super.key});
+
+  // final Completer<WebViewController> controller;
 
   @override
   State<WebViewContainer> createState() => _WebViewContainerState();
 }
 
 class _WebViewContainerState extends State<WebViewContainer> {
+  // final controller = Completer<WebViewController>();
   final _key = UniqueKey();
   final URL_list = [
     "https://www.cuhk.edu.hk/",
@@ -160,6 +167,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
   bool _isSearching = false;
   List _searchResult = [];
   int _currentIndex = 0;
+  int _loadingPercentage = 0;
 
   void _toggleSearchBar() {
     setState(() {
@@ -172,9 +180,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
   }
 
   // TextEditingController _handleSearch = TextEditingController();
-  // List<WebViewController> controller = [];
+  List<WebViewController> controller = [];
+  // late WebViewController controller;
 
-  // WebViewController controller;
+  SwiperController _swiperController = new SwiperController();
 
   // @override
   // void dispose() {
@@ -206,15 +215,25 @@ class _WebViewContainerState extends State<WebViewContainer> {
       print("search $value");
       _searchText = value;
 
-      if (URL_list_test[_searchText.toString().toLowerCase()] != null) {
-        _searchResult = URL_list_test[_searchText.toString().toLowerCase()];
-      } else {
+      if (URL_list_test[_searchText.toString().toLowerCase()] == null) {
         _searchResult = [];
+      } else {
+        _searchResult = URL_list_test[_searchText.toString().toLowerCase()];
       }
 
       print("result $_searchResult");
 
       _isSearching = false;
+
+      print("controller ${controller.length}");
+
+      // force reload the webview with new URL
+      if (controller.isNotEmpty && _searchResult.isNotEmpty) {
+        // _swiperController.move(0, animation: false);
+        _swiperController.move(0); // kinda buggy with animation set to false
+        controller[0].loadUrl(_searchResult[0]);
+        _currentIndex = 0;
+      }
 
       Navigator.of(context).pop();
     });
@@ -265,7 +284,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
       appBar: AppBar(
         title: _searchText == ""
             ? const Text("Explore")
-            : Text('Results for $_searchText'),
+            : _searchResult.isNotEmpty
+                ? Text(
+                    'Results for $_searchText (${_currentIndex + 1} of ${_searchResult.length})')
+                : Text('Results for $_searchText'),
         actions: <Widget>[
           IconButton(
               // icon: const Icon(Icons.search), onPressed: _toggleSearchBar)
@@ -275,41 +297,111 @@ class _WebViewContainerState extends State<WebViewContainer> {
       ),
       body: Column(
         children: <Widget>[
-          // Positioned(
-          //     bottom: 0,
-          //     left: 0,
-          //     child: Container(
-          //         height: 50,
-          //         width: MediaQuery.of(context).size.width,
-          //         child: const Align(
-          //             alignment: Alignment.center,
-          //             child: Text("Swipe here to change page")))),
-          Flexible(
-            child: _searchResult.length > 0
-                ? Swiper(
-                    itemBuilder: (BuildContext context, int index) {
-                      return Container(
-                          padding: const EdgeInsets.only(bottom: 50),
-                          child: WebView(
-                            key: _key,
-                            gestureRecognizers: gestureRecognizers,
-                            javascriptMode: JavascriptMode.unrestricted,
-                            initialUrl: _searchResult[index],
-                          ));
-                    },
-                    itemCount: _searchResult.length,
-                    // pagination: SwiperPagination(),
-                    // control: SwiperControl(),
-                    loop: false,
+          Container(
+            child: _searchResult.isNotEmpty
+                ? Flexible(
+                    child: Stack(
+                      children: <Widget>[
+                        Positioned(
+                            bottom: 0,
+                            height: 50,
+                            width: MediaQuery.of(context).size.width,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color.fromARGB(255, 57, 57, 57)
+                                        .withOpacity(0.2),
+                                    spreadRadius: 3,
+                                    blurRadius: 5,
+                                    offset: const Offset(
+                                        0, -50), // changes position of shadow
+                                  ),
+                                ],
+                              ),
+                              child: const Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  "Swipe here to change page",
+                                ),
+                              ),
+                            )),
+                        Swiper(
+                          itemBuilder: (BuildContext context, int index) {
+                            return Container(
+                              padding: const EdgeInsets.only(bottom: 50),
+                              child: Offstage(
+                                offstage: false,
+                                child: Stack(
+                                  children: <Widget>[
+                                    WebView(
+                                      key: _key,
+                                      gestureRecognizers: gestureRecognizers,
+                                      javascriptMode:
+                                          JavascriptMode.unrestricted,
+                                      initialUrl: _searchResult[index],
+                                      onWebViewCreated: (webViewController) {
+                                        if (controller.isNotEmpty) {
+                                          controller.removeLast();
+                                        }
+                                        controller.add(webViewController);
+                                      },
+                                      onPageStarted: (url) {
+                                        setState(() {
+                                          _loadingPercentage = 0;
+                                        });
+                                      },
+                                      onProgress: (progress) {
+                                        setState(() {
+                                          _loadingPercentage = progress;
+                                        });
+                                      },
+                                      onPageFinished: (url) {
+                                        setState(() {
+                                          _loadingPercentage = 100;
+                                        });
+                                      },
+                                    ),
+                                    if (_loadingPercentage < 100)
+                                      LinearProgressIndicator(
+                                        value: _loadingPercentage / 100.0,
+                                        minHeight: 5,
+                                        color: Colors.yellow,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          itemCount: _searchResult.length,
+                          loop: false,
+                          onIndexChanged: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                              print("index $index");
+                            });
+                          },
+                          controller: _swiperController,
+                          // pagination: SwiperPagination(),
+                          // control: SwiperControl(),
+                        ),
+                      ],
+                    ),
                   )
-                : Container(
+                : Flexible(
                     child: Align(
-                        alignment: Alignment.center,
-                        child: _searchText == ""
-                            ? const Text("No result found",
-                                style: TextStyle(fontSize: 22))
-                            : const Text("Try to search for something :)",
-                                style: TextStyle(fontSize: 22)))),
+                      alignment: Alignment.center,
+                      child: _searchText == ""
+                          ? const Text(
+                              "Try to search for something :)",
+                              style: TextStyle(fontSize: 22),
+                            )
+                          : const Text(
+                              "No result found",
+                              style: TextStyle(fontSize: 22),
+                            ),
+                    ),
+                  ),
           ),
         ],
       ),
