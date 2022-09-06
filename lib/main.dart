@@ -105,6 +105,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 void main() {
   runApp(
@@ -126,12 +127,12 @@ class WebViewContainer extends StatefulWidget {
 
 class _WebViewContainerState extends State<WebViewContainer> {
   final _key = UniqueKey();
-  final URL_list = [
-    "https://www.cuhk.edu.hk/",
-    "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-    "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-    "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-  ];
+  // final URL_list = [
+  //   "https://www.cuhk.edu.hk/",
+  //   "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
+  //   "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+  //   "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
+  // ];
 
   final Map URL_list_test = {
     'doge': [
@@ -158,10 +159,75 @@ class _WebViewContainerState extends State<WebViewContainer> {
     "wlsk": ["https://wlsk.design"]
   };
 
+  final Map URL_list_test2 = {
+    'doge': {
+      'google': [
+        "https://coinmarketcap.com/currencies/dogecoin/",
+        "https://finance.yahoo.com/quote/DOGE-USD/",
+        "https://www.coindesk.com/price/dogecoin/",
+        "https://dogecoin.com/",
+        "https://en.wikipedia.org/wiki/Doge_(meme)"
+      ],
+      "facebook": [
+        "https://www.cuhk.edu.hk/",
+        "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
+        "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+        "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
+      ],
+      "youtube": [
+        "https://www.makeuseof.com/tag/3-google-tricks-search/",
+        "https://www.youtube.com/watch?v=erZ3IyBCXdY",
+        "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
+        "https://tenor.com/search/idk-what-to-search-gifs",
+        "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
+        "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
+      ],
+      "idk": ["https://wlsk.design"]
+    },
+    'cuhk': {
+      'google': [
+        "https://coinmarketcap.com/currencies/dogecoin/",
+        "https://finance.yahoo.com/quote/DOGE-USD/",
+        "https://www.coindesk.com/price/dogecoin/",
+        "https://dogecoin.com/",
+        "https://en.wikipedia.org/wiki/Doge_(meme)"
+      ],
+      "facebook": [
+        "https://www.cuhk.edu.hk/",
+        "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
+        "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+        "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
+      ],
+      "youtube": [
+        "https://www.makeuseof.com/tag/3-google-tricks-search/",
+        "https://www.youtube.com/watch?v=erZ3IyBCXdY",
+        "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
+        "https://tenor.com/search/idk-what-to-search-gifs",
+        "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
+        "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
+      ],
+      "idk": ["https://wlsk.design"]
+    },
+    'idk': {
+      'google': [
+        "https://coinmarketcap.com/currencies/dogecoin/",
+      ],
+      "facebook": [
+        "https://www.cuhk.edu.hk/",
+      ],
+      "youtube": [
+        "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
+      ],
+      "idk": ["https://wlsk.design"]
+    }
+  };
+
   String _searchText = "";
   bool _isSearching = false;
-  List _searchResult = [];
-  int _currentIndex = 0;
+  Map _searchResult = {};
+  List _currentURLs = [];
+  int _currentDomainIndex = 0;
+  int _currentURLIndex = 0;
   int _loadingPercentage = 0;
 
   void _toggleSearchBar() {
@@ -178,7 +244,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
   List<WebViewController> _controller = [];
   // late WebViewController controller;
 
-  SwiperController _swiperController = new SwiperController();
+  SwiperController _swiperControllerVertical = new SwiperController();
+  SwiperController _swiperControllerHorizontal = new SwiperController();
 
   // @override
   // void dispose() {
@@ -210,13 +277,16 @@ class _WebViewContainerState extends State<WebViewContainer> {
       print("search $value");
       _searchText = value;
 
-      if (URL_list_test[_searchText.toString().toLowerCase()] == null) {
-        _searchResult = [];
+      if (URL_list_test2[_searchText.toString().toLowerCase()] == null) {
+        _searchResult = {};
       } else {
-        _searchResult = URL_list_test[_searchText.toString().toLowerCase()];
+        _searchResult = URL_list_test2[_searchText.toString().toLowerCase()];
+        _currentURLs = URL_list_test2[_searchText.toString().toLowerCase()]
+            [_searchResult.keys.toList()[_currentDomainIndex]];
       }
 
-      print("result $_searchResult");
+      // print("result ${_searchResult}");
+      print("_currentURLs ${_currentURLs}");
 
       _isSearching = false;
 
@@ -224,10 +294,14 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
       // force reload the webview with new URL
       if (_controller.isNotEmpty && _searchResult.isNotEmpty) {
-        // _swiperController.move(0, animation: false);
-        _swiperController.move(0); // kinda buggy with animation set to false
-        _controller[0].loadUrl(_searchResult[0]);
-        _currentIndex = 0;
+        print("MOVE");
+        // _swiperControllerVertical.move(0, animation: false);
+        _swiperControllerVertical
+            .move(0); // kinda buggy with animation set to false
+        _swiperControllerHorizontal
+            .move(0); // kinda buggy with animation set to false
+        _currentDomainIndex = 0;
+        _controller[0].loadUrl(_currentURLs[0]);
       }
 
       Navigator.of(context).pop();
@@ -269,9 +343,9 @@ class _WebViewContainerState extends State<WebViewContainer> {
     }));
   }
 
-  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-    Factory(() => EagerGestureRecognizer())
-  };
+  // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
+  //   Factory(() => EagerGestureRecognizer())
+  // };
 
   Future<bool> _onWillPop(BuildContext context) async {
     if (_controller.isNotEmpty) {
@@ -297,7 +371,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
               ? const Text("Explore")
               : _searchResult.isNotEmpty
                   ? Text(
-                      'Results for $_searchText (${_currentIndex + 1} of ${_searchResult.length})')
+                      '$_searchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})')
                   : Text('Results for $_searchText'),
           actions: <Widget>[
             IconButton(
@@ -314,86 +388,111 @@ class _WebViewContainerState extends State<WebViewContainer> {
                       child: Stack(
                         children: <Widget>[
                           Positioned(
-                              bottom: 0,
-                              height: 50,
-                              width: MediaQuery.of(context).size.width,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          const Color.fromARGB(255, 57, 57, 57)
-                                              .withOpacity(0.2),
-                                      spreadRadius: 3,
-                                      blurRadius: 5,
-                                      offset: const Offset(
-                                          0, -50), // changes position of shadow
-                                    ),
-                                  ],
-                                ),
-                                child: const Align(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    "Swipe here to change page",
+                            bottom: 0,
+                            height: 50,
+                            width: MediaQuery.of(context).size.width,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color.fromARGB(255, 57, 57, 57)
+                                        .withOpacity(0.2),
+                                    spreadRadius: 3,
+                                    blurRadius: 5,
+                                    offset: const Offset(
+                                        0, -50), // changes position of shadow
                                   ),
+                                ],
+                              ),
+                              child: const Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  "Swipe here to change page",
                                 ),
-                              )),
+                              ),
+                            ),
+                          ),
+
+                          // Vertical Swiper
                           Swiper(
+                            itemCount: _searchResult.length,
+                            loop: false,
+                            scrollDirection: Axis.vertical,
                             itemBuilder: (BuildContext context, int index) {
                               return Container(
-                                padding: const EdgeInsets.only(bottom: 50),
-                                child: Offstage(
-                                  offstage: false,
-                                  child: Stack(
-                                    children: <Widget>[
-                                      WebView(
-                                        key: _key,
-                                        gestureRecognizers: gestureRecognizers,
-                                        javascriptMode:
-                                            JavascriptMode.unrestricted,
-                                        initialUrl: _searchResult[index],
-                                        onWebViewCreated: (webViewController) {
-                                          if (_controller.isNotEmpty) {
-                                            _controller.removeLast();
-                                          }
-                                          _controller.add(webViewController);
-                                        },
-                                        onPageStarted: (url) {
-                                          setState(() {
-                                            _loadingPercentage = 0;
-                                          });
-                                        },
-                                        onProgress: (progress) {
-                                          setState(() {
-                                            _loadingPercentage = progress;
-                                          });
-                                        },
-                                        onPageFinished: (url) {
-                                          setState(() {
-                                            _loadingPercentage = 100;
-                                          });
-                                        },
+                                // padding: const EdgeInsets.only(bottom: 50),
+                                margin: const EdgeInsets.only(bottom: 50),
+                                child: Stack(
+                                  children: <Widget>[
+                                    // Horizontal Swiper
+                                    Swiper(
+                                      itemCount: _currentURLs.length,
+                                      loop: false,
+                                      scrollDirection: Axis.horizontal,
+                                      controller: _swiperControllerHorizontal,
+                                      itemBuilder:
+                                          (BuildContext context2, int index2) {
+                                        return WebView(
+                                          key: _key,
+                                          // gestureRecognizers:
+                                          //     gestureRecognizers,
+                                          javascriptMode:
+                                              JavascriptMode.unrestricted,
+                                          initialUrl: _currentURLs[index2],
+                                          onWebViewCreated:
+                                              (webViewController) {
+                                            if (_controller.isNotEmpty) {
+                                              _controller.removeLast();
+                                            }
+                                            _controller.add(webViewController);
+                                          },
+                                          onPageStarted: (url) {
+                                            setState(() {
+                                              _loadingPercentage = 0;
+                                            });
+                                          },
+                                          onProgress: (progress) {
+                                            setState(() {
+                                              _loadingPercentage = progress;
+                                            });
+                                          },
+                                          onPageFinished: (url) {
+                                            setState(() {
+                                              _loadingPercentage = 100;
+                                            });
+                                          },
+                                        );
+                                      },
+                                      onIndexChanged: (index2) {
+                                        setState(() {
+                                          _currentURLIndex = index2;
+                                        });
+                                      },
+                                    ),
+                                    if (_loadingPercentage < 100)
+                                      LinearProgressIndicator(
+                                        value: _loadingPercentage / 100.0,
+                                        minHeight: 5,
+                                        color: Colors.yellow,
                                       ),
-                                      if (_loadingPercentage < 100)
-                                        LinearProgressIndicator(
-                                          value: _loadingPercentage / 100.0,
-                                          minHeight: 5,
-                                          color: Colors.yellow,
-                                        ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
                               );
                             },
-                            itemCount: _searchResult.length,
-                            loop: false,
                             onIndexChanged: (index) {
                               setState(() {
-                                _currentIndex = index;
+                                _currentURLIndex = 0;
+                                _currentDomainIndex = index;
+                                _currentURLs = URL_list_test2[
+                                        _searchText.toString().toLowerCase()][
+                                    _searchResult.keys
+                                        .toList()[_currentDomainIndex]];
+
+                                // print("_currentURLs $_currentURLs");
                                 print("index $index");
                               });
                             },
-                            controller: _swiperController,
+                            controller: _swiperControllerVertical,
                             // pagination: SwiperPagination(),
                             // control: SwiperControl(),
                           ),
