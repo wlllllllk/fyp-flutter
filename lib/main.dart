@@ -1,102 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:webview_flutter/webview_flutter.dart';
-// import 'package:english_words/english_words.dart';
-
-// void main() => runApp(MyApp());
-
-// class MyApp extends StatelessWidget {
-//   const MyApp({Key? key}) : super(key: key);
-
-//   @override
-//   Widget build(BuildContext context) {
-//     // final wordPair = WordPair.random();
-
-//     return MaterialApp(
-//         theme: ThemeData(primarySwatch: Colors.green), home: RandomWords());
-//   }
-// }
-
-// class RandomWords extends StatefulWidget {
-//   const RandomWords({Key? key}) : super(key: key);
-
-//   @override
-//   RandomWordsState createState() => RandomWordsState();
-// }
-
-// class RandomWordsState extends State<RandomWords> {
-//   final _randomWordPairs = <WordPair>[];
-//   final _savedWordPairs = Set<WordPair>();
-
-//   Widget _buildList() {
-//     return ListView.builder(
-//       padding: const EdgeInsets.all(16),
-//       itemBuilder: (context, item) {
-//         if (item.isOdd) return const Divider();
-
-//         final index = item ~/ 2;
-
-//         if (index >= _randomWordPairs.length) {
-//           _randomWordPairs.addAll(generateWordPairs().take(10));
-//           // return const Divider();
-//         }
-
-//         return _buildRow(_randomWordPairs[index]);
-//       },
-//     );
-//   }
-
-//   Widget _buildRow(WordPair pair) {
-//     final alreadySaved = _savedWordPairs.contains(pair);
-
-//     return ListTile(
-//         title: Text(pair.asPascalCase, style: const TextStyle(fontSize: 18)),
-//         trailing: Icon(alreadySaved ? Icons.favorite : Icons.favorite_border,
-//             color: alreadySaved ? Colors.green : null),
-//         onTap: () {
-//           setState(() {
-//             if (alreadySaved) {
-//               _savedWordPairs.remove(pair);
-//             } else {
-//               _savedWordPairs.add(pair);
-//             }
-//           });
-//         });
-//   }
-
-//   void _pushSaved() {
-//     Navigator.of(context)
-//         .push(MaterialPageRoute(builder: (BuildContext context) {
-//       final Iterable<ListTile> tiles = _savedWordPairs.map((WordPair pair) {
-//         return ListTile(
-//             title:
-//                 Text(pair.asPascalCase, style: const TextStyle(fontSize: 16)));
-//       });
-
-//       final List<Widget> divided =
-//           ListTile.divideTiles(context: context, tiles: tiles).toList();
-
-//       return Scaffold(
-//           appBar: AppBar(
-//             title: Text("Saved WordPairs"),
-//           ),
-//           body: ListView(children: divided));
-//     }));
-//   }
-
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: Text('WordPair Generator'), actions: <Widget>[
-//         IconButton(icon: const Icon(Icons.list), onPressed: _pushSaved)
-//       ]),
-//       // body: _buildList(),
-//       body: const WebView(
-//         initialUrl: "https://www.google.com",
-//         javascriptMode: JavascriptMode.unrestricted,
-//       ),
-//     );
-//   }
-// }
-
 import 'dart:async';
 import 'dart:ffi';
 
@@ -229,6 +130,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
   int _currentDomainIndex = 0;
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
+  Map _activeTime = {};
+  final stopwatch = Stopwatch();
 
   void _toggleSearchBar() {
     setState(() {
@@ -242,7 +145,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
   // TextEditingController _handleSearch = TextEditingController();
   List<WebViewController> _controller = [];
-  // late WebViewController controller;
+  WebViewController? _controller_test;
 
   SwiperController _swiperControllerVertical = new SwiperController();
   SwiperController _swiperControllerHorizontal = new SwiperController();
@@ -287,25 +190,38 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
       // print("result ${_searchResult}");
       print("_currentURLs ${_currentURLs}");
+      print("_currentURLIndex ${_currentURLIndex}");
 
       _isSearching = false;
 
-      print("controller ${_controller.length}");
+      // print("controller ${_controller.length}");
 
       // force reload the webview with new URL
-      if (_controller.isNotEmpty && _searchResult.isNotEmpty) {
+      // if (_controller.isNotEmpty && _searchResult.isNotEmpty) {
+      print(_controller_test?.runtimeType);
+
+      if (_controller_test?.runtimeType != null) {
         print("MOVE");
         // _swiperControllerVertical.move(0, animation: false);
         _swiperControllerVertical
             .move(0); // kinda buggy with animation set to false
         _swiperControllerHorizontal
             .move(0); // kinda buggy with animation set to false
+
         _currentDomainIndex = 0;
-        _controller[0].loadUrl(_currentURLs[0]);
+        _currentURLIndex = 0;
+        _loadNewPage();
       }
+
+      // _controller[0].loadUrl(_currentURLs[0]);
+      // }
 
       Navigator.of(context).pop();
     });
+  }
+
+  void _loadNewPage() {
+    _controller_test?.loadUrl(_currentURLs[_currentURLIndex]);
   }
 
   void _pushSearchPage() {
@@ -385,116 +301,170 @@ class _WebViewContainerState extends State<WebViewContainer> {
             Container(
               child: _searchResult.isNotEmpty
                   ? Flexible(
-                      child: Stack(
+                      child: Column(
                         children: <Widget>[
-                          Positioned(
-                            bottom: 0,
-                            height: 50,
-                            width: MediaQuery.of(context).size.width,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color.fromARGB(255, 57, 57, 57)
-                                        .withOpacity(0.2),
-                                    spreadRadius: 3,
-                                    blurRadius: 5,
-                                    offset: const Offset(
-                                        0, -50), // changes position of shadow
-                                  ),
-                                ],
-                              ),
-                              child: const Align(
-                                alignment: Alignment.center,
-                                child: Text(
-                                  "Swipe here to change page",
-                                ),
-                              ),
+                          Container(
+                            height: MediaQuery.of(context).size.height - 250,
+                            child: WebView(
+                              key: _key,
+                              // gestureRecognizers:
+                              //     gestureRecognizers,
+                              javascriptMode: JavascriptMode.unrestricted,
+                              initialUrl: _currentURLs[_currentURLIndex],
+                              onWebViewCreated: (webViewController) {
+                                _controller_test = webViewController;
+                                print(_controller_test.runtimeType);
+
+                                // if (_controller.isNotEmpty) {
+                                //   _controller.removeLast();
+                                // }
+                                // _controller.add(webViewController);
+                              },
+                              onPageStarted: (url) {
+                                setState(() {
+                                  print(stopwatch.isRunning);
+                                  if (stopwatch.isRunning) {
+                                    stopwatch.stop();
+                                    print("stopwatch ${stopwatch.elapsed}");
+                                    if (!_activeTime.containsKey(
+                                        _currentURLs[_currentURLIndex])) {
+                                      _activeTime.addAll({
+                                        _currentURLs[_currentURLIndex]:
+                                            stopwatch.elapsed
+                                      });
+                                    } else {
+                                      _activeTime[
+                                              _currentURLs[_currentURLIndex]] +=
+                                          stopwatch.elapsed;
+                                    }
+
+                                    print("_activeTime $_activeTime");
+                                    stopwatch.reset();
+                                  }
+                                  _loadingPercentage = 0;
+                                });
+                              },
+                              onProgress: (progress) {
+                                setState(() {
+                                  _loadingPercentage = progress;
+                                });
+                              },
+                              onPageFinished: (url) {
+                                setState(() {
+                                  if (!stopwatch.isRunning) {
+                                    print("start stopwatch");
+                                    stopwatch.start();
+                                  }
+                                  _loadingPercentage = 100;
+                                });
+                              },
                             ),
                           ),
+                          // Positioned(
+                          //   bottom: 0,
+                          //   height: 50,
+                          //   width: MediaQuery.of(context).size.width,
+                          //   child: Container(
+                          //     decoration: BoxDecoration(
+                          //       boxShadow: [
+                          //         BoxShadow(
+                          //           color: const Color.fromARGB(255, 57, 57, 57)
+                          //               .withOpacity(0.2),
+                          //           spreadRadius: 3,
+                          //           blurRadius: 5,
+                          //           offset: const Offset(
+                          //               0, -50), // changes position of shadow
+                          //         ),
+                          //       ],
+                          //     ),
+                          //     child: const Align(
+                          //       alignment: Alignment.center,
+                          //       child: Text(
+                          //         "Swipe here to change page",
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
 
                           // Vertical Swiper
-                          Swiper(
-                            itemCount: _searchResult.length,
-                            loop: false,
-                            scrollDirection: Axis.vertical,
-                            itemBuilder: (BuildContext context, int index) {
-                              return Container(
-                                // padding: const EdgeInsets.only(bottom: 50),
-                                margin: const EdgeInsets.only(bottom: 50),
-                                child: Stack(
-                                  children: <Widget>[
-                                    // Horizontal Swiper
-                                    Swiper(
-                                      itemCount: _currentURLs.length,
-                                      loop: false,
-                                      scrollDirection: Axis.horizontal,
-                                      controller: _swiperControllerHorizontal,
-                                      itemBuilder:
-                                          (BuildContext context2, int index2) {
-                                        return WebView(
-                                          key: _key,
-                                          // gestureRecognizers:
-                                          //     gestureRecognizers,
-                                          javascriptMode:
-                                              JavascriptMode.unrestricted,
-                                          initialUrl: _currentURLs[index2],
-                                          onWebViewCreated:
-                                              (webViewController) {
-                                            if (_controller.isNotEmpty) {
-                                              _controller.removeLast();
-                                            }
-                                            _controller.add(webViewController);
-                                          },
-                                          onPageStarted: (url) {
-                                            setState(() {
-                                              _loadingPercentage = 0;
-                                            });
-                                          },
-                                          onProgress: (progress) {
-                                            setState(() {
-                                              _loadingPercentage = progress;
-                                            });
-                                          },
-                                          onPageFinished: (url) {
-                                            setState(() {
-                                              _loadingPercentage = 100;
-                                            });
-                                          },
-                                        );
-                                      },
-                                      onIndexChanged: (index2) {
-                                        setState(() {
-                                          _currentURLIndex = index2;
-                                        });
-                                      },
-                                    ),
-                                    if (_loadingPercentage < 100)
-                                      LinearProgressIndicator(
-                                        value: _loadingPercentage / 100.0,
-                                        minHeight: 5,
-                                        color: Colors.yellow,
+                          Expanded(
+                            // margin: EdgeInsets.only(
+                            //     top: MediaQuery.of(context).size.height - 250),
+                            // height: 5,
+                            child: Swiper(
+                              itemCount: _searchResult.length,
+                              loop: false,
+                              scrollDirection: Axis.vertical,
+                              itemBuilder: (BuildContext context, int index) {
+                                return Container(
+                                  child: Stack(
+                                    children: <Widget>[
+                                      // Horizontal Swiper
+                                      Swiper(
+                                        itemCount: _currentURLs.length,
+                                        loop: false,
+                                        scrollDirection: Axis.horizontal,
+                                        controller: _swiperControllerHorizontal,
+                                        itemBuilder: (BuildContext context2,
+                                            int index2) {
+                                          return Container(
+                                            decoration: BoxDecoration(
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color.fromARGB(
+                                                          255, 57, 57, 57)
+                                                      .withOpacity(0.2),
+                                                  spreadRadius: 3,
+                                                  blurRadius: 5,
+                                                  // offset: const Offset(0,
+                                                  //     -50), // changes position of shadow
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Align(
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                "Swipe here to change page",
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        onIndexChanged: (index2) {
+                                          setState(() {
+                                            _currentURLIndex = index2;
+                                          });
+                                          _loadNewPage();
+                                        },
                                       ),
-                                  ],
-                                ),
-                              );
-                            },
-                            onIndexChanged: (index) {
-                              setState(() {
-                                _currentURLIndex = 0;
-                                _currentDomainIndex = index;
-                                _currentURLs = URL_list_test2[
-                                        _searchText.toString().toLowerCase()][
-                                    _searchResult.keys
-                                        .toList()[_currentDomainIndex]];
+                                      if (_loadingPercentage < 100)
+                                        LinearProgressIndicator(
+                                          value: _loadingPercentage / 100.0,
+                                          minHeight: 5,
+                                          color: Colors.yellow,
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              onIndexChanged: (index) {
+                                setState(() {
+                                  _currentURLIndex = 0;
+                                  _currentDomainIndex = index;
+                                  _currentURLs = URL_list_test2[
+                                          _searchText.toString().toLowerCase()][
+                                      _searchResult.keys
+                                          .toList()[_currentDomainIndex]];
 
-                                // print("_currentURLs $_currentURLs");
-                                print("index $index");
-                              });
-                            },
-                            controller: _swiperControllerVertical,
-                            // pagination: SwiperPagination(),
-                            // control: SwiperControl(),
+                                  // print("_currentURLs $_currentURLs");
+                                  print("index $index");
+
+                                  _loadNewPage();
+                                });
+                              },
+                              controller: _swiperControllerVertical,
+                              // pagination: SwiperPagination(),
+                              // control: SwiperControl(),
+                            ),
                           ),
                         ],
                       ),
