@@ -28,13 +28,6 @@ class WebViewContainer extends StatefulWidget {
 
 class _WebViewContainerState extends State<WebViewContainer> {
   final _key = UniqueKey();
-  // final URL_list = [
-  //   "https://www.cuhk.edu.hk/",
-  //   "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-  //   "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-  //   "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-  // ];
-
   final Map URL_list_test = {
     'doge': [
       "https://coinmarketcap.com/currencies/dogecoin/",
@@ -131,7 +124,9 @@ class _WebViewContainerState extends State<WebViewContainer> {
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
   Map _activeTime = {};
+  String _previousURL = "";
   final stopwatch = Stopwatch();
+  int _selectedPageIndex = 0;
 
   void _toggleSearchBar() {
     setState(() {
@@ -225,13 +220,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
   }
 
   void _pushSearchPage() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (BuildContext context) {
-      // _searchResult = [];
-
-      return Scaffold(
-          appBar: AppBar(
-            title: Container(
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (BuildContext context) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Container(
                 height: 40,
                 padding: const EdgeInsets.only(left: 15),
                 decoration: BoxDecoration(
@@ -250,24 +244,101 @@ class _WebViewContainerState extends State<WebViewContainer> {
                     _handleSearch(value);
                   },
                   autocorrect: false,
-                )),
-          ),
-          body: Container(
+                ),
+              ),
+            ),
+            body: Container(
               child: const Align(
-                  alignment: Alignment.center,
-                  child: Text("Search here", style: TextStyle(fontSize: 22)))));
-    }));
+                alignment: Alignment.center,
+                child: Text(
+                  "Search here",
+                  style: TextStyle(fontSize: 22),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _pushHistoryPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (BuildContext context) {
+          return WillPopScope(
+              onWillPop: () {
+                setState(() {
+                  _selectedPageIndex = 0;
+                });
+                return Future.value(true);
+              },
+              child: Scaffold(
+                appBar: AppBar(
+                  title: Container(
+                    child: const Text("History"),
+                  ),
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new),
+                    onPressed: () => {
+                      setState(() => {
+                            _selectedPageIndex = 0,
+                          }),
+                      Navigator.of(context).pop()
+                    },
+                  ),
+                ),
+                body: Container(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: _activeTime.isEmpty
+                        ? const Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              "No history yet...",
+                              style: TextStyle(fontSize: 22),
+                            ),
+                          )
+                        : ListView(
+                            children: _activeTime
+                                .map(
+                                  (key, value) => MapEntry(
+                                    key,
+                                    ListTile(
+                                      title: Text(key),
+                                      subtitle: Text(value.toString()),
+                                    ),
+                                  ),
+                                )
+                                .values
+                                .toList(),
+                          ),
+                  ),
+                ),
+              ));
+        },
+      ),
+    );
   }
 
   // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
   //   Factory(() => EagerGestureRecognizer())
   // };
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedPageIndex = index;
+      if (_selectedPageIndex == 1) {
+        _pushHistoryPage();
+      }
+    });
+  }
+
   Future<bool> _onWillPop(BuildContext context) async {
-    if (_controller.isNotEmpty) {
-      if (await _controller[0].canGoBack()) {
+    if (_controller_test?.runtimeType != null) {
+      if (await _controller_test!.canGoBack()) {
         print("onwill goback");
-        _controller[0].goBack();
+        _controller_test!.goBack();
         return Future.value(false);
       } else {
         debugPrint("_exit will not go back");
@@ -303,8 +374,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                   ? Flexible(
                       child: Column(
                         children: <Widget>[
-                          Container(
-                            height: MediaQuery.of(context).size.height - 250,
+                          Expanded(
                             child: WebView(
                               key: _key,
                               // gestureRecognizers:
@@ -323,18 +393,16 @@ class _WebViewContainerState extends State<WebViewContainer> {
                               onPageStarted: (url) {
                                 setState(() {
                                   print(stopwatch.isRunning);
-                                  if (stopwatch.isRunning) {
+                                  if (stopwatch.isRunning &&
+                                      _previousURL != "") {
                                     stopwatch.stop();
                                     print("stopwatch ${stopwatch.elapsed}");
-                                    if (!_activeTime.containsKey(
-                                        _currentURLs[_currentURLIndex])) {
-                                      _activeTime.addAll({
-                                        _currentURLs[_currentURLIndex]:
-                                            stopwatch.elapsed
-                                      });
+                                    if (!_activeTime
+                                        .containsKey(_previousURL)) {
+                                      _activeTime.addAll(
+                                          {_previousURL: stopwatch.elapsed});
                                     } else {
-                                      _activeTime[
-                                              _currentURLs[_currentURLIndex]] +=
+                                      _activeTime[_previousURL] +=
                                           stopwatch.elapsed;
                                     }
 
@@ -351,6 +419,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                               },
                               onPageFinished: (url) {
                                 setState(() {
+                                  _previousURL = url;
                                   if (!stopwatch.isRunning) {
                                     print("start stopwatch");
                                     stopwatch.start();
@@ -360,37 +429,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
                               },
                             ),
                           ),
-                          // Positioned(
-                          //   bottom: 0,
-                          //   height: 50,
-                          //   width: MediaQuery.of(context).size.width,
-                          //   child: Container(
-                          //     decoration: BoxDecoration(
-                          //       boxShadow: [
-                          //         BoxShadow(
-                          //           color: const Color.fromARGB(255, 57, 57, 57)
-                          //               .withOpacity(0.2),
-                          //           spreadRadius: 3,
-                          //           blurRadius: 5,
-                          //           offset: const Offset(
-                          //               0, -50), // changes position of shadow
-                          //         ),
-                          //       ],
-                          //     ),
-                          //     child: const Align(
-                          //       alignment: Alignment.center,
-                          //       child: Text(
-                          //         "Swipe here to change page",
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
 
                           // Vertical Swiper
-                          Expanded(
-                            // margin: EdgeInsets.only(
-                            //     top: MediaQuery.of(context).size.height - 250),
-                            // height: 5,
+                          Container(
+                            height: 50,
                             child: Swiper(
                               itemCount: _searchResult.length,
                               loop: false,
@@ -493,6 +535,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
               label: 'Explore',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.history),
+              label: 'History',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.bookmark),
               label: 'Bookmark',
             ),
@@ -501,19 +547,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
               label: 'Settings',
             ),
           ],
-          // currentIndex: _selectedIndex,
+          currentIndex: _selectedPageIndex,
           selectedItemColor: Colors.blue[800],
-          // onTap: _onItemTapped,
+          onTap: _onItemTapped,
+          unselectedItemColor: Colors.grey,
         ),
       ),
     );
   }
 }
-
-// // Search Page
-// class SearchPage extends StatefulWidget {
-//   const SearchPage({super.key});
-
-//   @override
-//   State<SearchPage> createState() => _SearchPageState();
-// }
