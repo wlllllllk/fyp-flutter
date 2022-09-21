@@ -107,6 +107,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
   String _previousURL = "";
   final stopwatch = Stopwatch();
   int _selectedPageIndex = 0;
+  Color _appBarColor = Colors.blue;
+  String _searchMode = "Default";
 
   // include only first page
   int _page = 1;
@@ -183,10 +185,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
         URLs[_searchText]['google'] = [];
       }
 
-      items.forEach((item) {
+      for (var item in items) {
         URLs[_searchText]['google']
             .add({'title': item['title'], 'link': item['link']});
-      });
+      }
 
       print('URLs $URLs');
 
@@ -385,6 +387,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
       onWillPop: () => _onWillPop(context),
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: _appBarColor,
           title: _searchText == ""
               ? const Text("Explore")
               : _searchResult.isNotEmpty
@@ -466,79 +469,135 @@ class _WebViewContainerState extends State<WebViewContainer> {
                           // Vertical Swiper
                           Container(
                             height: 50,
-                            child: Swiper(
-                              itemCount: _searchResult.length,
-                              loop: false,
-                              scrollDirection: Axis.vertical,
-                              itemBuilder: (BuildContext context, int index) {
-                                return Container(
-                                  child: Stack(
-                                    children: <Widget>[
-                                      // Horizontal Swiper
-                                      Swiper(
-                                        itemCount: _currentURLs.length,
-                                        loop: false,
-                                        scrollDirection: Axis.horizontal,
-                                        controller: _swiperControllerHorizontal,
-                                        itemBuilder: (BuildContext context2,
-                                            int index2) {
-                                          return Container(
-                                            decoration: BoxDecoration(
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: const Color.fromARGB(
-                                                          255, 57, 57, 57)
-                                                      .withOpacity(0.2),
-                                                  spreadRadius: 3,
-                                                  blurRadius: 5,
-                                                  // offset: const Offset(0,
-                                                  //     -50), // changes position of shadow
-                                                ),
-                                              ],
-                                            ),
-                                            child: const Align(
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                "Swipe here to change page",
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        onIndexChanged: (index2) {
-                                          setState(() {
-                                            _currentURLIndex = index2;
-                                          });
-                                          _loadNewPage();
-                                        },
-                                      ),
-                                      if (_loadingPercentage < 100)
-                                        LinearProgressIndicator(
-                                          value: _loadingPercentage / 100.0,
-                                          minHeight: 5,
-                                          color: Colors.yellow,
-                                        ),
-                                    ],
+                            child: GestureDetector(
+                              // onLongPress: () => setState(
+                              //   () {
+                              //     if (_searchMode == "Default") {
+                              //       _searchMode = "Drill-down";
+                              //       _appBarColor = Colors.blue[900]!;
+                              //     } else {
+                              //       _searchMode = "Default";
+                              //       _appBarColor = Colors.blue;
+                              //     }
+                              //   },
+                              // ),
+                              onLongPress: () {
+                                setState(
+                                  () {
+                                    if (_searchMode == "Default") {
+                                      _searchMode = "Drill-down";
+                                      _appBarColor = Colors.blue[900]!;
+                                    } else {
+                                      _searchMode = "Default";
+                                      _appBarColor = Colors.blue;
+                                    }
+                                  },
+                                );
+
+                                final snackBar = SnackBar(
+                                  content: Text("$_searchMode mode"),
+                                  // behavior: SnackBarBehavior.,
+                                  // margin: const EdgeInsets.only(bottom: 50.0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(0.0),
+                                  ),
+                                  action: SnackBarAction(
+                                    label: 'Undo',
+                                    onPressed: () {
+                                      setState(() {
+                                        if (_searchMode == "Default") {
+                                          _searchMode = "Drill-down";
+                                          _appBarColor = Colors.blue[900]!;
+                                        } else {
+                                          _searchMode = "Default";
+                                          _appBarColor = Colors.blue;
+                                        }
+                                      });
+                                    },
                                   ),
                                 );
-                              },
-                              onIndexChanged: (index) {
-                                setState(() {
-                                  _currentURLIndex = 0;
-                                  _currentDomainIndex = index;
-                                  _currentURLs =
-                                      URLs[_searchText.toString().toLowerCase()]
-                                          [_searchResult.keys
-                                              .toList()[_currentDomainIndex]];
 
-                                  // print("_currentURLs $_currentURLs");
-                                  print("index $index");
-
-                                  _loadNewPage();
-                                });
+                                // Find the ScaffoldMessenger in the widget tree
+                                // and use it to show a SnackBar.
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(snackBar);
                               },
-                              controller: _swiperControllerVertical,
-                              // pagination: SwiperPagination(),
-                              // control: SwiperControl(),
+                              child: Swiper(
+                                itemCount: _searchResult.length,
+                                loop: false,
+                                scrollDirection: Axis.vertical,
+                                itemBuilder: (BuildContext context, int index) {
+                                  return Container(
+                                    child: Stack(
+                                      children: <Widget>[
+                                        // Horizontal Swiper
+                                        Swiper(
+                                          itemCount: _currentURLs.length,
+                                          loop: false,
+                                          scrollDirection: Axis.horizontal,
+                                          controller:
+                                              _swiperControllerHorizontal,
+                                          itemBuilder: (BuildContext context2,
+                                              int index2) {
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: const Color.fromARGB(
+                                                            255, 182, 182, 182)
+                                                        .withOpacity(0.2),
+                                                    spreadRadius: 3,
+                                                    blurRadius: 5,
+                                                    // offset: const Offset(0,
+                                                    //     -50), // changes position of shadow
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Align(
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  "Swipe here to change page",
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          onIndexChanged: (index2) {
+                                            setState(() {
+                                              _currentURLIndex = index2;
+                                            });
+                                            _loadNewPage();
+                                          },
+                                        ),
+                                        if (_loadingPercentage < 100)
+                                          LinearProgressIndicator(
+                                            value: _loadingPercentage / 100.0,
+                                            minHeight: 5,
+                                            color: Colors.yellow,
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                onIndexChanged: (index) {
+                                  setState(() {
+                                    _currentURLIndex = 0;
+                                    _currentDomainIndex = index;
+                                    _currentURLs = URLs[_searchText
+                                            .toString()
+                                            .toLowerCase()][
+                                        _searchResult.keys
+                                            .toList()[_currentDomainIndex]];
+
+                                    // print("_currentURLs $_currentURLs");
+                                    print("index $index");
+
+                                    _loadNewPage();
+                                  });
+                                },
+                                controller: _swiperControllerVertical,
+                                // pagination: SwiperPagination(),
+                                // control: SwiperControl(),
+                              ),
                             ),
                           ),
                         ],
