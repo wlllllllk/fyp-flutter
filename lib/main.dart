@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'dart:convert' as convert;
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(
@@ -17,6 +19,8 @@ void main() {
 }
 
 final webViewKey = GlobalKey<_WebViewContainerState>();
+const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw";
+const SEARCH_ENGINE_ID = "a2af9eb17493641ba";
 
 class WebViewContainer extends StatefulWidget {
   // const WebViewContainer({required this.controller, Key? key}): super(key: key);
@@ -28,93 +32,69 @@ class WebViewContainer extends StatefulWidget {
 
 class _WebViewContainerState extends State<WebViewContainer> {
   final _key = UniqueKey();
-  final Map URL_list_test = {
-    'doge': [
-      "https://coinmarketcap.com/currencies/dogecoin/",
-      "https://finance.yahoo.com/quote/DOGE-USD/",
-      "https://www.coindesk.com/price/dogecoin/",
-      "https://dogecoin.com/",
-      "https://en.wikipedia.org/wiki/Doge_(meme)"
-    ],
-    "cuhk": [
-      "https://www.cuhk.edu.hk/",
-      "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-      "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-      "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-    ],
-    "idk what to search": [
-      "https://www.makeuseof.com/tag/3-google-tricks-search/",
-      "https://www.youtube.com/watch?v=erZ3IyBCXdY",
-      "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-      "https://tenor.com/search/idk-what-to-search-gifs",
-      "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
-      "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
-    ],
-    "wlsk": ["https://wlsk.design"]
-  };
-
-  final Map URL_list_test2 = {
-    'doge': {
-      'google': [
-        "https://coinmarketcap.com/currencies/dogecoin/",
-        "https://finance.yahoo.com/quote/DOGE-USD/",
-        "https://www.coindesk.com/price/dogecoin/",
-        "https://dogecoin.com/",
-        "https://en.wikipedia.org/wiki/Doge_(meme)"
-      ],
-      "facebook": [
-        "https://www.cuhk.edu.hk/",
-        "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-        "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-        "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-      ],
-      "youtube": [
-        "https://www.makeuseof.com/tag/3-google-tricks-search/",
-        "https://www.youtube.com/watch?v=erZ3IyBCXdY",
-        "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-        "https://tenor.com/search/idk-what-to-search-gifs",
-        "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
-        "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
-      ],
-      "idk": ["https://wlsk.design"]
-    },
-    'cuhk': {
-      'google': [
-        "https://coinmarketcap.com/currencies/dogecoin/",
-        "https://finance.yahoo.com/quote/DOGE-USD/",
-        "https://www.coindesk.com/price/dogecoin/",
-        "https://dogecoin.com/",
-        "https://en.wikipedia.org/wiki/Doge_(meme)"
-      ],
-      "facebook": [
-        "https://www.cuhk.edu.hk/",
-        "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-        "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-        "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-      ],
-      "youtube": [
-        "https://www.makeuseof.com/tag/3-google-tricks-search/",
-        "https://www.youtube.com/watch?v=erZ3IyBCXdY",
-        "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-        "https://tenor.com/search/idk-what-to-search-gifs",
-        "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
-        "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
-      ],
-      "idk": ["https://wlsk.design"]
-    },
-    'idk': {
-      'google': [
-        "https://coinmarketcap.com/currencies/dogecoin/",
-      ],
-      "facebook": [
-        "https://www.cuhk.edu.hk/",
-      ],
-      "youtube": [
-        "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-      ],
-      "idk": ["https://wlsk.design"]
-    }
-  };
+  Map URLs = {};
+  // final Map URL_list = {
+  //   'doge': {
+  //     'google': [
+  //       "https://coinmarketcap.com/currencies/dogecoin/",
+  //       "https://finance.yahoo.com/quote/DOGE-USD/",
+  //       "https://www.coindesk.com/price/dogecoin/",
+  //       "https://dogecoin.com/",
+  //       "https://en.wikipedia.org/wiki/Doge_(meme)"
+  //     ],
+  //     "facebook": [
+  //       "https://www.cuhk.edu.hk/",
+  //       "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
+  //       "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+  //       "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
+  //     ],
+  //     "youtube": [
+  //       "https://www.makeuseof.com/tag/3-google-tricks-search/",
+  //       "https://www.youtube.com/watch?v=erZ3IyBCXdY",
+  //       "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
+  //       "https://tenor.com/search/idk-what-to-search-gifs",
+  //       "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
+  //       "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
+  //     ],
+  //     "idk": ["https://wlsk.design"]
+  //   },
+  //   'cuhk': {
+  //     'google': [
+  //       "https://coinmarketcap.com/currencies/dogecoin/",
+  //       "https://finance.yahoo.com/quote/DOGE-USD/",
+  //       "https://www.coindesk.com/price/dogecoin/",
+  //       "https://dogecoin.com/",
+  //       "https://en.wikipedia.org/wiki/Doge_(meme)"
+  //     ],
+  //     "facebook": [
+  //       "https://www.cuhk.edu.hk/",
+  //       "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
+  //       "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+  //       "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
+  //     ],
+  //     "youtube": [
+  //       "https://www.makeuseof.com/tag/3-google-tricks-search/",
+  //       "https://www.youtube.com/watch?v=erZ3IyBCXdY",
+  //       "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
+  //       "https://tenor.com/search/idk-what-to-search-gifs",
+  //       "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
+  //       "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
+  //     ],
+  //     "idk": ["https://wlsk.design"]
+  //   },
+  //   'idk': {
+  //     'google': [
+  //       "https://coinmarketcap.com/currencies/dogecoin/",
+  //     ],
+  //     "facebook": [
+  //       "https://www.cuhk.edu.hk/",
+  //     ],
+  //     "youtube": [
+  //       "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
+  //     ],
+  //     "idk": ["https://wlsk.design"]
+  //   }
+  // };
 
   String _searchText = "";
   bool _isSearching = false;
@@ -127,6 +107,11 @@ class _WebViewContainerState extends State<WebViewContainer> {
   String _previousURL = "";
   final stopwatch = Stopwatch();
   int _selectedPageIndex = 0;
+
+  // include only first page
+  int _page = 1;
+  // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
+  int _start = (1 - 1) * 10 + 1;
 
   void _toggleSearchBar() {
     setState(() {
@@ -170,22 +155,68 @@ class _WebViewContainerState extends State<WebViewContainer> {
   //   });
   // }
 
-  void _handleSearch(value) {
-    setState(() {
-      print("search $value");
-      _searchText = value;
+  void _handleSearch(value) async {
+    print("search $value");
+    _searchText = value;
 
-      if (URL_list_test2[_searchText.toString().toLowerCase()] == null) {
-        _searchResult = {};
-      } else {
-        _searchResult = URL_list_test2[_searchText.toString().toLowerCase()];
-        _currentURLs = URL_list_test2[_searchText.toString().toLowerCase()]
-            [_searchResult.keys.toList()[_currentDomainIndex]];
+    var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
+      'key': API_KEY,
+      'cx': SEARCH_ENGINE_ID,
+      'q': _searchText,
+      'start': _start.toString()
+    });
+
+    var response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      var jsonResponse =
+          convert.jsonDecode(response.body) as Map<String, dynamic>;
+      var items = jsonResponse['items'] as List<dynamic>;
+
+      // create record for new search text
+      if (URLs[_searchText] == null) {
+        URLs[_searchText] = {};
       }
 
+      // create record for new search platform
+      if (URLs[_searchText]['google'] == null) {
+        URLs[_searchText]['google'] = [];
+      }
+
+      items.forEach((item) {
+        URLs[_searchText]['google']
+            .add({'title': item['title'], 'link': item['link']});
+      });
+
+      print('URLs $URLs');
+
+      // print('jsonResponse $items');
+    } else {
+      print('Request failed with status: ${response.statusCode}.');
+    }
+
+    setState(() {
+      if (URLs[_searchText.toString().toLowerCase()] == null) {
+        _searchResult = {};
+      } else {
+        _searchResult = URLs[_searchText.toString().toLowerCase()];
+        print("_searchResult $_searchResult");
+        _currentURLs = URLs[_searchText.toString().toLowerCase()]
+            [_searchResult.keys.toList()[_currentDomainIndex]];
+        print("_currentURLs $_currentURLs");
+      }
+
+      // if (URL_list[_searchText.toString().toLowerCase()] == null) {
+      //   _searchResult = {};
+      // } else {
+      //   _searchResult = URL_list[_searchText.toString().toLowerCase()];
+      //   _currentURLs = URL_list[_searchText.toString().toLowerCase()]
+      //       [_searchResult.keys.toList()[_currentDomainIndex]];
+      // }
+
       // print("result ${_searchResult}");
-      print("_currentURLs ${_currentURLs}");
-      print("_currentURLIndex ${_currentURLIndex}");
+      // print("_currentURLs ${_currentURLs}");
+      // print("_currentURLIndex ${_currentURLIndex}");
 
       _isSearching = false;
 
@@ -216,7 +247,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
   }
 
   void _loadNewPage() {
-    _controller_test?.loadUrl(_currentURLs[_currentURLIndex]);
+    _controller_test?.loadUrl(_currentURLs[_currentURLIndex]['link']);
   }
 
   void _pushSearchPage() {
@@ -380,7 +411,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
                               // gestureRecognizers:
                               //     gestureRecognizers,
                               javascriptMode: JavascriptMode.unrestricted,
-                              initialUrl: _currentURLs[_currentURLIndex],
+                              initialUrl: _currentURLs[_currentURLIndex]
+                                  ['link'],
                               onWebViewCreated: (webViewController) {
                                 _controller_test = webViewController;
                                 print(_controller_test.runtimeType);
@@ -417,7 +449,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   _loadingPercentage = progress;
                                 });
                               },
-                              onPageFinished: (url) {
+                              onPageFinished: (url) async {
                                 setState(() {
                                   _previousURL = url;
                                   if (!stopwatch.isRunning) {
@@ -426,6 +458,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   }
                                   _loadingPercentage = 100;
                                 });
+                                print(await _controller_test?.getTitle());
                               },
                             ),
                           ),
@@ -492,10 +525,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 setState(() {
                                   _currentURLIndex = 0;
                                   _currentDomainIndex = index;
-                                  _currentURLs = URL_list_test2[
-                                          _searchText.toString().toLowerCase()][
-                                      _searchResult.keys
-                                          .toList()[_currentDomainIndex]];
+                                  _currentURLs =
+                                      URLs[_searchText.toString().toLowerCase()]
+                                          [_searchResult.keys
+                                              .toList()[_currentDomainIndex]];
 
                                   // print("_currentURLs $_currentURLs");
                                   print("index $index");
