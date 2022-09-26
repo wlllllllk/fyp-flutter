@@ -6,11 +6,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
+import 'package:isar/isar.dart';
+import 'package:duration/duration.dart';
 
-void main() {
+part 'main.g.dart';
+
+void main() async {
   runApp(
     const MaterialApp(
       home: WebViewContainer(),
@@ -425,25 +428,70 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 // }
                                 // _controller.add(webViewController);
                               },
-                              onPageStarted: (url) {
-                                setState(() {
-                                  print(stopwatch.isRunning);
-                                  if (stopwatch.isRunning &&
-                                      _previousURL != "") {
-                                    stopwatch.stop();
-                                    print("stopwatch ${stopwatch.elapsed}");
-                                    if (!_activeTime
-                                        .containsKey(_previousURL)) {
-                                      _activeTime.addAll(
-                                          {_previousURL: stopwatch.elapsed});
-                                    } else {
-                                      _activeTime[_previousURL] +=
-                                          stopwatch.elapsed;
-                                    }
+                              onPageStarted: (url) async {
+                                print(stopwatch.isRunning);
 
-                                    print("_activeTime $_activeTime");
-                                    stopwatch.reset();
-                                  }
+                                final isar = Isar.getInstance("url") ??
+                                    await Isar.open([URLSchema], name: "url");
+
+                                // check if the record exist
+                                final urlRecord = await isar.uRLs
+                                    .filter()
+                                    .urlEqualTo(_previousURL)
+                                    .findAll();
+
+                                // // print("urlRecord: ${urlRecord.length}");
+
+                                if (stopwatch.isRunning && _previousURL != "") {
+                                  stopwatch.stop();
+
+                                  // final Duration dur = parseDuration(
+                                  //     '2w 5d 23h 59m 59s 999ms 999us');
+                                  // print("dur $dur");
+
+                                  await isar.writeTxn(() async {
+                                    final uRL =
+                                        await isar.uRLs.get(urlRecord[0].id);
+                                    // print("duration: ${uRL?.duration}");
+                                    // uRL?.duration.
+                                    // Duration temp =
+                                    //     parseDuration(uRL!.duration);
+                                    // print("temp: ${temp}");
+                                    // print(
+                                    //     "temp.inMicroseconds: ${temp.inMicroseconds}");
+
+                                    // if (temp.inMicroseconds == 0) {
+                                    //   temp = stopwatch.elapsed;
+                                    // } else {
+                                    //   temp += stopwatch.elapsed;
+                                    // }
+                                    uRL!.duration =
+                                        stopwatch.elapsed.toString();
+
+                                    await isar.uRLs.put(uRL);
+                                  });
+
+                                  stopwatch.reset();
+                                }
+
+                                setState(() {
+                                  // if (stopwatch.isRunning &&
+                                  //     _previousURL != "") {
+                                  //   stopwatch.stop();
+                                  //   print(
+                                  //       "stopwatch ${stopwatch.elapsed.runtimeType}");
+                                  //   if (!_activeTime
+                                  //       .containsKey(_previousURL)) {
+                                  //     _activeTime.addAll(
+                                  //         {_previousURL: stopwatch.elapsed});
+                                  //   } else {
+                                  //     _activeTime[_previousURL] +=
+                                  //         stopwatch.elapsed;
+                                  //   }
+
+                                  //   print("_activeTime $_activeTime");
+                                  //   stopwatch.reset();
+                                  // }
                                   _loadingPercentage = 0;
                                 });
                               },
@@ -453,6 +501,40 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 });
                               },
                               onPageFinished: (url) async {
+                                final isar = Isar.getInstance("url") ??
+                                    await Isar.open([URLSchema], name: "url");
+
+                                print("isar: ${isar}");
+
+                                final urlRecord = await isar.uRLs
+                                    .filter()
+                                    .urlEqualTo(url)
+                                    .findAll();
+
+                                if (urlRecord.isNotEmpty) {
+                                  await isar.writeTxn(() async {
+                                    final uRL =
+                                        await isar.uRLs.get(urlRecord[0].id);
+
+                                    uRL?.viewCount++;
+                                    uRL?.lastViewed = DateTime.now();
+                                    uRL?.title =
+                                        await _controller_test?.getTitle();
+
+                                    await isar.uRLs.put(uRL!);
+                                  });
+                                }
+                                // new record
+                                else {
+                                  final newURL = URL()
+                                    ..url = url
+                                    ..title =
+                                        await _controller_test?.getTitle();
+                                  await isar.writeTxn(() async {
+                                    await isar.uRLs.put(newURL);
+                                  });
+                                }
+
                                 setState(() {
                                   _previousURL = url;
                                   if (!stopwatch.isRunning) {
@@ -461,7 +543,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   }
                                   _loadingPercentage = 100;
                                 });
-                                print(await _controller_test?.getTitle());
                               },
                             ),
                           ),
@@ -470,17 +551,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
                           Container(
                             height: 50,
                             child: GestureDetector(
-                              // onLongPress: () => setState(
-                              //   () {
-                              //     if (_searchMode == "Default") {
-                              //       _searchMode = "Drill-down";
-                              //       _appBarColor = Colors.blue[900]!;
-                              //     } else {
-                              //       _searchMode = "Default";
-                              //       _appBarColor = Colors.blue;
-                              //     }
-                              //   },
-                              // ),
                               onLongPress: () {
                                 setState(
                                   () {
@@ -496,8 +566,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
                                 final snackBar = SnackBar(
                                   content: Text("$_searchMode mode"),
-                                  // behavior: SnackBarBehavior.,
-                                  // margin: const EdgeInsets.only(bottom: 50.0),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(0.0),
                                   ),
@@ -545,7 +613,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                                   BoxShadow(
                                                     color: const Color.fromARGB(
                                                             255, 182, 182, 182)
-                                                        .withOpacity(0.2),
+                                                        .withOpacity(0.1),
                                                     spreadRadius: 3,
                                                     blurRadius: 5,
                                                     // offset: const Offset(0,
@@ -647,4 +715,114 @@ class _WebViewContainerState extends State<WebViewContainer> {
       ),
     );
   }
+}
+
+/// Data Model
+// class URL {
+//   final String id;
+//   String title;
+//   String url;
+//   DateTime firstViewed;
+//   DateTime lastViewed;
+//   int viewCount;
+//   String duration;
+//   bool bookmarked;
+//   URL({
+//     required this.id,
+//     required this.title,
+//     required this.url,
+//     required this.firstViewed,
+//     required this.lastViewed,
+//     required this.viewCount,
+//     required this.duration,
+//     required this.bookmarked,
+//   });
+
+//   Map<String, dynamic> toMap() {
+//     return {
+//       'id': id,
+//       'title': title,
+//       'url': url,
+//       'firstViewed': firstViewed.millisecondsSinceEpoch,
+//       'lastViewed': lastViewed.millisecondsSinceEpoch,
+//       'viewCount': viewCount,
+//       'duration': duration,
+//       'bookmarked': bookmarked,
+//     };
+//   }
+
+//   factory URL.fromMap(Map<String, dynamic> map) {
+//     return URL(
+//       id: map['id'],
+//       title: map['title'],
+//       url: map['url'],
+//       firstViewed: DateTime.fromMillisecondsSinceEpoch(map['firstViewed']),
+//       lastViewed: DateTime.fromMillisecondsSinceEpoch(map['lastViewed']),
+//       viewCount: map['viewCount'],
+//       duration: map['duration'],
+//       bookmarked: map['bookmarked'],
+//     );
+//   }
+// }
+
+// extension ExtURL on URL {
+//   Future save() async {
+//     final _db = Localstore.instance;
+//     return _db.collection('URLs').doc(id).set(toMap());
+//   }
+
+//   Future delete() async {
+//     final _db = Localstore.instance;
+//     return _db.collection('URLs').doc(id).delete();
+//   }
+// }
+
+// @HiveType(typeId: 1)
+// class URL {
+//   URL(
+//       {required this.url,
+//       required this.title,
+//       required this.firstViewed,
+//       required this.lastViewed,
+//       required this.viewCount,
+//       required this.duration,
+//       required this.bookmarked});
+
+//   @HiveField(0)
+//   String url;
+
+//   @HiveField(1)
+//   String title;
+
+//   @HiveField(2)
+//   DateTime firstViewed;
+
+//   @HiveField(3)
+//   DateTime lastViewed;
+
+//   @HiveField(4)
+//   int viewCount;
+
+//   @HiveField(5)
+//   Duration duration;
+
+//   @HiveField(6)
+//   bool bookmarked;
+
+//   // @override
+//   // String toString() {
+//   //   return '$name: $age';
+//   // }
+// }
+
+@collection
+class URL {
+  Id id = Isar.autoIncrement; // you can also use id = null to auto increment
+  String? url;
+  String? title;
+  DateTime firstViewed = DateTime.now();
+  DateTime lastViewed = DateTime.now();
+  int viewCount = 1;
+  String duration = Duration(seconds: 0).toString();
+  bool bookmarked = false;
 }
