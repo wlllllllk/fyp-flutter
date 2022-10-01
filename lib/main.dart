@@ -36,6 +36,7 @@ class WebViewContainer extends StatefulWidget {
 class _WebViewContainerState extends State<WebViewContainer> {
   final _key = UniqueKey();
   Map URLs = {};
+  Map _drillURLs = {};
   // final Map URL_list = {
   //   'doge': {
   //     'google': [
@@ -100,8 +101,11 @@ class _WebViewContainerState extends State<WebViewContainer> {
   // };
 
   String _searchText = "";
+  String _drillText = "";
   bool _isSearching = false;
   Map _searchResult = {};
+  Map _backUp = {};
+  Map _drillResult = {};
   List _currentURLs = [];
   int _currentDomainIndex = 0;
   int _currentURLIndex = 0;
@@ -160,14 +164,30 @@ class _WebViewContainerState extends State<WebViewContainer> {
   //   });
   // }
 
-  void _handleSearch(value) async {
+  // void _performSearch(value) async {}
+
+  void _handleSearch(value, bool switchMode, bool drilling) async {
     print("search $value");
-    _searchText = value;
+    String realSearchText = "";
+    Map results = {};
+
+    print("_searchMode $_searchMode");
+
+    if (_searchMode == "Default") {
+      // if (_searchText == "") {
+      _searchText = value;
+      // }
+      realSearchText = value;
+    } else if (_searchMode == "Drill-down") {
+      realSearchText = value;
+    }
+
+    print("realSearchText $realSearchText");
 
     var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
       'key': API_KEY,
       'cx': SEARCH_ENGINE_ID,
-      'q': _searchText,
+      'q': realSearchText,
       'start': _start.toString()
     });
 
@@ -188,12 +208,21 @@ class _WebViewContainerState extends State<WebViewContainer> {
         URLs[_searchText]['google'] = [];
       }
 
+      // remove all previous search results EXCEPT the current one on screen
+      int length = URLs[_searchText]['google'].length;
       for (var item in items) {
         URLs[_searchText]['google']
             .add({'title': item['title'], 'link': item['link']});
       }
 
-      print('URLs $URLs');
+      results = URLs;
+      if (_searchMode == "Drill-down") {
+        results[_searchText]['google'].removeRange(1, length);
+      }
+
+      // print("URLs[_searchText]['google'] ${URLs[_searchText]['google']}");
+
+      // print('results $results');
 
       // print('jsonResponse $items');
     } else {
@@ -201,23 +230,15 @@ class _WebViewContainerState extends State<WebViewContainer> {
     }
 
     setState(() {
-      if (URLs[_searchText.toString().toLowerCase()] == null) {
+      if (results[_searchText.toString().toLowerCase()] == null) {
         _searchResult = {};
       } else {
-        _searchResult = URLs[_searchText.toString().toLowerCase()];
-        print("_searchResult $_searchResult");
-        _currentURLs = URLs[_searchText.toString().toLowerCase()]
+        _searchResult = results[_searchText.toString().toLowerCase()];
+        // print("_searchResult $_searchResult");
+        _currentURLs = results[_searchText.toString().toLowerCase()]
             [_searchResult.keys.toList()[_currentDomainIndex]];
-        print("_currentURLs $_currentURLs");
+        // print("_currentURLs $_currentURLs");
       }
-
-      // if (URL_list[_searchText.toString().toLowerCase()] == null) {
-      //   _searchResult = {};
-      // } else {
-      //   _searchResult = URL_list[_searchText.toString().toLowerCase()];
-      //   _currentURLs = URL_list[_searchText.toString().toLowerCase()]
-      //       [_searchResult.keys.toList()[_currentDomainIndex]];
-      // }
 
       // print("result ${_searchResult}");
       // print("_currentURLs ${_currentURLs}");
@@ -229,9 +250,9 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
       // force reload the webview with new URL
       // if (_controller.isNotEmpty && _searchResult.isNotEmpty) {
-      print(_controller_test?.runtimeType);
+      print("_controller_test?.runtimeType ${_controller_test?.runtimeType}");
 
-      if (_controller_test?.runtimeType != null) {
+      if (_controller_test?.runtimeType != null && !switchMode && !drilling) {
         print("MOVE");
         // _swiperControllerVertical.move(0, animation: false);
         _swiperControllerVertical
@@ -241,13 +262,16 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
         _currentDomainIndex = 0;
         _currentURLIndex = 0;
-        _loadNewPage();
+
+        if (_searchMode != "Drill-down") _loadNewPage();
+      }
+
+      if (!switchMode && _searchMode != "Drill-down") {
+        Navigator.of(context).pop();
       }
 
       // _controller[0].loadUrl(_currentURLs[0]);
       // }
-
-      Navigator.of(context).pop();
     });
   }
 
@@ -277,7 +301,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                   ),
                   // controller: _handleSearch,
                   onSubmitted: (value) {
-                    _handleSearch(value);
+                    _handleSearch(value, false, false);
                   },
                   autocorrect: false,
                 ),
@@ -298,60 +322,138 @@ class _WebViewContainerState extends State<WebViewContainer> {
     );
   }
 
+  _getHistory() async {
+    print("getting history");
+
+    final isar = await Isar.getInstance("url") ??
+        await Isar.open([URLSchema], name: "url");
+
+    // check if the record exist
+    final urlRecord = await isar.uRLs.where().findAll();
+
+    return urlRecord;
+  }
+
+  void _deleteHistory() async {
+    print("deleting history");
+
+    final isar = await Isar.getInstance("url") ??
+        await Isar.open([URLSchema], name: "url");
+
+    await isar.writeTxn(() async {
+      isar.clear();
+    });
+  }
+
+  _buildHistoryList(data) {
+    Map list = {};
+    for (var item in data) {
+      list.addAll({item.url: item.duration});
+    }
+
+    return list
+        .map(
+          (key, value) => MapEntry(
+            key,
+            ListTile(
+              title: Text(key),
+              subtitle: Text(value.toString()),
+            ),
+          ),
+        )
+        .values
+        .toList();
+  }
+
+  _showAlertDialog(BuildContext context) {
+    Widget cancelButton = TextButton(
+      child: const Text("Cancel"),
+      onPressed: () {
+        Navigator.of(context).pop();
+      },
+    );
+    Widget continueButton = TextButton(
+      child: const Text("Delete"),
+      onPressed: () {
+        _deleteHistory();
+        Navigator.of(context).pop();
+        Navigator.of(context).pop();
+        setState(() {
+          _selectedPageIndex = 0;
+        });
+      },
+    );
+
+    AlertDialog alert = AlertDialog(
+      title: const Text("Delete All History"),
+      content: const Text("Are you sure? This cannot be undone."),
+      actions: [
+        cancelButton,
+        continueButton,
+      ],
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
   void _pushHistoryPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
           return WillPopScope(
-              onWillPop: () {
-                setState(() {
-                  _selectedPageIndex = 0;
-                });
-                return Future.value(true);
-              },
-              child: Scaffold(
-                appBar: AppBar(
-                  title: Container(
-                    child: const Text("History"),
+            onWillPop: () {
+              setState(() {
+                _selectedPageIndex = 0;
+              });
+              return Future.value(true);
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Container(
+                  child: const Text("History"),
+                ),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new),
+                  onPressed: () => {
+                    setState(() => {
+                          _selectedPageIndex = 0,
+                        }),
+                    Navigator.of(context).pop()
+                  },
+                ),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _showAlertDialog(context),
                   ),
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new),
-                    onPressed: () => {
-                      setState(() => {
-                            _selectedPageIndex = 0,
-                          }),
-                      Navigator.of(context).pop()
+                ],
+              ),
+              body: Container(
+                child: Align(
+                  alignment: Alignment.center,
+                  child: FutureBuilder(
+                    future: _getHistory(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        // print("snapshot ${snapshot.data}");
+                        // print("snapshot ${snapshot.data == ''}");
+                        return ListView(
+                          children: _buildHistoryList(snapshot.data),
+                        );
+                      } else {
+                        return const Text("Nothing here :(");
+                      }
                     },
                   ),
                 ),
-                body: Container(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: _activeTime.isEmpty
-                        ? const Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              "No history yet...",
-                              style: TextStyle(fontSize: 22),
-                            ),
-                          )
-                        : ListView(
-                            children: _activeTime
-                                .map(
-                                  (key, value) => MapEntry(
-                                    key,
-                                    ListTile(
-                                      title: Text(key),
-                                      subtitle: Text(value.toString()),
-                                    ),
-                                  ),
-                                )
-                                .values
-                                .toList(),
-                          ),
-                  ),
-                ),
-              ));
+              ),
+            ),
+          );
         },
       ),
     );
@@ -368,6 +470,25 @@ class _WebViewContainerState extends State<WebViewContainer> {
         _pushHistoryPage();
       }
     });
+
+    _getHistory();
+  }
+
+  void _onChangeSearchMode() async {
+    setState(
+      () {
+        if (_searchMode == "Default") {
+          _searchMode = "Drill-down";
+          _appBarColor = Colors.blue[900]!;
+        } else {
+          _searchMode = "Default";
+          _appBarColor = Colors.blue;
+        }
+      },
+    );
+
+    // final title = await _controller_test!.getTitle();
+    // _handleSearch(title, true);
   }
 
   Future<bool> _onWillPop(BuildContext context) async {
@@ -440,7 +561,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                     .urlEqualTo(_previousURL)
                                     .findAll();
 
-                                // // print("urlRecord: ${urlRecord.length}");
+                                print("urlRecord: ${urlRecord}");
 
                                 if (stopwatch.isRunning && _previousURL != "") {
                                   stopwatch.stop();
@@ -449,27 +570,28 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   //     '2w 5d 23h 59m 59s 999ms 999us');
                                   // print("dur $dur");
 
-                                  await isar.writeTxn(() async {
-                                    final uRL =
-                                        await isar.uRLs.get(urlRecord[0].id);
-                                    // print("duration: ${uRL?.duration}");
-                                    // uRL?.duration.
-                                    // Duration temp =
-                                    //     parseDuration(uRL!.duration);
-                                    // print("temp: ${temp}");
-                                    // print(
-                                    //     "temp.inMicroseconds: ${temp.inMicroseconds}");
+                                  if (urlRecord.isNotEmpty) {
+                                    await isar.writeTxn(() async {
+                                      final uRL =
+                                          await isar.uRLs.get(urlRecord[0].id);
 
-                                    // if (temp.inMicroseconds == 0) {
-                                    //   temp = stopwatch.elapsed;
-                                    // } else {
-                                    //   temp += stopwatch.elapsed;
-                                    // }
-                                    uRL!.duration =
-                                        stopwatch.elapsed.toString();
+                                      uRL!.duration =
+                                          stopwatch.elapsed.toString();
 
-                                    await isar.uRLs.put(uRL);
-                                  });
+                                      await isar.uRLs.put(uRL);
+                                    });
+                                  }
+                                  // new record
+                                  else {
+                                    final newURL = URL()
+                                      ..url = _previousURL
+                                      ..title =
+                                          await _controller_test?.getTitle()
+                                      ..duration = stopwatch.elapsed.toString();
+                                    await isar.writeTxn(() async {
+                                      await isar.uRLs.put(newURL);
+                                    });
+                                  }
 
                                   stopwatch.reset();
                                 }
@@ -543,6 +665,24 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   }
                                   _loadingPercentage = 100;
                                 });
+
+                                if (_searchMode == "Drill-down") {
+                                  bool isExist = false;
+                                  for (var value in _currentURLs) {
+                                    if (value['link'] == url) {
+                                      isExist = true;
+                                      break;
+                                    }
+                                  }
+
+                                  // drilling down
+                                  if (!isExist) {
+                                    _handleSearch(
+                                        await _controller_test!.getTitle(),
+                                        false,
+                                        true);
+                                  }
+                                }
                               },
                             ),
                           ),
@@ -552,17 +692,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                             height: 50,
                             child: GestureDetector(
                               onLongPress: () {
-                                setState(
-                                  () {
-                                    if (_searchMode == "Default") {
-                                      _searchMode = "Drill-down";
-                                      _appBarColor = Colors.blue[900]!;
-                                    } else {
-                                      _searchMode = "Default";
-                                      _appBarColor = Colors.blue;
-                                    }
-                                  },
-                                );
+                                _onChangeSearchMode();
 
                                 final snackBar = SnackBar(
                                   content: Text("$_searchMode mode"),
@@ -571,17 +701,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   ),
                                   action: SnackBarAction(
                                     label: 'Undo',
-                                    onPressed: () {
-                                      setState(() {
-                                        if (_searchMode == "Default") {
-                                          _searchMode = "Drill-down";
-                                          _appBarColor = Colors.blue[900]!;
-                                        } else {
-                                          _searchMode = "Default";
-                                          _appBarColor = Colors.blue;
-                                        }
-                                      });
-                                    },
+                                    onPressed: () => _onChangeSearchMode(),
                                   ),
                                 );
 
@@ -716,104 +836,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
     );
   }
 }
-
-/// Data Model
-// class URL {
-//   final String id;
-//   String title;
-//   String url;
-//   DateTime firstViewed;
-//   DateTime lastViewed;
-//   int viewCount;
-//   String duration;
-//   bool bookmarked;
-//   URL({
-//     required this.id,
-//     required this.title,
-//     required this.url,
-//     required this.firstViewed,
-//     required this.lastViewed,
-//     required this.viewCount,
-//     required this.duration,
-//     required this.bookmarked,
-//   });
-
-//   Map<String, dynamic> toMap() {
-//     return {
-//       'id': id,
-//       'title': title,
-//       'url': url,
-//       'firstViewed': firstViewed.millisecondsSinceEpoch,
-//       'lastViewed': lastViewed.millisecondsSinceEpoch,
-//       'viewCount': viewCount,
-//       'duration': duration,
-//       'bookmarked': bookmarked,
-//     };
-//   }
-
-//   factory URL.fromMap(Map<String, dynamic> map) {
-//     return URL(
-//       id: map['id'],
-//       title: map['title'],
-//       url: map['url'],
-//       firstViewed: DateTime.fromMillisecondsSinceEpoch(map['firstViewed']),
-//       lastViewed: DateTime.fromMillisecondsSinceEpoch(map['lastViewed']),
-//       viewCount: map['viewCount'],
-//       duration: map['duration'],
-//       bookmarked: map['bookmarked'],
-//     );
-//   }
-// }
-
-// extension ExtURL on URL {
-//   Future save() async {
-//     final _db = Localstore.instance;
-//     return _db.collection('URLs').doc(id).set(toMap());
-//   }
-
-//   Future delete() async {
-//     final _db = Localstore.instance;
-//     return _db.collection('URLs').doc(id).delete();
-//   }
-// }
-
-// @HiveType(typeId: 1)
-// class URL {
-//   URL(
-//       {required this.url,
-//       required this.title,
-//       required this.firstViewed,
-//       required this.lastViewed,
-//       required this.viewCount,
-//       required this.duration,
-//       required this.bookmarked});
-
-//   @HiveField(0)
-//   String url;
-
-//   @HiveField(1)
-//   String title;
-
-//   @HiveField(2)
-//   DateTime firstViewed;
-
-//   @HiveField(3)
-//   DateTime lastViewed;
-
-//   @HiveField(4)
-//   int viewCount;
-
-//   @HiveField(5)
-//   Duration duration;
-
-//   @HiveField(6)
-//   bool bookmarked;
-
-//   // @override
-//   // String toString() {
-//   //   return '$name: $age';
-//   // }
-// }
 
 @collection
 class URL {
