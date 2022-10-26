@@ -22,8 +22,10 @@ void main() async {
 }
 
 final webViewKey = GlobalKey<_WebViewContainerState>();
-const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw";
-const SEARCH_ENGINE_ID = "a2af9eb17493641ba";
+// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw";
+const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+// const SEARCH_ENGINE_ID = "a2af9eb17493641ba";
+const SEARCH_ENGINE_ID = "35fddaf2d5efb4668";
 
 class WebViewContainer extends StatefulWidget {
   // const WebViewContainer({required this.controller, Key? key}): super(key: key);
@@ -34,6 +36,8 @@ class WebViewContainer extends StatefulWidget {
 }
 
 class _WebViewContainerState extends State<WebViewContainer> {
+  bool stop = false;
+
   final _key = UniqueKey();
   Map URLs = {};
   Map _drillURLs = {};
@@ -99,7 +103,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
   //     "idk": ["https://wlsk.design"]
   //   }
   // };
-
+  int _TEST = 0;
   String _searchText = "";
   String _drillText = "";
   bool _isSearching = false;
@@ -129,6 +133,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
       } else if (_isSearching) {
         _isSearching = false;
       }
+
+      print("searching? $_isSearching");
     });
   }
 
@@ -164,30 +170,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
   //   });
   // }
 
-  // void _performSearch(value) async {}
-
-  void _handleSearch(value, bool switchMode, bool drilling) async {
-    print("search $value");
-    String realSearchText = "";
-    Map results = {};
-
-    print("_searchMode $_searchMode");
-
-    if (_searchMode == "Default") {
-      // if (_searchText == "") {
-      _searchText = value;
-      // }
-      realSearchText = value;
-    } else if (_searchMode == "Drill-down") {
-      realSearchText = value;
-    }
-
-    print("realSearchText $realSearchText");
+  _performSearch(value) async {
+    print("searching...");
 
     var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
       'key': API_KEY,
       'cx': SEARCH_ENGINE_ID,
-      'q': realSearchText,
+      'q': value,
       'start': _start.toString()
     });
 
@@ -198,80 +187,76 @@ class _WebViewContainerState extends State<WebViewContainer> {
           convert.jsonDecode(response.body) as Map<String, dynamic>;
       var items = jsonResponse['items'] as List<dynamic>;
 
-      // create record for new search text
-      if (URLs[_searchText] == null) {
-        URLs[_searchText] = {};
-      }
-
-      // create record for new search platform
-      if (URLs[_searchText]['google'] == null) {
-        URLs[_searchText]['google'] = [];
-      }
-
-      // remove all previous search results EXCEPT the current one on screen
-      int length = URLs[_searchText]['google'].length;
-      for (var item in items) {
-        URLs[_searchText]['google']
-            .add({'title': item['title'], 'link': item['link']});
-      }
-
-      results = URLs;
-      if (_searchMode == "Drill-down") {
-        results[_searchText]['google'].removeRange(1, length);
-      }
-
-      // print("URLs[_searchText]['google'] ${URLs[_searchText]['google']}");
-
-      // print('results $results');
-
-      // print('jsonResponse $items');
+      return items;
     } else {
       print('Request failed with status: ${response.statusCode}.');
+      return null;
     }
+  }
+
+  _updateURLs(mode, keyword, platform, list) async {
+    print("updating...");
+
+    keyword = keyword.toString().toLowerCase();
+    platform = platform.toString().toLowerCase();
 
     setState(() {
-      if (results[_searchText.toString().toLowerCase()] == null) {
+      if (URLs[keyword] == null) {
+        URLs[keyword] = {};
+      }
+
+      if (URLs[keyword][platform] == null) {
+        URLs[keyword][platform] = [];
+      }
+    });
+
+    switch (mode) {
+      case "append":
+        {
+          int length = URLs[keyword][platform].length;
+
+          setState(() {
+            URLs[keyword][platform]
+                .removeRange(_currentURLIndex, length - _currentDomainIndex);
+
+            // URLs[keyword][platform].addAll(list);
+
+            for (var item in list) {
+              URLs[keyword][platform]
+                  .add({'title': item['title'], 'link': item['link']});
+            }
+          });
+          break;
+        }
+      case "replace":
+        {
+          setState(() {
+            URLs[keyword][platform] = [];
+
+            for (var item in list) {
+              URLs[keyword][platform]
+                  .add({'title': item['title'], 'link': item['link']});
+            }
+          });
+          break;
+        }
+    }
+  }
+
+  _updateCurrentURLs() async {
+    setState(() {
+      if (URLs[_searchText] == null) {
+        print("no results");
         _searchResult = {};
       } else {
-        _searchResult = results[_searchText.toString().toLowerCase()];
-        // print("_searchResult $_searchResult");
-        _currentURLs = results[_searchText.toString().toLowerCase()]
-            [_searchResult.keys.toList()[_currentDomainIndex]];
-        // print("_currentURLs $_currentURLs");
+        print("have results");
+
+        _searchResult = URLs[_searchText];
+        print("_searchResult $_searchResult");
+        _currentURLs =
+            URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
+        print("_currentURLs $_currentURLs");
       }
-
-      // print("result ${_searchResult}");
-      // print("_currentURLs ${_currentURLs}");
-      // print("_currentURLIndex ${_currentURLIndex}");
-
-      _isSearching = false;
-
-      // print("controller ${_controller.length}");
-
-      // force reload the webview with new URL
-      // if (_controller.isNotEmpty && _searchResult.isNotEmpty) {
-      print("_controller_test?.runtimeType ${_controller_test?.runtimeType}");
-
-      if (_controller_test?.runtimeType != null && !switchMode && !drilling) {
-        print("MOVE");
-        // _swiperControllerVertical.move(0, animation: false);
-        _swiperControllerVertical
-            .move(0); // kinda buggy with animation set to false
-        _swiperControllerHorizontal
-            .move(0); // kinda buggy with animation set to false
-
-        _currentDomainIndex = 0;
-        _currentURLIndex = 0;
-
-        if (_searchMode != "Drill-down") _loadNewPage();
-      }
-
-      if (!switchMode && _searchMode != "Drill-down") {
-        Navigator.of(context).pop();
-      }
-
-      // _controller[0].loadUrl(_currentURLs[0]);
-      // }
     });
   }
 
@@ -279,7 +264,73 @@ class _WebViewContainerState extends State<WebViewContainer> {
     _controller_test?.loadUrl(_currentURLs[_currentURLIndex]['link']);
   }
 
+  _moveSwiper() async {
+    setState(() {
+      if (_isSearching) {
+        print("popping...");
+        Navigator.of(context).pop();
+
+        _isSearching = false;
+      }
+
+      print("_controller_test?.runtimeType ${_controller_test?.runtimeType}");
+
+      // if (_controller_test?.runtimeType != null) {
+      // if (_controller_test?.runtimeType != null && !switchMode && !drilling) {
+      print("MOVE");
+      // _swiperControllerVertical.move(0, animation: false);
+      _swiperControllerVertical
+          .move(0); // kinda buggy with animation set to false
+      _swiperControllerHorizontal
+          .move(0); // kinda buggy with animation set to false
+
+      _currentDomainIndex = 0;
+      _currentURLIndex = 0;
+
+      // if (_searchMode != "Drill-down") _loadNewPage();
+      _loadNewPage();
+      // }
+
+      // if (!switchMode && _searchMode != "Drill-down") {
+    });
+  }
+
+  void _handleSearch(value, bool switchMode, bool drilling) async {
+    print("search $value");
+    String realSearchText = "";
+    Map results = {};
+    value = value.toString().toLowerCase();
+
+    print("_searchMode $_searchMode");
+
+    if (_searchMode == "Default") {
+      _searchText = value;
+      realSearchText = value;
+    } else if (_searchMode == "Drill-down") {
+      _searchText = value;
+      realSearchText = value;
+    }
+
+    print("realSearchText $realSearchText");
+
+    // the search results
+    var items = await _performSearch(realSearchText);
+
+    // update the URLs
+    await _updateURLs('replace', _searchText, 'google', items);
+
+    // update the current URLs
+    await _updateCurrentURLs();
+
+    // move the swiper
+    await _moveSwiper();
+  }
+
   void _pushSearchPage() {
+    setState(() {
+      _isSearching = true;
+    });
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
@@ -475,17 +526,27 @@ class _WebViewContainerState extends State<WebViewContainer> {
   }
 
   void _onChangeSearchMode() async {
-    setState(
-      () {
-        if (_searchMode == "Default") {
-          _searchMode = "Drill-down";
-          _appBarColor = Colors.blue[900]!;
-        } else {
-          _searchMode = "Default";
-          _appBarColor = Colors.blue;
-        }
-      },
-    );
+    print("changing search mode");
+    if (_searchMode == "Default") {
+      setState(() {
+        _searchMode = "Drill-down";
+        _appBarColor = Colors.blue[900]!;
+      });
+
+      var keyword = await _controller_test!.getTitle();
+      print("keyword $keyword");
+
+      var items = await _performSearch(keyword);
+
+      await _updateURLs('append', _searchText, 'google', items);
+      await _updateCurrentURLs();
+      await _moveSwiper();
+    } else {
+      setState(() {
+        _searchMode = "Default";
+        _appBarColor = Colors.blue;
+      });
+    }
 
     // final title = await _controller_test!.getTitle();
     // _handleSearch(title, true);
@@ -504,6 +565,24 @@ class _WebViewContainerState extends State<WebViewContainer> {
     }
     return Future.value(false);
   }
+
+  JavascriptChannel _toasterJavascriptChannel(BuildContext context) {
+    return JavascriptChannel(
+      name: 'Print',
+      onMessageReceived: (JavascriptMessage message) {
+        print("message1 ${message.message}");
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text(message.message)),
+        // );
+      },
+    );
+  }
+
+  String script = """
+    <script language="JavaScript" type="text/javascript">
+      document.title();
+    </script> 
+  """;
 
   @override
   Widget build(BuildContext context) {
@@ -538,8 +617,14 @@ class _WebViewContainerState extends State<WebViewContainer> {
                               // gestureRecognizers:
                               //     gestureRecognizers,
                               javascriptMode: JavascriptMode.unrestricted,
+                              javascriptChannels: <JavascriptChannel>{
+                                _toasterJavascriptChannel(context),
+                              },
                               initialUrl: _currentURLs[_currentURLIndex]
                                   ['link'],
+                              // initialUrl: Uri.dataFromString(script,
+                              //         mimeType: "text/html")
+                              //     .toString(),
                               onWebViewCreated: (webViewController) {
                                 _controller_test = webViewController;
                                 print(_controller_test.runtimeType);
@@ -549,8 +634,10 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 // }
                                 // _controller.add(webViewController);
                               },
+
                               onPageStarted: (url) async {
-                                print(stopwatch.isRunning);
+                                print(
+                                    "stopwatch.isRunning ${stopwatch.isRunning}");
 
                                 final isar = Isar.getInstance("url") ??
                                     await Isar.open([URLSchema], name: "url");
@@ -562,6 +649,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                     .findAll();
 
                                 print("urlRecord: ${urlRecord}");
+                                print("_previousURL: ${_previousURL}");
 
                                 if (stopwatch.isRunning && _previousURL != "") {
                                   stopwatch.stop();
@@ -597,23 +685,6 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 }
 
                                 setState(() {
-                                  // if (stopwatch.isRunning &&
-                                  //     _previousURL != "") {
-                                  //   stopwatch.stop();
-                                  //   print(
-                                  //       "stopwatch ${stopwatch.elapsed.runtimeType}");
-                                  //   if (!_activeTime
-                                  //       .containsKey(_previousURL)) {
-                                  //     _activeTime.addAll(
-                                  //         {_previousURL: stopwatch.elapsed});
-                                  //   } else {
-                                  //     _activeTime[_previousURL] +=
-                                  //         stopwatch.elapsed;
-                                  //   }
-
-                                  //   print("_activeTime $_activeTime");
-                                  //   stopwatch.reset();
-                                  // }
                                   _loadingPercentage = 0;
                                 });
                               },
@@ -623,6 +694,14 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 });
                               },
                               onPageFinished: (url) async {
+                                // var js = _controller_test!
+                                //     .runJavascriptReturningResult(
+                                //         "return document.title");
+
+                                // _controller_test!.runJavascript(
+                                //     "Print.postMessage(document.title)");
+
+                                // print("js $js");
                                 final isar = Isar.getInstance("url") ??
                                     await Isar.open([URLSchema], name: "url");
 
@@ -658,6 +737,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 }
 
                                 setState(() {
+                                  _TEST = _currentURLIndex;
                                   _previousURL = url;
                                   if (!stopwatch.isRunning) {
                                     print("start stopwatch");
@@ -668,6 +748,8 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
                                 if (_searchMode == "Drill-down") {
                                   bool isExist = false;
+                                  print("_currentURLs $_currentURLs");
+
                                   for (var value in _currentURLs) {
                                     if (value['link'] == url) {
                                       isExist = true;
@@ -677,10 +759,16 @@ class _WebViewContainerState extends State<WebViewContainer> {
 
                                   // drilling down
                                   if (!isExist) {
-                                    _handleSearch(
-                                        await _controller_test!.getTitle(),
-                                        false,
-                                        true);
+                                    print("drilling down");
+                                    if (!stop) {
+                                      var items = await _performSearch(
+                                          await _controller_test!.getTitle());
+                                      await _updateURLs('append', _searchText,
+                                          'google', items);
+                                      await _updateCurrentURLs();
+                                    }
+
+                                    stop = true;
                                   }
                                 }
                               },
