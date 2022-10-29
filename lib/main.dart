@@ -4,18 +4,26 @@ import 'dart:ffi';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
 import 'package:duration/duration.dart';
+import 'package:async/async.dart';
+import 'dart:math' as math;
+
+import 'my_flutter_app_icons.dart';
 
 part 'main.g.dart';
 
 void main() async {
   runApp(
-    const MaterialApp(
+    MaterialApp(
+      theme: ThemeData(
+          // colorSchemeSeed: Color.fromARGB(255, 49, 83, 97),
+          useMaterial3: true),
       home: WebViewContainer(),
     ),
   );
@@ -35,7 +43,12 @@ class WebViewContainer extends StatefulWidget {
   State<WebViewContainer> createState() => _WebViewContainerState();
 }
 
-class _WebViewContainerState extends State<WebViewContainer> {
+class _WebViewContainerState extends State<WebViewContainer>
+    with TickerProviderStateMixin {
+  late final AnimationController _drillingAnimationController =
+      AnimationController(vsync: this, duration: const Duration(seconds: 1))
+        ..repeat();
+
   bool stop = false;
 
   final _key = UniqueKey();
@@ -111,15 +124,26 @@ class _WebViewContainerState extends State<WebViewContainer> {
   Map _backUp = {};
   Map _drillResult = {};
   List _currentURLs = [];
+  List _currentURLsPlain = [];
   int _currentDomainIndex = 0;
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
   Map _activeTime = {};
   String _previousURL = "";
   final stopwatch = Stopwatch();
+  final _redirectStopwatch = Stopwatch();
   int _selectedPageIndex = 0;
-  Color _appBarColor = Colors.blue;
+  Color _appBarColor = Colors.blue[100]!;
+  Color _fabColor = Colors.blue[100]!;
   String _searchMode = "Default";
+  bool _homePage = true;
+  bool _swipe = false;
+  bool _redirecting = false;
+  String _clickContent = "";
+  bool _gg = false;
+  int _searchCount = 0;
+  double _turns = 0.0;
+  bool _drilling = false;
 
   // include only first page
   int _page = 1;
@@ -170,8 +194,47 @@ class _WebViewContainerState extends State<WebViewContainer> {
   //   });
   // }
 
+  final RestartableTimer _searchTimer = RestartableTimer(
+    const Duration(seconds: 5),
+    () {
+      print("5 seconds passed");
+    },
+  );
+
+  //  _resetSearchCounter() {
+  //   _searchCount = 0;
+  // }
+
   _performSearch(value) async {
     print("searching...");
+
+    setState(() {
+      _drilling = true;
+    });
+
+    print("_searchTimer.tick ${_searchTimer.tick}");
+    if (_searchCount == 0 || _searchTimer.tick > 0) {
+      _searchTimer.reset();
+      setState(() {
+        _searchCount = 0;
+      });
+    }
+
+    setState(() {
+      _searchCount++;
+    });
+
+    print(
+        "_searchCount: ${_searchCount} | _searchTimer.isActive: ${_searchTimer.isActive}");
+
+    if (_searchTimer.isActive) {
+      if (_searchCount > 5) {
+        setState(() {
+          _gg = true;
+        });
+      }
+    }
+    print("_gg: $_gg");
 
     var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
       'key': API_KEY,
@@ -180,18 +243,29 @@ class _WebViewContainerState extends State<WebViewContainer> {
       'start': _start.toString()
     });
 
-    var response = await http.get(url);
+    var response = !_gg ? await http.get(url) : null;
 
-    if (response.statusCode == 200) {
-      var jsonResponse =
-          convert.jsonDecode(response.body) as Map<String, dynamic>;
-      var items = jsonResponse['items'] as List<dynamic>;
+    // print("response: $response");
+    setState(() {
+      _drilling = false;
+    });
 
-      return items;
+    if (response != null) {
+      if (response.statusCode == 200) {
+        var jsonResponse =
+            convert.jsonDecode(response.body) as Map<String, dynamic>;
+        var items = jsonResponse['items'] as List<dynamic>;
+
+        return items;
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        return null;
+      }
     } else {
-      print('Request failed with status: ${response.statusCode}.');
-      return null;
+      print("GG");
     }
+
+    return null;
   }
 
   _updateURLs(mode, keyword, platform, list) async {
@@ -219,12 +293,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
             URLs[keyword][platform]
                 .removeRange(_currentURLIndex, length - _currentDomainIndex);
 
-            // URLs[keyword][platform].addAll(list);
-
             for (var item in list) {
               URLs[keyword][platform]
                   .add({'title': item['title'], 'link': item['link']});
             }
+
+            // URLs[keyword][platform]
+            //     .add({'title': 'manual', 'link': 'https://www.google.com'});
           });
           break;
         }
@@ -237,6 +312,9 @@ class _WebViewContainerState extends State<WebViewContainer> {
               URLs[keyword][platform]
                   .add({'title': item['title'], 'link': item['link']});
             }
+
+            // URLs[keyword][platform]
+            //     .add({'title': 'manual', 'link': 'https://www.google.com'});
           });
           break;
         }
@@ -252,10 +330,11 @@ class _WebViewContainerState extends State<WebViewContainer> {
         print("have results");
 
         _searchResult = URLs[_searchText];
-        print("_searchResult $_searchResult");
+        // print("_searchResult $_searchResult");
         _currentURLs =
             URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
-        print("_currentURLs $_currentURLs");
+        // print("_currentURLs $_currentURLs");
+        _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
       }
     });
   }
@@ -295,7 +374,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
     });
   }
 
-  void _handleSearch(value, bool switchMode, bool drilling) async {
+  void _handleSearch(value, bool switchMode) async {
+    setState(() {
+      _searchMode = "Default";
+      _appBarColor = Colors.blue[100]!;
+      _fabColor = Colors.blue[100]!;
+    });
+
     print("search $value");
     String realSearchText = "";
     Map results = {};
@@ -337,12 +422,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
           return Scaffold(
             appBar: AppBar(
               title: Container(
-                height: 40,
-                padding: const EdgeInsets.only(left: 15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                // height: 40,
+                // padding: const EdgeInsets.only(left: 15),
+                // decoration: BoxDecoration(
+                // color: Colors.white,
+                // borderRadius: BorderRadius.circular(10),
+                // ),
                 child: TextField(
                   textInputAction: TextInputAction.search,
                   autofocus: true,
@@ -352,7 +437,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
                   ),
                   // controller: _handleSearch,
                   onSubmitted: (value) {
-                    _handleSearch(value, false, false);
+                    _handleSearch(value, false);
                   },
                   autocorrect: false,
                 ),
@@ -415,6 +500,17 @@ class _WebViewContainerState extends State<WebViewContainer> {
         .values
         .toList();
   }
+
+  // fake drill function
+  // _drill() async {
+  //   print("drilling");
+  //   Timer(Duration(milliseconds: 3000), () async {
+  //     print("drilled");
+  //     setState(() {
+  //       _fabColor = Colors.blue[100]!;
+  //     });
+  //   });
+  // }
 
   _showAlertDialog(BuildContext context) {
     Widget cancelButton = TextButton(
@@ -510,9 +606,9 @@ class _WebViewContainerState extends State<WebViewContainer> {
     );
   }
 
-  // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-  //   Factory(() => EagerGestureRecognizer())
-  // };
+  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
+    Factory(() => EagerGestureRecognizer())
+  };
 
   void _onItemTapped(int index) {
     setState(() {
@@ -525,32 +621,32 @@ class _WebViewContainerState extends State<WebViewContainer> {
     _getHistory();
   }
 
-  void _onChangeSearchMode() async {
-    print("changing search mode");
-    if (_searchMode == "Default") {
-      setState(() {
-        _searchMode = "Drill-down";
-        _appBarColor = Colors.blue[900]!;
-      });
+  // void _onChangeSearchMode() async {
+  //   print("changing search mode");
+  //   if (_searchMode == "Default") {
+  //     setState(() {
+  //       _searchMode = "Drill-down";
+  //       _appBarColor = Colors.blue[900]!;
+  //     });
 
-      var keyword = await _controller_test!.getTitle();
-      print("keyword $keyword");
+  //     var keyword = await _controller_test!.getTitle();
+  //     print("keyword $keyword");
 
-      var items = await _performSearch(keyword);
+  //     var items = await _performSearch(keyword);
 
-      await _updateURLs('append', _searchText, 'google', items);
-      await _updateCurrentURLs();
-      await _moveSwiper();
-    } else {
-      setState(() {
-        _searchMode = "Default";
-        _appBarColor = Colors.blue;
-      });
-    }
+  //     await _updateURLs('append', _searchText, 'google', items);
+  //     await _updateCurrentURLs();
+  //     await _moveSwiper();
+  //   } else {
+  //     setState(() {
+  //       _searchMode = "Default";
+  //       _appBarColor = Colors.blue;
+  //     });
+  //   }
 
-    // final title = await _controller_test!.getTitle();
-    // _handleSearch(title, true);
-  }
+  //   // final title = await _controller_test!.getTitle();
+  //   // _handleSearch(title, true);
+  // }
 
   Future<bool> _onWillPop(BuildContext context) async {
     if (_controller_test?.runtimeType != null) {
@@ -571,18 +667,15 @@ class _WebViewContainerState extends State<WebViewContainer> {
       name: 'Print',
       onMessageReceived: (JavascriptMessage message) {
         print("message1 ${message.message}");
+        setState(() {
+          _clickContent = message.message;
+        });
         // ScaffoldMessenger.of(context).showSnackBar(
         //   SnackBar(content: Text(message.message)),
         // );
       },
     );
   }
-
-  String script = """
-    <script language="JavaScript" type="text/javascript">
-      document.title();
-    </script> 
-  """;
 
   @override
   Widget build(BuildContext context) {
@@ -591,6 +684,7 @@ class _WebViewContainerState extends State<WebViewContainer> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: _appBarColor,
+          centerTitle: false,
           title: _searchText == ""
               ? const Text("Explore")
               : _searchResult.isNotEmpty
@@ -604,6 +698,59 @@ class _WebViewContainerState extends State<WebViewContainer> {
                 onPressed: _pushSearchPage)
           ],
         ),
+        floatingActionButton: _searchResult.isNotEmpty
+            ? GestureDetector(
+                onLongPress: () async {
+                  print("drill CONTINUOUSLY");
+                  setState(() {
+                    if (_fabColor == Colors.amber[300]!) {
+                      _fabColor = Colors.blue[100]!;
+                      _appBarColor = Colors.blue[100]!;
+                      _searchMode = "Default";
+                    } else {
+                      _fabColor = Colors.amber[300]!;
+                      _appBarColor = Colors.amber[300]!;
+                      _searchMode = "Drill-down";
+                    }
+                  });
+
+                  if (_searchMode == "Drill-down") {
+                    print(
+                        "real drilling | ${await _controller_test!.getTitle()}");
+
+                    var items = await _performSearch(
+                        await _controller_test!.getTitle());
+
+                    await _updateURLs('append', _searchText, 'google', items);
+                    await _updateCurrentURLs();
+                  }
+                },
+                child: FloatingActionButton(
+                  onPressed: () {
+                    if (_searchMode == "Default") {
+                      print("drill ONCE");
+                      // drill logic
+                    } else {
+                      print("already in drill-down mode");
+                    }
+                  },
+                  backgroundColor: _fabColor,
+                  splashColor: Colors.amber[100],
+                  child: AnimatedBuilder(
+                    animation: _drillingAnimationController,
+                    builder: (_, child) {
+                      return Transform.rotate(
+                        angle: _drilling
+                            ? _drillingAnimationController.value * 2 * math.pi
+                            : 0.0,
+                        child: child,
+                      );
+                    },
+                    child: const Icon(MyFlutterApp.drill),
+                  ),
+                ),
+              )
+            : null,
         body: Column(
           children: <Widget>[
             Container(
@@ -612,19 +759,23 @@ class _WebViewContainerState extends State<WebViewContainer> {
                       child: Column(
                         children: <Widget>[
                           Expanded(
+                            // child:
+                            // GestureDetector(
+                            //   onTap: () {
+                            //     print("webview tapped");
+                            //   },
+                            //   onLongPress: () {
+                            //     print("webview long pressed");
+                            //   },
                             child: WebView(
                               key: _key,
-                              // gestureRecognizers:
-                              //     gestureRecognizers,
+                              // gestureRecognizers: gestureRecognizers,
                               javascriptMode: JavascriptMode.unrestricted,
                               javascriptChannels: <JavascriptChannel>{
                                 _toasterJavascriptChannel(context),
                               },
                               initialUrl: _currentURLs[_currentURLIndex]
                                   ['link'],
-                              // initialUrl: Uri.dataFromString(script,
-                              //         mimeType: "text/html")
-                              //     .toString(),
                               onWebViewCreated: (webViewController) {
                                 _controller_test = webViewController;
                                 print(_controller_test.runtimeType);
@@ -634,10 +785,11 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 // }
                                 // _controller.add(webViewController);
                               },
-
                               onPageStarted: (url) async {
-                                print(
-                                    "stopwatch.isRunning ${stopwatch.isRunning}");
+                                if (!_redirectStopwatch.isRunning) {
+                                  _redirectStopwatch.start();
+                                  print("1 onPageStarted");
+                                }
 
                                 final isar = Isar.getInstance("url") ??
                                     await Isar.open([URLSchema], name: "url");
@@ -648,11 +800,13 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                     .urlEqualTo(_previousURL)
                                     .findAll();
 
-                                print("urlRecord: ${urlRecord}");
-                                print("_previousURL: ${_previousURL}");
+                                // print("urlRecord: ${urlRecord}");
+                                // print("_previousURL: ${_previousURL}");
 
                                 if (stopwatch.isRunning && _previousURL != "") {
                                   stopwatch.stop();
+                                  // print(
+                                  //     "stopwatch stopped: ${stopwatch.elapsed}");
 
                                   // final Duration dur = parseDuration(
                                   //     '2w 5d 23h 59m 59s 999ms 999us');
@@ -694,14 +848,20 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                 });
                               },
                               onPageFinished: (url) async {
-                                // var js = _controller_test!
-                                //     .runJavascriptReturningResult(
-                                //         "return document.title");
+                                print("3 onPageFinished");
 
-                                // _controller_test!.runJavascript(
-                                //     "Print.postMessage(document.title)");
+                                _controller_test!.runJavascript(
+                                    """window.addEventListener('click', (e) => {
+                                            var x = e.clientX, y = e.clientY;
+                                            var elementMouseIsOver = document.elementFromPoint(x, y);
+                                            var content = elementMouseIsOver.innerText;
+                                            if (content == undefined || content == null)
+                                              Print.postMessage("");
+                                            else
+                                              Print.postMessage(content);
+                                        });
+                                      """);
 
-                                // print("js $js");
                                 final isar = Isar.getInstance("url") ??
                                     await Isar.open([URLSchema], name: "url");
 
@@ -736,8 +896,26 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   });
                                 }
 
+                                if (_redirectStopwatch.elapsedMilliseconds <
+                                    100) {
+                                  print("1 redirect");
+
+                                  setState(() {
+                                    _redirecting = true;
+                                  });
+                                } else {
+                                  print("2 redirect");
+
+                                  _redirectStopwatch.reset();
+                                  _redirectStopwatch.stop();
+                                  setState(() {
+                                    _redirecting = false;
+                                  });
+                                }
+
+                                print("swiping ${_swipe}");
+
                                 setState(() {
-                                  _TEST = _currentURLIndex;
                                   _previousURL = url;
                                   if (!stopwatch.isRunning) {
                                     print("start stopwatch");
@@ -746,62 +924,72 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                   _loadingPercentage = 100;
                                 });
 
-                                if (_searchMode == "Drill-down") {
-                                  bool isExist = false;
-                                  print("_currentURLs $_currentURLs");
+                                if (!_swipe &&
+                                    _searchMode == "Drill-down" &&
+                                    !_currentURLsPlain.contains(url) &&
+                                    !_redirecting) {
+                                  if (_searchMode == "Drill-down") {
+                                    print("drill-down");
 
-                                  for (var value in _currentURLs) {
-                                    if (value['link'] == url) {
-                                      isExist = true;
-                                      break;
-                                    }
-                                  }
+                                    // var items = await _performSearch(
+                                    //     _controller_test!.getTitle());
 
-                                  // drilling down
-                                  if (!isExist) {
-                                    print("drilling down");
-                                    if (!stop) {
-                                      var items = await _performSearch(
-                                          await _controller_test!.getTitle());
-                                      await _updateURLs('append', _searchText,
-                                          'google', items);
-                                      await _updateCurrentURLs();
-                                    }
+                                    // await _updateURLs('append', _searchText,
+                                    //     'google', items);
+                                    // await _updateCurrentURLs();
 
-                                    stop = true;
+                                    print("clickContent $_clickContent");
+
+                                    var items = await _performSearch(
+                                        _clickContent == ""
+                                            ? await _controller_test!.getTitle()
+                                            : _clickContent);
+
+                                    await _updateURLs(
+                                        'append', _searchText, 'google', items);
+                                    await _updateCurrentURLs();
                                   }
                                 }
+
+                                setState(() {
+                                  _swipe = false;
+                                });
                               },
                             ),
+                            // ),
                           ),
 
                           // Vertical Swiper
                           Container(
                             height: 50,
                             child: GestureDetector(
-                              onLongPress: () {
-                                _onChangeSearchMode();
-
-                                final snackBar = SnackBar(
-                                  content: Text("$_searchMode mode"),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(0.0),
-                                  ),
-                                  action: SnackBarAction(
-                                    label: 'Undo',
-                                    onPressed: () => _onChangeSearchMode(),
-                                  ),
-                                );
-
-                                // Find the ScaffoldMessenger in the widget tree
-                                // and use it to show a SnackBar.
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(snackBar);
+                              onTap: () {
+                                print("swiper tapped");
                               },
+                              // onLongPress: () {
+                              //   _onChangeSearchMode();
+
+                              //   final snackBar = SnackBar(
+                              //     content: Text("$_searchMode mode"),
+                              //     shape: RoundedRectangleBorder(
+                              //       borderRadius: BorderRadius.circular(0.0),
+                              //     ),
+                              //     action: SnackBarAction(
+                              //       label: 'Undo',
+                              //       onPressed: () => _onChangeSearchMode(),
+                              //     ),
+                              //   );
+
+                              //   // Find the ScaffoldMessenger in the widget tree
+                              //   // and use it to show a SnackBar.
+                              //   ScaffoldMessenger.of(context)
+                              //       .showSnackBar(snackBar);
+                              // },
                               child: Swiper(
                                 itemCount: _searchResult.length,
                                 loop: false,
                                 scrollDirection: Axis.vertical,
+
                                 itemBuilder: (BuildContext context, int index) {
                                   return Container(
                                     child: Stack(
@@ -840,8 +1028,12 @@ class _WebViewContainerState extends State<WebViewContainer> {
                                           onIndexChanged: (index2) {
                                             setState(() {
                                               _currentURLIndex = index2;
+                                              _swipe = true;
                                             });
                                             _loadNewPage();
+                                            // setState(() {
+                                            //   _swipe = false;
+                                            // });
                                           },
                                         ),
                                         if (_loadingPercentage < 100)
