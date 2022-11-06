@@ -13,6 +13,9 @@ import 'package:isar/isar.dart';
 import 'package:duration/duration.dart';
 import 'package:async/async.dart';
 import 'dart:math' as math;
+// import 'package:settings_ui/settings_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:marquee/marquee.dart';
 
 import 'my_flutter_app_icons.dart';
 
@@ -28,6 +31,11 @@ void main() async {
     ),
   );
 }
+
+enum SearchAlgorithm { Title, ClickContent, TitleWithClickContent }
+// Map SearchAlgorithm = {"Title": 0, "ClickContent": 1, "TitleWithClickContent": 2};
+
+enum Theme { Light, Dark, Auto }
 
 final webViewKey = GlobalKey<_WebViewContainerState>();
 // const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw";
@@ -49,11 +57,13 @@ class _WebViewContainerState extends State<WebViewContainer>
       AnimationController(vsync: this, duration: const Duration(seconds: 1))
         ..repeat();
 
-  bool stop = false;
+  var _searchAlgorithm;
+  var _theme;
 
   final _key = UniqueKey();
+  var _marqueeKey = UniqueKey();
   Map URLs = {};
-  Map _drillURLs = {};
+  // Map _drillURLs = {};
   // final Map URL_list = {
   //   'doge': {
   //     'google': [
@@ -116,19 +126,19 @@ class _WebViewContainerState extends State<WebViewContainer>
   //     "idk": ["https://wlsk.design"]
   //   }
   // };
-  int _TEST = 0;
+  // int _TEST = 0;
   String _searchText = "";
-  String _drillText = "";
+  // String _drillText = "";
   bool _isSearching = false;
   Map _searchResult = {};
-  Map _backUp = {};
-  Map _drillResult = {};
+  // Map _backUp = {};
+  // Map _drillResult = {};
   List _currentURLs = [];
   List _currentURLsPlain = [];
   int _currentDomainIndex = 0;
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
-  Map _activeTime = {};
+  // Map _activeTime = {};
   String _previousURL = "";
   final stopwatch = Stopwatch();
   final _redirectStopwatch = Stopwatch();
@@ -136,7 +146,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   Color _appBarColor = Colors.blue[100]!;
   Color _fabColor = Colors.blue[100]!;
   String _searchMode = "Default";
-  bool _homePage = true;
+  // bool _homePage = true;
   bool _swipe = false;
   bool _redirecting = false;
   String _clickContent = "";
@@ -149,6 +159,26 @@ class _WebViewContainerState extends State<WebViewContainer>
   int _page = 1;
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
   int _start = (1 - 1) * 10 + 1;
+
+  void _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final algorithm =
+        await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
+    final theme = await prefs.getInt("theme") ?? Theme.Light.index;
+    setState(() {
+      _searchAlgorithm = algorithm;
+      _theme = theme;
+    });
+    print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
+    // print(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _init();
+  }
 
   void _toggleSearchBar() {
     setState(() {
@@ -348,7 +378,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_isSearching) {
         print("popping...");
         Navigator.of(context).pop();
-
+        _marqueeKey = UniqueKey();
         _isSearching = false;
       }
 
@@ -548,6 +578,117 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
+  void _pushSettingsPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (BuildContext context) {
+          return WillPopScope(
+            onWillPop: () {
+              setState(() {
+                _selectedPageIndex = 0;
+              });
+              return Future.value(true);
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Container(
+                  child: const Text("Settings"),
+                ),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new),
+                  onPressed: () => {
+                    setState(() => {
+                          _selectedPageIndex = 0,
+                        }),
+                    Navigator.of(context).pop()
+                  },
+                ),
+                // actions: [
+                //   IconButton(
+                //     icon: const Icon(Icons.delete),
+                //     onPressed: () => _showAlertDialog(context),
+                //   ),
+                // ],
+              ),
+              body: Container(
+                child: Align(
+                  alignment: Alignment.center,
+                  child: ListView(
+                    children: [
+                      ListTile(
+                        title: const Text("Search Algorithm"),
+                        subtitle:
+                            const Text("How the drill-down is performed."),
+                        trailing: DropdownButton<String>(
+                          value: SearchAlgorithm.values[_searchAlgorithm]
+                              .toString()
+                              .split('.')
+                              .last,
+                          icon: const Icon(Icons.arrow_downward),
+                          elevation: 16,
+                          // style: const TextStyle(color: Colors.deepPurple),
+                          underline: Container(
+                            height: 2,
+                            color: _appBarColor,
+                          ),
+                          onChanged: (String? value) {
+                            // print("value $value");
+                            // SearchAlgorithm.values.forEach((element) {
+                            //   print(element.toString().split('.').last);
+                            // });
+                            setState(() {
+                              _searchAlgorithm = SearchAlgorithm.values
+                                  .firstWhere((element) =>
+                                      element.toString().split('.').last ==
+                                      value)
+                                  .index;
+                            });
+                          },
+                          items: SearchAlgorithm.values
+                              .map<DropdownMenuItem<String>>((value) {
+                            return DropdownMenuItem<String>(
+                              value: value.name,
+                              child: Text(value.name),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // SettingsList(
+                  //   sections: [
+                  //     SettingsSection(
+                  //       title: const Text('Common'),
+                  //       tiles: <SettingsTile>[
+                  //         SettingsTile.navigation(
+                  //           leading: const Icon(Icons.language),
+                  //           title: const Text('Language'),
+                  //           value: const Text('English'),
+                  //         ),
+                  //         SettingsTile.switchTile(
+                  //           onToggle: (value) {
+                  //             // setState(() {
+                  //             //   _test = value;
+                  //             // });
+                  //           },
+                  //           initialValue: false,
+                  //           leading: const Icon(Icons.format_paint),
+                  //           title: const Text('Enable custom theme'),
+                  //           activeSwitchColor: _appBarColor,
+                  //         ),
+                  //       ],
+                  //     ),
+                  //   ],
+                  // ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _pushHistoryPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -606,20 +747,23 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
+  void _onItemTapped(int index) {
+    print("index $index");
+    setState(() {
+      _selectedPageIndex = index;
+      // if (_selectedPageIndex == 1) {
+      //   _pushHistoryPage();
+      // } else if (_selectedPageIndex == 3) {
+      //   _pushSettingsPage();
+      // }
+    });
+
+    // _getHistory();
+  }
+
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
     Factory(() => EagerGestureRecognizer())
   };
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedPageIndex = index;
-      if (_selectedPageIndex == 1) {
-        _pushHistoryPage();
-      }
-    });
-
-    _getHistory();
-  }
 
   // void _onChangeSearchMode() async {
   //   print("changing search mode");
@@ -670,9 +814,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         setState(() {
           _clickContent = message.message;
         });
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(content: Text(message.message)),
-        // );
       },
     );
   }
@@ -682,14 +823,88 @@ class _WebViewContainerState extends State<WebViewContainer>
     return WillPopScope(
       onWillPop: () => _onWillPop(context),
       child: Scaffold(
+        drawer: Drawer(
+          child: ListView(
+            // Important: Remove any padding from the ListView.
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: _appBarColor,
+                ),
+                child: const Text('Menu'),
+              ),
+              ListTile(
+                trailing: _selectedPageIndex == 0
+                    ? Icon(Icons.explore, color: Colors.blue[900])
+                    : const Icon(Icons.explore_outlined),
+                title: const Text('Explore'),
+                onTap: () {
+                  _onItemTapped(0);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                trailing: _selectedPageIndex == 1
+                    ? Icon(Icons.history, color: Colors.blue[900])
+                    : const Icon(Icons.history_outlined),
+                title: const Text('History'),
+                onTap: () {
+                  _onItemTapped(1);
+                  Navigator.pop(context);
+                  _pushHistoryPage();
+                },
+              ),
+              ListTile(
+                trailing: _selectedPageIndex == 2
+                    ? Icon(Icons.bookmark, color: Colors.blue[900])
+                    : const Icon(Icons.bookmark_outline),
+                title: const Text('Bookmarked'),
+                onTap: () {
+                  _onItemTapped(2);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                trailing: _selectedPageIndex == 3
+                    ? Icon(Icons.settings, color: Colors.blue[900])
+                    : const Icon(Icons.settings_outlined),
+                title: const Text('Settings'),
+                onTap: () {
+                  _onItemTapped(3);
+                  Navigator.pop(context);
+                  _pushSettingsPage();
+                },
+              ),
+            ],
+          ),
+        ),
         appBar: AppBar(
           backgroundColor: _appBarColor,
           centerTitle: false,
           title: _searchText == ""
               ? const Text("Explore")
               : _searchResult.isNotEmpty
-                  ? Text(
-                      '$_searchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})')
+                  ? SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.03,
+                      // width: MediaQuery.of(context).size.width * 0.8,
+                      child: Marquee(
+                        key: _marqueeKey,
+                        text:
+                            '$_searchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
+                        style: const TextStyle(fontSize: 18),
+                        scrollAxis: Axis.horizontal, //scroll direction
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        blankSpace: 50.0,
+                        velocity: 50.0, //speed
+                        pauseAfterRound: const Duration(seconds: 1),
+                        // startPadding: 10.0,
+                        accelerationDuration: const Duration(seconds: 1),
+                        accelerationCurve: Curves.linear,
+                        decelerationDuration: const Duration(milliseconds: 500),
+                        decelerationCurve: Curves.easeOut,
+                      ),
+                    )
                   : Text('Results for $_searchText'),
           actions: <Widget>[
             IconButton(
@@ -724,6 +939,18 @@ class _WebViewContainerState extends State<WebViewContainer>
                     await _updateURLs('append', _searchText, 'google', items);
                     await _updateCurrentURLs();
                   }
+
+                  setState(() {
+                    if (_fabColor == Colors.amber[300]!) {
+                      _fabColor = Colors.blue[100]!;
+                      _appBarColor = Colors.blue[100]!;
+                      _searchMode = "Default";
+                    } else {
+                      _fabColor = Colors.amber[300]!;
+                      _appBarColor = Colors.amber[300]!;
+                      _searchMode = "Drill-down";
+                    }
+                  });
                 },
                 child: FloatingActionButton(
                   onPressed: () {
@@ -906,8 +1133,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 } else {
                                   print("2 redirect");
 
-                                  _redirectStopwatch.reset();
                                   _redirectStopwatch.stop();
+                                  _redirectStopwatch.reset();
                                   setState(() {
                                     _redirecting = false;
                                   });
@@ -924,32 +1151,27 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   _loadingPercentage = 100;
                                 });
 
-                                if (!_swipe &&
-                                    _searchMode == "Drill-down" &&
-                                    !_currentURLsPlain.contains(url) &&
-                                    !_redirecting) {
-                                  if (_searchMode == "Drill-down") {
-                                    print("drill-down");
+                                // if (!_swipe &&
+                                //     _searchMode == "Drill-down" &&
+                                //     !_currentURLsPlain.contains(url) &&
+                                //     !_redirecting) {
+                                //   if (_searchMode == "Drill-down") {
+                                //     print("drill-down");
 
-                                    // var items = await _performSearch(
-                                    //     _controller_test!.getTitle());
+                                //     print("clickContent $_clickContent");
 
-                                    // await _updateURLs('append', _searchText,
-                                    //     'google', items);
-                                    // await _updateCurrentURLs();
+                                //     var items = await _performSearch(
+                                //         _clickContent == ""
+                                //             ? await _controller_test!.getTitle()
+                                //             : (await _controller_test!
+                                //                     .getTitle())! +
+                                //                 _clickContent);
 
-                                    print("clickContent $_clickContent");
-
-                                    var items = await _performSearch(
-                                        _clickContent == ""
-                                            ? await _controller_test!.getTitle()
-                                            : _clickContent);
-
-                                    await _updateURLs(
-                                        'append', _searchText, 'google', items);
-                                    await _updateCurrentURLs();
-                                  }
-                                }
+                                //     await _updateURLs(
+                                //         'append', _searchText, 'google', items);
+                                //     await _updateCurrentURLs();
+                                //   }
+                                // }
 
                                 setState(() {
                                   _swipe = false;
@@ -961,7 +1183,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                           // Vertical Swiper
                           Container(
-                            height: 50,
+                            height: 70,
                             child: GestureDetector(
                               onTap: () {
                                 print("swiper tapped");
@@ -1031,9 +1253,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               _swipe = true;
                                             });
                                             _loadNewPage();
-                                            // setState(() {
-                                            //   _swipe = false;
-                                            // });
                                           },
                                         ),
                                         if (_loadingPercentage < 100)
@@ -1088,30 +1307,30 @@ class _WebViewContainerState extends State<WebViewContainer>
             ),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore),
-              label: 'Explore',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history),
-              label: 'History',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark),
-              label: 'Bookmark',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
-          currentIndex: _selectedPageIndex,
-          selectedItemColor: Colors.blue[800],
-          onTap: _onItemTapped,
-          unselectedItemColor: Colors.grey,
-        ),
+        // bottomNavigationBar: BottomNavigationBar(
+        //   items: const <BottomNavigationBarItem>[
+        //     BottomNavigationBarItem(
+        //       icon: Icon(Icons.explore),
+        //       label: 'Explore',
+        //     ),
+        //     BottomNavigationBarItem(
+        //       icon: Icon(Icons.history),
+        //       label: 'History',
+        //     ),
+        //     BottomNavigationBarItem(
+        //       icon: Icon(Icons.bookmark),
+        //       label: 'Bookmark',
+        //     ),
+        //     BottomNavigationBarItem(
+        //       icon: Icon(Icons.settings),
+        //       label: 'Settings',
+        //     ),
+        //   ],
+        //   currentIndex: _selectedPageIndex,
+        //   selectedItemColor: Colors.blue[800],
+        // onTap: _onItemTapped,
+        //   unselectedItemColor: Colors.grey,
+        // ),
       ),
     );
   }

@@ -42,6 +42,9 @@ dependencies:
   isar: *isar_version
   isar_flutter_libs: *isar_version # contains Isar Core
   duration: ^3.0.12
+  # settings_ui: ^2.0.2
+  shared_preferences: ^2.0.15
+  marquee: ^2.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
