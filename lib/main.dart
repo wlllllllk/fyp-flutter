@@ -818,6 +818,18 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
+  JavascriptChannel _getDrillTextChannel(BuildContext context) {
+    return JavascriptChannel(
+      name: 'Drill',
+      onMessageReceived: (JavascriptMessage message) {
+        print("DrillText ${message.message}");
+        // setState(() {
+        //   _clickContent = message.message;
+        // });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -932,7 +944,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                   if (_searchMode == "Drill-down") {
                     print(
                         "real drilling | ${await _controller_test!.getTitle()}");
-
+                    _controller_test!.runJavascript("""
+                        var x = window.innerWidth/2;
+                        var y = window.innerHeight/2;
+                        var centre = document.elementFromPoint(x, y);
+                        Drill.postMessage(centre.innerText);
+                      """);
                     var items = await _performSearch(
                         await _controller_test!.getTitle());
 
@@ -1000,6 +1017,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                               javascriptMode: JavascriptMode.unrestricted,
                               javascriptChannels: <JavascriptChannel>{
                                 _toasterJavascriptChannel(context),
+                                _getDrillTextChannel(context),
                               },
                               initialUrl: _currentURLs[_currentURLIndex]
                                   ['link'],
