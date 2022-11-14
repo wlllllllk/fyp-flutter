@@ -32,8 +32,13 @@ void main() async {
   );
 }
 
-enum SearchAlgorithm { Title, ClickContent, TitleWithClickContent }
+// enum SearchAlgorithm { Title, ClickContent, TitleWithClickContent }
 // Map SearchAlgorithm = {"Title": 0, "ClickContent": 1, "TitleWithClickContent": 2};
+List<String> SearchAlgorithmList = [
+  "Title",
+  "Webpage Content",
+  "Title With Webpage Content"
+];
 
 enum Theme { Light, Dark, Auto }
 
@@ -126,19 +131,16 @@ class _WebViewContainerState extends State<WebViewContainer>
   //     "idk": ["https://wlsk.design"]
   //   }
   // };
-  // int _TEST = 0;
+
   String _searchText = "";
-  // String _drillText = "";
+  String _realSearchText = "";
   bool _isSearching = false;
   Map _searchResult = {};
-  // Map _backUp = {};
-  // Map _drillResult = {};
   List _currentURLs = [];
   List _currentURLsPlain = [];
   int _currentDomainIndex = 0;
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
-  // Map _activeTime = {};
   String _previousURL = "";
   final stopwatch = Stopwatch();
   final _redirectStopwatch = Stopwatch();
@@ -146,10 +148,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   Color _appBarColor = Colors.blue[100]!;
   Color _fabColor = Colors.blue[100]!;
   String _searchMode = "Default";
-  // bool _homePage = true;
   bool _swipe = false;
   bool _redirecting = false;
-  String _clickContent = "";
+  String _webpageContent = "";
   bool _gg = false;
   int _searchCount = 0;
   double _turns = 0.0;
@@ -162,8 +163,10 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
+    // final algorithm = await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
     final algorithm =
-        await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
+        await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
+
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
     setState(() {
       _searchAlgorithm = algorithm;
@@ -235,11 +238,42 @@ class _WebViewContainerState extends State<WebViewContainer>
   //   _searchCount = 0;
   // }
 
+  _getSearchQuery() async {
+    String query = "";
+    switch (_searchAlgorithm) {
+      case "Title":
+        query = (await _controller_test!.getTitle())!;
+        break;
+      case "Webpage Content":
+        await _controller_test!.runJavascript("""
+                        var x = window.innerWidth/2;
+                        var y = window.innerHeight/2;
+                        var centre = document.elementFromPoint(x, y);
+                        Drill.postMessage(centre.innerText);
+                      """);
+        query = _webpageContent;
+        break;
+      case "Title With Webpage Content":
+        await _controller_test!.runJavascript("""
+                        var x = window.innerWidth/2;
+                        var y = window.innerHeight/2;
+                        var centre = document.elementFromPoint(x, y);
+                        Drill.postMessage(centre.innerText);
+                      """);
+        query = "${await _controller_test!.getTitle()} $_webpageContent";
+        break;
+    }
+
+    return query;
+  }
+
   _performSearch(value) async {
     print("searching...");
 
     setState(() {
       _drilling = true;
+      _realSearchText = value;
+      _marqueeKey = UniqueKey();
     });
 
     print("_searchTimer.tick ${_searchTimer.tick}");
@@ -378,7 +412,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_isSearching) {
         print("popping...");
         Navigator.of(context).pop();
-        _marqueeKey = UniqueKey();
+        // _marqueeKey = UniqueKey();
         _isSearching = false;
       }
 
@@ -418,13 +452,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     print("_searchMode $_searchMode");
 
-    if (_searchMode == "Default") {
-      _searchText = value;
-      realSearchText = value;
-    } else if (_searchMode == "Drill-down") {
-      _searchText = value;
-      realSearchText = value;
-    }
+    _searchText = value;
+    realSearchText = value;
 
     print("realSearchText $realSearchText");
 
@@ -441,10 +470,14 @@ class _WebViewContainerState extends State<WebViewContainer>
     await _moveSwiper();
   }
 
+  final TextEditingController _searchFieldController = TextEditingController();
+
   void _pushSearchPage() {
     setState(() {
       _isSearching = true;
     });
+
+    _searchFieldController.text = _realSearchText;
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -465,11 +498,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                     border: InputBorder.none,
                     hintText: 'Enter a search term',
                   ),
-                  // controller: _handleSearch,
+                  controller: _searchFieldController,
                   onSubmitted: (value) {
                     _handleSearch(value, false);
                   },
                   autocorrect: false,
+                  maxLines: 1,
                 ),
               ),
             ),
@@ -581,7 +615,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   void _pushSettingsPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (BuildContext context) {
+        builder: (context) {
           return WillPopScope(
             onWillPop: () {
               setState(() {
@@ -620,10 +654,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                         subtitle:
                             const Text("How the drill-down is performed."),
                         trailing: DropdownButton<String>(
-                          value: SearchAlgorithm.values[_searchAlgorithm]
-                              .toString()
-                              .split('.')
-                              .last,
+                          value: _searchAlgorithm,
+                          // SearchAlgorithm.values[_searchAlgorithm]
+                          //     .toString()
+                          //     .split('.')
+                          //     .last,
                           icon: const Icon(Icons.arrow_downward),
                           elevation: 16,
                           // style: const TextStyle(color: Colors.deepPurple),
@@ -631,26 +666,44 @@ class _WebViewContainerState extends State<WebViewContainer>
                             height: 2,
                             color: _appBarColor,
                           ),
-                          onChanged: (String? value) {
-                            // print("value $value");
+                          onChanged: (String? value) async {
+                            print("value $value");
                             // SearchAlgorithm.values.forEach((element) {
                             //   print(element.toString().split('.').last);
                             // });
+
+                            // var sa = SearchAlgorithm.values
+                            //     .firstWhere((element) =>
+                            //         element.toString().split('.').last == value)
+                            //     .index;
+                            // print("sa $sa");
+
                             setState(() {
-                              _searchAlgorithm = SearchAlgorithm.values
-                                  .firstWhere((element) =>
-                                      element.toString().split('.').last ==
-                                      value)
-                                  .index;
+                              _searchAlgorithm = value;
                             });
-                          },
-                          items: SearchAlgorithm.values
-                              .map<DropdownMenuItem<String>>((value) {
-                            return DropdownMenuItem<String>(
-                              value: value.name,
-                              child: Text(value.name),
+
+                            SharedPreferences prefs =
+                                await SharedPreferences.getInstance();
+                            await prefs.setString(
+                              "searchAlgorithm",
+                              value!,
                             );
-                          }).toList(),
+                          },
+                          items: SearchAlgorithmList.asMap().entries.map(
+                            (entry) {
+                              return DropdownMenuItem<String>(
+                                value: entry.value,
+                                child: Text(entry.value),
+                              );
+                            },
+                          ).toList(),
+                          // SearchAlgorithm.values
+                          //     .map<DropdownMenuItem<String>>((value) {
+                          //   return DropdownMenuItem<String>(
+                          //     value: value.name,
+                          //     child: Text(value.name),
+                          //   );
+                          // }).toList(),
                         ),
                       ),
                     ],
@@ -812,7 +865,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       onMessageReceived: (JavascriptMessage message) {
         print("message1 ${message.message}");
         setState(() {
-          _clickContent = message.message;
+          _webpageContent = message.message;
         });
       },
     );
@@ -823,9 +876,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       name: 'Drill',
       onMessageReceived: (JavascriptMessage message) {
         print("DrillText ${message.message}");
-        // setState(() {
-        //   _clickContent = message.message;
-        // });
+        setState(() {
+          _webpageContent = message.message;
+        });
       },
     );
   }
@@ -903,7 +956,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       child: Marquee(
                         key: _marqueeKey,
                         text:
-                            '$_searchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
+                            '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
                         style: const TextStyle(fontSize: 18),
                         scrollAxis: Axis.horizontal, //scroll direction
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -942,16 +995,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                   });
 
                   if (_searchMode == "Drill-down") {
-                    print(
-                        "real drilling | ${await _controller_test!.getTitle()}");
-                    _controller_test!.runJavascript("""
-                        var x = window.innerWidth/2;
-                        var y = window.innerHeight/2;
-                        var centre = document.elementFromPoint(x, y);
-                        Drill.postMessage(centre.innerText);
-                      """);
-                    var items = await _performSearch(
-                        await _controller_test!.getTitle());
+                    print("real drilling | ${await _getSearchQuery()}");
+
+                    var items = await _performSearch(await _getSearchQuery());
 
                     await _updateURLs('append', _searchText, 'google', items);
                     await _updateCurrentURLs();
@@ -1176,14 +1222,14 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 //   if (_searchMode == "Drill-down") {
                                 //     print("drill-down");
 
-                                //     print("clickContent $_clickContent");
+                                //     print("clickContent $_webpageContent");
 
                                 //     var items = await _performSearch(
-                                //         _clickContent == ""
+                                //         _webpageContent == ""
                                 //             ? await _controller_test!.getTitle()
                                 //             : (await _controller_test!
                                 //                     .getTitle())! +
-                                //                 _clickContent);
+                                //                 _webpageContent);
 
                                 //     await _updateURLs(
                                 //         'append', _searchText, 'google', items);
