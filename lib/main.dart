@@ -16,6 +16,7 @@ import 'dart:math' as math;
 // import 'package:settings_ui/settings_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
+import 'package:google_vision/google_vision.dart';
 
 import 'my_flutter_app_icons.dart';
 
@@ -37,12 +38,13 @@ void main() async {
 List<String> SearchAlgorithmList = [
   "Title",
   "Webpage Content",
-  "Title With Webpage Content"
+  "Title With Webpage Content",
+  "Hovered Webpage Content"
 ];
 
 enum Theme { Light, Dark, Auto }
 
-final webViewKey = GlobalKey<_WebViewContainerState>();
+// final webViewKey = GlobalKey<_WebViewContainerState>();
 // const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw";
 const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
 // const SEARCH_ENGINE_ID = "a2af9eb17493641ba";
@@ -65,8 +67,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _searchAlgorithm;
   var _theme;
 
-  final _key = UniqueKey();
+  GlobalKey _webViewKey = GlobalKey();
   var _marqueeKey = UniqueKey();
+  var _settingsPageKey = UniqueKey();
   Map URLs = {};
   // Map _drillURLs = {};
   // final Map URL_list = {
@@ -155,6 +158,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   int _searchCount = 0;
   double _turns = 0.0;
   bool _drilling = false;
+  double _hoverX = 0.0, _hoverY = 0.0;
 
   // include only first page
   int _page = 1;
@@ -251,7 +255,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                         var centre = document.elementFromPoint(x, y);
                         Drill.postMessage(centre.innerText);
                       """);
-        query = _webpageContent;
+        if (_webpageContent == null || _webpageContent == "") {
+          query = (await _controller_test!.getTitle())!;
+        } else {
+          query = _webpageContent;
+        }
         break;
       case "Title With Webpage Content":
         await _controller_test!.runJavascript("""
@@ -260,7 +268,24 @@ class _WebViewContainerState extends State<WebViewContainer>
                         var centre = document.elementFromPoint(x, y);
                         Drill.postMessage(centre.innerText);
                       """);
-        query = "${await _controller_test!.getTitle()} $_webpageContent";
+        if (_webpageContent == null || _webpageContent == "") {
+          query = (await _controller_test!.getTitle())!;
+        } else {
+          query = "${await _controller_test!.getTitle()} $_webpageContent";
+        }
+        break;
+      case "Hovered Webpage Content":
+        await _controller_test!.runJavascript("""
+                        var x = window.innerWidth/2;
+                        var y = window.innerHeight/2;
+                        var centre = document.elementFromPoint($_hoverX, $_hoverY);
+                        Drill.postMessage(centre.innerText);
+                      """);
+        if (_webpageContent == null || _webpageContent == "") {
+          query = (await _controller_test!.getTitle())!;
+        } else {
+          query = _webpageContent;
+        }
         break;
     }
 
@@ -289,7 +314,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
 
     print(
-        "_searchCount: ${_searchCount} | _searchTimer.isActive: ${_searchTimer.isActive}");
+        "_searchCount: $_searchCount | _searchTimer.isActive: ${_searchTimer.isActive}");
 
     if (_searchTimer.isActive) {
       if (_searchCount > 5) {
@@ -654,6 +679,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                         subtitle:
                             const Text("How the drill-down is performed."),
                         trailing: DropdownButton<String>(
+                          key: _settingsPageKey,
                           value: _searchAlgorithm,
                           // SearchAlgorithm.values[_searchAlgorithm]
                           //     .toString()
@@ -678,9 +704,14 @@ class _WebViewContainerState extends State<WebViewContainer>
                             //     .index;
                             // print("sa $sa");
 
+                            print("_settingsPageKey $_settingsPageKey");
+
                             setState(() {
                               _searchAlgorithm = value;
+                              _settingsPageKey = UniqueKey();
                             });
+
+                            print("_settingsPageKey $_settingsPageKey");
 
                             SharedPreferences prefs =
                                 await SharedPreferences.getInstance();
@@ -883,6 +914,47 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
+  _performDrill() async {
+    print("drill CONTINUOUSLY");
+    setState(() {
+      if (_fabColor == Colors.amber[300]!) {
+        _fabColor = Colors.blue[100]!;
+        _appBarColor = Colors.blue[100]!;
+        _searchMode = "Default";
+      } else {
+        _fabColor = Colors.amber[300]!;
+        _appBarColor = Colors.amber[300]!;
+        _searchMode = "Drill-down";
+      }
+    });
+
+    if (_searchMode == "Drill-down") {
+      print("real drilling | ${await _getSearchQuery()}");
+
+      var items = await _performSearch(await _getSearchQuery());
+
+      await _updateURLs('append', _searchText, 'google', items);
+      await _updateCurrentURLs();
+      setState(() {
+        _currentURLIndex++;
+        _swipe = true;
+      });
+      _loadNewPage();
+    }
+
+    setState(() {
+      if (_fabColor == Colors.amber[300]!) {
+        _fabColor = Colors.blue[100]!;
+        _appBarColor = Colors.blue[100]!;
+        _searchMode = "Default";
+      } else {
+        _fabColor = Colors.amber[300]!;
+        _appBarColor = Colors.amber[300]!;
+        _searchMode = "Drill-down";
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -980,63 +1052,99 @@ class _WebViewContainerState extends State<WebViewContainer>
         ),
         floatingActionButton: _searchResult.isNotEmpty
             ? GestureDetector(
-                onLongPress: () async {
-                  print("drill CONTINUOUSLY");
-                  setState(() {
-                    if (_fabColor == Colors.amber[300]!) {
-                      _fabColor = Colors.blue[100]!;
-                      _appBarColor = Colors.blue[100]!;
-                      _searchMode = "Default";
-                    } else {
-                      _fabColor = Colors.amber[300]!;
-                      _appBarColor = Colors.amber[300]!;
-                      _searchMode = "Drill-down";
-                    }
-                  });
-
-                  if (_searchMode == "Drill-down") {
-                    print("real drilling | ${await _getSearchQuery()}");
-
-                    var items = await _performSearch(await _getSearchQuery());
-
-                    await _updateURLs('append', _searchText, 'google', items);
-                    await _updateCurrentURLs();
-                  }
-
-                  setState(() {
-                    if (_fabColor == Colors.amber[300]!) {
-                      _fabColor = Colors.blue[100]!;
-                      _appBarColor = Colors.blue[100]!;
-                      _searchMode = "Default";
-                    } else {
-                      _fabColor = Colors.amber[300]!;
-                      _appBarColor = Colors.amber[300]!;
-                      _searchMode = "Drill-down";
-                    }
-                  });
+                onLongPress: () {
+                  _performDrill();
                 },
-                child: FloatingActionButton(
-                  onPressed: () {
-                    if (_searchMode == "Default") {
-                      print("drill ONCE");
-                      // drill logic
-                    } else {
-                      print("already in drill-down mode");
-                    }
-                  },
-                  backgroundColor: _fabColor,
-                  splashColor: Colors.amber[100],
-                  child: AnimatedBuilder(
-                    animation: _drillingAnimationController,
-                    builder: (_, child) {
-                      return Transform.rotate(
-                        angle: _drilling
-                            ? _drillingAnimationController.value * 2 * math.pi
-                            : 0.0,
-                        child: child,
-                      );
+                child: Draggable(
+                  feedback: FloatingActionButton(
+                    onPressed: () {
+                      if (_searchMode == "Default") {
+                        print("drill ONCE");
+                        // drill logic
+                      } else {
+                        print("already in drill-down mode");
+                      }
                     },
-                    child: const Icon(MyFlutterApp.drill),
+                    backgroundColor: _fabColor,
+                    splashColor: Colors.amber[100],
+                    child: AnimatedBuilder(
+                      animation: _drillingAnimationController,
+                      builder: (_, child) {
+                        return Transform.rotate(
+                          angle: _drilling
+                              ? _drillingAnimationController.value * 2 * math.pi
+                              : 0.0,
+                          child: child,
+                        );
+                      },
+                      child: const Icon(MyFlutterApp.drill),
+                    ),
+                  ),
+                  childWhenDragging: Container(),
+                  onDragEnd: (details) async {
+                    RenderBox webViewBox = _webViewKey.currentContext
+                        ?.findRenderObject() as RenderBox;
+                    Offset webViewPosition =
+                        webViewBox.localToGlobal(Offset.zero);
+                    double webViewX = webViewPosition.dx;
+                    double webViewY = webViewPosition.dy;
+                    double webViewWidth = webViewBox.size.width;
+                    double webViewHeight = webViewBox.size.height;
+
+                    print(
+                        "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
+                    print(details.offset);
+                    setState(() {
+                      // _hoverX = details.offset.dx;
+                      if (details.offset.dx < webViewX) {
+                        _hoverX = webViewX;
+                      } else if (details.offset.dx > webViewWidth) {
+                        _hoverX = webViewX + webViewWidth;
+                      }
+
+                      if (details.offset.dy - webViewY < 0) {
+                        _hoverY = 0;
+                        print("1");
+                      } else if (details.offset.dy - webViewY > webViewHeight) {
+                        _hoverY = webViewHeight - 1;
+                        print("2");
+                      } else {
+                        _hoverY = details.offset.dy - webViewY;
+                        print("3");
+                      }
+                    });
+
+                    await _controller_test!.runJavascript("""
+                        var x = window.innerWidth/2;
+                        var y = window.innerHeight/2;
+                        var centre = document.elementFromPoint($_hoverX, $_hoverY);
+                        Drill.postMessage(centre.innerText);
+                      """);
+                    // _performDrill();
+                  },
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      // if (_searchMode == "Default") {
+                      //   print("drill ONCE");
+                      //   // drill logic
+                      // } else {
+                      //   print("already in drill-down mode");
+                      // }
+                    },
+                    backgroundColor: _fabColor,
+                    splashColor: Colors.amber[100],
+                    child: AnimatedBuilder(
+                      animation: _drillingAnimationController,
+                      builder: (_, child) {
+                        return Transform.rotate(
+                          angle: _drilling
+                              ? _drillingAnimationController.value * 2 * math.pi
+                              : 0.0,
+                          child: child,
+                        );
+                      },
+                      child: const Icon(MyFlutterApp.drill),
+                    ),
                   ),
                 ),
               )
@@ -1058,7 +1166,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                             //     print("webview long pressed");
                             //   },
                             child: WebView(
-                              key: _key,
+                              key: _webViewKey,
                               // gestureRecognizers: gestureRecognizers,
                               javascriptMode: JavascriptMode.unrestricted,
                               javascriptChannels: <JavascriptChannel>{
@@ -1156,7 +1264,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 final isar = Isar.getInstance("url") ??
                                     await Isar.open([URLSchema], name: "url");
 
-                                print("isar: ${isar}");
+                                print("isar: $isar");
 
                                 final urlRecord = await isar.uRLs
                                     .filter()
@@ -1204,7 +1312,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   });
                                 }
 
-                                print("swiping ${_swipe}");
+                                print("swiping $_swipe");
 
                                 setState(() {
                                   _previousURL = url;
