@@ -17,6 +17,7 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
 import 'package:google_vision/google_vision.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'my_flutter_app_icons.dart';
 
@@ -519,9 +520,45 @@ class _WebViewContainerState extends State<WebViewContainer>
                 child: TextField(
                   textInputAction: TextInputAction.search,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: 'Enter a search term',
+                    suffixIcon: Container(
+                      child: IntrinsicHeight(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            IconButton(
+                              onPressed: _searchFieldController.clear,
+                              icon: const Icon(Icons.clear),
+                            ),
+                            IconButton(
+                              onPressed: () async {
+                                print("picking...");
+                                try {
+                                  final ImagePicker _picker = ImagePicker();
+                                  // Pick an image
+                                  final XFile? image = await _picker.pickImage(
+                                      source: ImageSource.gallery);
+                                  print("image $image");
+                                } catch (e) {
+                                  print("error $e");
+                                }
+                                print("picked");
+                              },
+                              icon: const Icon(Icons.photo_camera),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // IconButton(
+                    //   onPressed: _searchFieldController.clear,
+                    //   icon: const Icon(Icons.photo),
+                    // ),
+                    //   ],
+                    // ),
                   ),
                   controller: _searchFieldController,
                   onSubmitted: (value) {
@@ -1114,13 +1151,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                       }
                     });
 
-                    await _controller_test!.runJavascript("""
-                        var x = window.innerWidth/2;
-                        var y = window.innerHeight/2;
-                        var centre = document.elementFromPoint($_hoverX, $_hoverY);
-                        Drill.postMessage(centre.innerText);
-                      """);
-                    // _performDrill();
+                    // await _controller_test!.runJavascript("""
+                    //     var x = window.innerWidth/2;
+                    //     var y = window.innerHeight/2;
+                    //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
+                    //     Drill.postMessage(centre.innerText);
+                    //   """);
+                    _performDrill();
                   },
                   child: FloatingActionButton(
                     onPressed: () {
