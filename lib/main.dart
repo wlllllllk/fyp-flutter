@@ -4,6 +4,9 @@ import 'dart:ffi';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_seal/pages/history.dart';
+import 'package:fyp_seal/pages/search.dart';
+import 'package:fyp_seal/pages/settings.dart';
 
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
@@ -40,7 +43,14 @@ List<String> SearchAlgorithmList = [
   "Title",
   "Webpage Content",
   "Title With Webpage Content",
-  "Hovered Webpage Content"
+  "Hovered Webpage Content",
+  "New Mode"
+];
+
+List<String> SearchPlatformList = [
+  "Google",
+  "YouTube",
+  "Twitter",
 ];
 
 enum Theme { Light, Dark, Auto }
@@ -143,6 +153,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   List _currentURLs = [];
   List _currentURLsPlain = [];
   int _currentDomainIndex = 0;
+  String _currentSearchPlatform = "";
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
   String _previousURL = "";
@@ -174,6 +185,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
     setState(() {
+      _currentSearchPlatform = "Google";
       _searchAlgorithm = algorithm;
       _theme = theme;
     });
@@ -186,18 +198,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     // TODO: implement initState
     super.initState();
     _init();
-  }
-
-  void _toggleSearchBar() {
-    setState(() {
-      if (!_isSearching) {
-        _isSearching = true;
-      } else if (_isSearching) {
-        _isSearching = false;
-      }
-
-      print("searching? $_isSearching");
-    });
   }
 
   // TextEditingController _handleSearch = TextEditingController();
@@ -277,11 +277,48 @@ class _WebViewContainerState extends State<WebViewContainer>
         break;
       case "Hovered Webpage Content":
         await _controller_test!.runJavascript("""
-                        var x = window.innerWidth/2;
-                        var y = window.innerHeight/2;
                         var centre = document.elementFromPoint($_hoverX, $_hoverY);
                         Drill.postMessage(centre.innerText);
                       """);
+        if (_webpageContent == null || _webpageContent == "") {
+          query = (await _controller_test!.getTitle())!;
+        } else {
+          query = _webpageContent;
+        }
+        break;
+      case "New Mode":
+        await _controller_test!.runJavascript("""
+                var elementMouseIsOver = document.elementFromPoint($_hoverX, $_hoverY);
+                var content = elementMouseIsOver.innerText;
+
+                if (elementMouseIsOver.nodeName == "A"){
+                    Drill.postMessage(elementMouseIsOver.href);
+                }
+
+                else if (content == "" || content == "null") {
+
+                    if (elementMouseIsOver.nodeName == "IMG") {
+
+                        if (elementMouseIsOver.alt == "" || elementMouseIsOver.alt == "null") {
+                            Drill.postMessage(elementMouseIsOver.src);
+                        } else {
+                            Drill.postMessage(elementMouseIsOver.alt);
+                        }
+
+                    } else {
+                        const cssObj = window.getComputedStyle(elementMouseIsOver, null);
+                        let bgImage = cssObj.getPropertyValue("background-image");
+                        const picUrl = bgImage.slice(5,-2);
+
+                        Drill.postMessage(picUrl);
+
+                    }
+
+                } else {
+                    Drill.postMessage(content);
+                }
+                      """);
+
         if (_webpageContent == null || _webpageContent == "") {
           query = (await _controller_test!.getTitle())!;
         } else {
@@ -505,83 +542,24 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     _searchFieldController.text = _realSearchText;
 
-    Navigator.of(context).push(
+    Navigator.push(
+      context,
       MaterialPageRoute(
-        builder: (BuildContext context) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Container(
-                // height: 40,
-                // padding: const EdgeInsets.only(left: 15),
-                // decoration: BoxDecoration(
-                // color: Colors.white,
-                // borderRadius: BorderRadius.circular(10),
-                // ),
-                child: TextField(
-                  textInputAction: TextInputAction.search,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: 'Enter a search term',
-                    suffixIcon: Container(
-                      child: IntrinsicHeight(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            IconButton(
-                              onPressed: _searchFieldController.clear,
-                              icon: const Icon(Icons.clear),
-                            ),
-                            IconButton(
-                              onPressed: () async {
-                                print("picking...");
-                                try {
-                                  final ImagePicker _picker = ImagePicker();
-                                  // Pick an image
-                                  final XFile? image = await _picker.pickImage(
-                                      source: ImageSource.gallery);
-                                  print("image $image");
-                                } catch (e) {
-                                  print("error $e");
-                                }
-                                print("picked");
-                              },
-                              icon: const Icon(Icons.photo_camera),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // IconButton(
-                    //   onPressed: _searchFieldController.clear,
-                    //   icon: const Icon(Icons.photo),
-                    // ),
-                    //   ],
-                    // ),
-                  ),
-                  controller: _searchFieldController,
-                  onSubmitted: (value) {
-                    _handleSearch(value, false);
-                  },
-                  autocorrect: false,
-                  maxLines: 1,
-                ),
-              ),
-            ),
-            body: Container(
-              child: const Align(
-                alignment: Alignment.center,
-                child: Text(
-                  "Search here",
-                  style: TextStyle(fontSize: 22),
-                ),
-              ),
-            ),
+        builder: (context) {
+          return SearchPage(
+            realSearchText: _realSearchText,
+            handleSearch: _handleSearch,
           );
         },
       ),
     );
+  }
+
+  _getDatabase() async {
+    final isar = await Isar.getInstance("url") ??
+        await Isar.open([URLSchema], name: "url");
+
+    return isar;
   }
 
   _getHistory() async {
@@ -607,261 +585,49 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  _buildHistoryList(data) {
-    Map list = {};
-    for (var item in data) {
-      list.addAll({item.url: item.duration});
-    }
-
-    return list
-        .map(
-          (key, value) => MapEntry(
-            key,
-            ListTile(
-              title: Text(key),
-              subtitle: Text(value.toString()),
-            ),
-          ),
-        )
-        .values
-        .toList();
+  void _updateSelectedPageIndex(index) {
+    setState(() {
+      _selectedPageIndex = 0;
+    });
   }
 
-  // fake drill function
-  // _drill() async {
-  //   print("drilling");
-  //   Timer(Duration(milliseconds: 3000), () async {
-  //     print("drilled");
-  //     setState(() {
-  //       _fabColor = Colors.blue[100]!;
-  //     });
-  //   });
-  // }
-
-  _showAlertDialog(BuildContext context) {
-    Widget cancelButton = TextButton(
-      child: const Text("Cancel"),
-      onPressed: () {
-        Navigator.of(context).pop();
-      },
-    );
-    Widget continueButton = TextButton(
-      child: const Text("Delete"),
-      onPressed: () {
-        _deleteHistory();
-        Navigator.of(context).pop();
-        Navigator.of(context).pop();
-        setState(() {
-          _selectedPageIndex = 0;
-        });
-      },
-    );
-
-    AlertDialog alert = AlertDialog(
-      title: const Text("Delete All History"),
-      content: const Text("Are you sure? This cannot be undone."),
-      actions: [
-        cancelButton,
-        continueButton,
-      ],
-    );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
+  void _updateSearchAlgorithm(algorithm) {
+    setState(() {
+      _searchAlgorithm = algorithm;
+    });
   }
 
-  void _pushSettingsPage() {
-    Navigator.of(context).push(
+  void _pushSettingsPage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    Navigator.push(
+      context,
       MaterialPageRoute(
         builder: (context) {
-          return WillPopScope(
-            onWillPop: () {
-              setState(() {
-                _selectedPageIndex = 0;
-              });
-              return Future.value(true);
-            },
-            child: Scaffold(
-              appBar: AppBar(
-                title: Container(
-                  child: const Text("Settings"),
-                ),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new),
-                  onPressed: () => {
-                    setState(() => {
-                          _selectedPageIndex = 0,
-                        }),
-                    Navigator.of(context).pop()
-                  },
-                ),
-                // actions: [
-                //   IconButton(
-                //     icon: const Icon(Icons.delete),
-                //     onPressed: () => _showAlertDialog(context),
-                //   ),
-                // ],
-              ),
-              body: Container(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: ListView(
-                    children: [
-                      ListTile(
-                        title: const Text("Search Algorithm"),
-                        subtitle:
-                            const Text("How the drill-down is performed."),
-                        trailing: DropdownButton<String>(
-                          key: _settingsPageKey,
-                          value: _searchAlgorithm,
-                          // SearchAlgorithm.values[_searchAlgorithm]
-                          //     .toString()
-                          //     .split('.')
-                          //     .last,
-                          icon: const Icon(Icons.arrow_downward),
-                          elevation: 16,
-                          // style: const TextStyle(color: Colors.deepPurple),
-                          underline: Container(
-                            height: 2,
-                            color: _appBarColor,
-                          ),
-                          onChanged: (String? value) async {
-                            print("value $value");
-                            // SearchAlgorithm.values.forEach((element) {
-                            //   print(element.toString().split('.').last);
-                            // });
-
-                            // var sa = SearchAlgorithm.values
-                            //     .firstWhere((element) =>
-                            //         element.toString().split('.').last == value)
-                            //     .index;
-                            // print("sa $sa");
-
-                            print("_settingsPageKey $_settingsPageKey");
-
-                            setState(() {
-                              _searchAlgorithm = value;
-                              _settingsPageKey = UniqueKey();
-                            });
-
-                            print("_settingsPageKey $_settingsPageKey");
-
-                            SharedPreferences prefs =
-                                await SharedPreferences.getInstance();
-                            await prefs.setString(
-                              "searchAlgorithm",
-                              value!,
-                            );
-                          },
-                          items: SearchAlgorithmList.asMap().entries.map(
-                            (entry) {
-                              return DropdownMenuItem<String>(
-                                value: entry.value,
-                                child: Text(entry.value),
-                              );
-                            },
-                          ).toList(),
-                          // SearchAlgorithm.values
-                          //     .map<DropdownMenuItem<String>>((value) {
-                          //   return DropdownMenuItem<String>(
-                          //     value: value.name,
-                          //     child: Text(value.name),
-                          //   );
-                          // }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // SettingsList(
-                  //   sections: [
-                  //     SettingsSection(
-                  //       title: const Text('Common'),
-                  //       tiles: <SettingsTile>[
-                  //         SettingsTile.navigation(
-                  //           leading: const Icon(Icons.language),
-                  //           title: const Text('Language'),
-                  //           value: const Text('English'),
-                  //         ),
-                  //         SettingsTile.switchTile(
-                  //           onToggle: (value) {
-                  //             // setState(() {
-                  //             //   _test = value;
-                  //             // });
-                  //           },
-                  //           initialValue: false,
-                  //           leading: const Icon(Icons.format_paint),
-                  //           title: const Text('Enable custom theme'),
-                  //           activeSwitchColor: _appBarColor,
-                  //         ),
-                  //       ],
-                  //     ),
-                  //   ],
-                  // ),
-                ),
-              ),
-            ),
+          return SettingsPage(
+            updateSelectedPageIndex: _updateSelectedPageIndex,
+            updateSearchAlgorithm: _updateSearchAlgorithm,
+            searchAlgorithm: _searchAlgorithm,
+            SearchAlgorithmList: SearchAlgorithmList,
+            prefs: prefs,
           );
         },
       ),
     );
   }
 
-  void _pushHistoryPage() {
-    Navigator.of(context).push(
+  void _pushHistoryPage() async {
+    final data = await _getHistory();
+    final isar = await _getDatabase();
+
+    Navigator.push(
+      context,
       MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () {
-              setState(() {
-                _selectedPageIndex = 0;
-              });
-              return Future.value(true);
-            },
-            child: Scaffold(
-              appBar: AppBar(
-                title: Container(
-                  child: const Text("History"),
-                ),
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new),
-                  onPressed: () => {
-                    setState(() => {
-                          _selectedPageIndex = 0,
-                        }),
-                    Navigator.of(context).pop()
-                  },
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _showAlertDialog(context),
-                  ),
-                ],
-              ),
-              body: Container(
-                child: Align(
-                  alignment: Alignment.center,
-                  child: FutureBuilder(
-                    future: _getHistory(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        // print("snapshot ${snapshot.data}");
-                        // print("snapshot ${snapshot.data == ''}");
-                        return ListView(
-                          children: _buildHistoryList(snapshot.data),
-                        );
-                      } else {
-                        return const Text("Nothing here :(");
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ),
+        builder: (context) {
+          return HistoriesPage(
+            selectedPageIndex: _selectedPageIndex,
+            urlRecords: data,
+            isar: isar,
           );
         },
       ),
@@ -886,33 +652,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     Factory(() => EagerGestureRecognizer())
   };
 
-  // void _onChangeSearchMode() async {
-  //   print("changing search mode");
-  //   if (_searchMode == "Default") {
-  //     setState(() {
-  //       _searchMode = "Drill-down";
-  //       _appBarColor = Colors.blue[900]!;
-  //     });
-
-  //     var keyword = await _controller_test!.getTitle();
-  //     print("keyword $keyword");
-
-  //     var items = await _performSearch(keyword);
-
-  //     await _updateURLs('append', _searchText, 'google', items);
-  //     await _updateCurrentURLs();
-  //     await _moveSwiper();
-  //   } else {
-  //     setState(() {
-  //       _searchMode = "Default";
-  //       _appBarColor = Colors.blue;
-  //     });
-  //   }
-
-  //   // final title = await _controller_test!.getTitle();
-  //   // _handleSearch(title, true);
-  // }
-
   Future<bool> _onWillPop(BuildContext context) async {
     if (_controller_test?.runtimeType != null) {
       if (await _controller_test!.canGoBack()) {
@@ -931,10 +670,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     return JavascriptChannel(
       name: 'Print',
       onMessageReceived: (JavascriptMessage message) {
-        print("message1 ${message.message}");
-        setState(() {
-          _webpageContent = message.message;
-        });
+        print("Print ${message.message}");
+        // setState(() {
+        //   _webpageContent = message.message;
+        // });
       },
     );
   }
@@ -1082,9 +821,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                   : Text('Results for $_searchText'),
           actions: <Widget>[
             IconButton(
-                // icon: const Icon(Icons.search), onPressed: _toggleSearchBar)
-                icon: const Icon(Icons.search),
-                onPressed: _pushSearchPage)
+                icon: const Icon(Icons.search), onPressed: _pushSearchPage)
           ],
         ),
         floatingActionButton: _searchResult.isNotEmpty
@@ -1118,6 +855,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     ),
                   ),
                   childWhenDragging: Container(),
+                  onDragStarted: () {},
                   onDragEnd: (details) async {
                     RenderBox webViewBox = _webViewKey.currentContext
                         ?.findRenderObject() as RenderBox;
@@ -1392,109 +1130,153 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                           // Vertical Swiper
                           Container(
-                            height: 70,
+                            height: 60,
                             child: GestureDetector(
-                              onTap: () {
-                                print("swiper tapped");
-                              },
-                              // onLongPress: () {
-                              //   _onChangeSearchMode();
+                                onTap: () {
+                                  print("swiper tapped");
+                                },
+                                // onLongPress: () {
+                                //   _onChangeSearchMode();
 
-                              //   final snackBar = SnackBar(
-                              //     content: Text("$_searchMode mode"),
-                              //     shape: RoundedRectangleBorder(
-                              //       borderRadius: BorderRadius.circular(0.0),
-                              //     ),
-                              //     action: SnackBarAction(
-                              //       label: 'Undo',
-                              //       onPressed: () => _onChangeSearchMode(),
-                              //     ),
-                              //   );
+                                //   final snackBar = SnackBar(
+                                //     content: Text("$_searchMode mode"),
+                                //     shape: RoundedRectangleBorder(
+                                //       borderRadius: BorderRadius.circular(0.0),
+                                //     ),
+                                //     action: SnackBarAction(
+                                //       label: 'Undo',
+                                //       onPressed: () => _onChangeSearchMode(),
+                                //     ),
+                                //   );
 
-                              //   // Find the ScaffoldMessenger in the widget tree
-                              //   // and use it to show a SnackBar.
-                              //   ScaffoldMessenger.of(context)
-                              //       .showSnackBar(snackBar);
-                              // },
-                              child: Swiper(
-                                itemCount: _searchResult.length,
-                                loop: false,
-                                scrollDirection: Axis.vertical,
-
-                                itemBuilder: (BuildContext context, int index) {
-                                  return Container(
-                                    child: Stack(
-                                      children: <Widget>[
-                                        // Horizontal Swiper
-                                        Swiper(
-                                          itemCount: _currentURLs.length,
-                                          loop: false,
-                                          scrollDirection: Axis.horizontal,
-                                          controller:
-                                              _swiperControllerHorizontal,
-                                          itemBuilder: (BuildContext context2,
-                                              int index2) {
-                                            return Container(
-                                              decoration: BoxDecoration(
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: const Color.fromARGB(
-                                                            255, 182, 182, 182)
-                                                        .withOpacity(0.1),
-                                                    spreadRadius: 3,
-                                                    blurRadius: 5,
-                                                    // offset: const Offset(0,
-                                                    //     -50), // changes position of shadow
-                                                  ),
-                                                ],
-                                              ),
-                                              child: const Align(
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  "Swipe here to change page",
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          onIndexChanged: (index2) {
-                                            setState(() {
-                                              _currentURLIndex = index2;
-                                              _swipe = true;
-                                            });
-                                            _loadNewPage();
-                                          },
+                                //   // Find the ScaffoldMessenger in the widget tree
+                                //   // and use it to show a SnackBar.
+                                //   ScaffoldMessenger.of(context)
+                                //       .showSnackBar(snackBar);
+                                // },
+                                child: Container(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      IconButton(
+                                        onPressed: () {},
+                                        icon: const Icon(Icons.arrow_back_ios),
+                                      ),
+                                      IconButton(
+                                        onPressed: () {},
+                                        icon:
+                                            const Icon(Icons.arrow_forward_ios),
+                                      ),
+                                      DropdownButton<String>(
+                                        // key: _settingsPageKey,
+                                        value: _currentSearchPlatform,
+                                        icon: const Icon(Icons.arrow_drop_up),
+                                        elevation: 16,
+                                        // style: const TextStyle(color: Colors.deepPurple),
+                                        underline: Container(
+                                          height: 2,
+                                          // color: _appBarColor,
                                         ),
-                                        if (_loadingPercentage < 100)
-                                          LinearProgressIndicator(
-                                            value: _loadingPercentage / 100.0,
-                                            minHeight: 5,
-                                            color: Colors.yellow,
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                onIndexChanged: (index) {
-                                  setState(() {
-                                    _currentURLIndex = 0;
-                                    _currentDomainIndex = index;
-                                    _currentURLs = URLs[_searchText
-                                            .toString()
-                                            .toLowerCase()][
-                                        _searchResult.keys
-                                            .toList()[_currentDomainIndex]];
+                                        onChanged: (String? value) async {
+                                          print("value $value");
 
-                                    // print("_currentURLs $_currentURLs");
-                                    print("index $index");
+                                          setState(() {
+                                            _currentSearchPlatform = value!;
+                                          });
+                                        },
+                                        items: SearchPlatformList.map<
+                                                DropdownMenuItem<String>>(
+                                            (String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                // Swiper(
+                                //   itemCount: _searchResult.length,
+                                //   loop: false,
+                                //   scrollDirection: Axis.vertical,
 
-                                    _loadNewPage();
-                                  });
-                                },
-                                controller: _swiperControllerVertical,
-                                // pagination: SwiperPagination(),
-                                // control: SwiperControl(),
-                              ),
-                            ),
+                                //   itemBuilder: (BuildContext context, int index) {
+                                //     return Container(
+                                //       child: Stack(
+                                //         children: <Widget>[
+                                //           // Horizontal Swiper
+                                //           Swiper(
+                                //             itemCount: _currentURLs.length,
+                                //             loop: false,
+                                //             scrollDirection: Axis.horizontal,
+                                //             controller:
+                                //                 _swiperControllerHorizontal,
+                                //             itemBuilder: (BuildContext context2,
+                                //                 int index2) {
+                                //               return Container(
+                                //                 decoration: BoxDecoration(
+                                //                   boxShadow: [
+                                //                     BoxShadow(
+                                //                       color: const Color.fromARGB(
+                                //                               255, 182, 182, 182)
+                                //                           .withOpacity(0.1),
+                                //                       spreadRadius: 3,
+                                //                       blurRadius: 5,
+                                //                       // offset: const Offset(0,
+                                //                       //     -50), // changes position of shadow
+                                //                     ),
+                                //                   ],
+                                //                 ),
+                                //                 child: const Align(
+                                //                   alignment: Alignment.center,
+                                //                   child: Text(
+                                //                     "Swipe here to change page",
+                                //                   ),
+                                //                 ),
+                                //               );
+                                //             },
+                                //             onIndexChanged: (index2) {
+                                //               setState(() {
+                                //                 _currentURLIndex = index2;
+                                //                 _swipe = true;
+                                //               });
+                                //               _loadNewPage();
+                                //             },
+                                //           ),
+                                //           if (_loadingPercentage < 100)
+                                //             LinearProgressIndicator(
+                                //               value: _loadingPercentage / 100.0,
+                                //               minHeight: 5,
+                                //               color: Colors.yellow,
+                                //             ),
+                                //         ],
+                                //       ),
+                                //     );
+                                //   },
+                                //   onIndexChanged: (index) {
+                                //     setState(() {
+                                //       _currentURLIndex = 0;
+                                //       _currentDomainIndex = index;
+                                //       _currentURLs = URLs[_searchText
+                                //               .toString()
+                                //               .toLowerCase()][
+                                //           _searchResult.keys
+                                //               .toList()[_currentDomainIndex]];
+
+                                //       // print("_currentURLs $_currentURLs");
+                                //       print("index $index");
+
+                                //       _loadNewPage();
+                                //     });
+                                //   },
+                                //   controller: _swiperControllerVertical,
+                                //   // pagination: SwiperPagination(),
+                                //   // control: SwiperControl(),
+                                // ),
+                                ),
                           ),
                         ],
                       ),
@@ -1516,30 +1298,6 @@ class _WebViewContainerState extends State<WebViewContainer>
             ),
           ],
         ),
-        // bottomNavigationBar: BottomNavigationBar(
-        //   items: const <BottomNavigationBarItem>[
-        //     BottomNavigationBarItem(
-        //       icon: Icon(Icons.explore),
-        //       label: 'Explore',
-        //     ),
-        //     BottomNavigationBarItem(
-        //       icon: Icon(Icons.history),
-        //       label: 'History',
-        //     ),
-        //     BottomNavigationBarItem(
-        //       icon: Icon(Icons.bookmark),
-        //       label: 'Bookmark',
-        //     ),
-        //     BottomNavigationBarItem(
-        //       icon: Icon(Icons.settings),
-        //       label: 'Settings',
-        //     ),
-        //   ],
-        //   currentIndex: _selectedPageIndex,
-        //   selectedItemColor: Colors.blue[800],
-        // onTap: _onItemTapped,
-        //   unselectedItemColor: Colors.grey,
-        // ),
       ),
     );
   }
