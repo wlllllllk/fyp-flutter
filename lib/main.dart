@@ -51,18 +51,22 @@ List<String> SearchPlatformList = [
   "Google",
   "YouTube",
   "Twitter",
+  "Facebook",
+  "Instagram",
+  "Linkedin"
 ];
 
 enum Theme { Light, Dark, Auto }
 
-// final webViewKey = GlobalKey<_WebViewContainerState>();
-// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw";
 const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-// const SEARCH_ENGINE_ID = "a2af9eb17493641ba";
-const SEARCH_ENGINE_ID = "35fddaf2d5efb4668";
+const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
+const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
+const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
+const SEARCH_ENGINE_ID_FACEBOOK = "a48841f7c9ed94dd6";
+const SEARCH_ENGINE_ID_INSTAGRAM = "a74dea74df886441a";
+const SEARCH_ENGINE_ID_LINKEDIN = "c1f02371fcab94ca7";
 
 class WebViewContainer extends StatefulWidget {
-  // const WebViewContainer({required this.controller, Key? key}): super(key: key);
   const WebViewContainer({super.key});
 
   @override
@@ -330,12 +334,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     return query;
   }
 
-  _performSearch(value) async {
+  _performSearch(value, platform) async {
     print("searching...");
 
     setState(() {
       _drilling = true;
-      _realSearchText = value;
+      _realSearchText = value.toString().trim();
       _marqueeKey = UniqueKey();
     });
 
@@ -363,9 +367,32 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
     print("_gg: $_gg");
 
+    var ENGINE_ID;
+
+    switch (platform) {
+      case 'Google':
+        ENGINE_ID = SEARCH_ENGINE_ID_GOOGLE;
+        break;
+      case 'YouTube':
+        ENGINE_ID = SEARCH_ENGINE_ID_YOUTUBE;
+        break;
+      case 'Twitter':
+        ENGINE_ID = SEARCH_ENGINE_ID_TWITTER;
+        break;
+      case 'Facebook':
+        ENGINE_ID = SEARCH_ENGINE_ID_FACEBOOK;
+        break;
+      case 'Instagram':
+        ENGINE_ID = SEARCH_ENGINE_ID_INSTAGRAM;
+        break;
+      case 'Linkedin':
+        ENGINE_ID = SEARCH_ENGINE_ID_LINKEDIN;
+        break;
+    }
+
     var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
       'key': API_KEY,
-      'cx': SEARCH_ENGINE_ID,
+      'cx': ENGINE_ID,
       'q': value,
       'start': _start.toString()
     });
@@ -381,7 +408,12 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (response.statusCode == 200) {
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
-        var items = jsonResponse['items'] as List<dynamic>;
+
+        print(jsonResponse);
+
+        var items = jsonResponse['items'].length > 0
+            ? jsonResponse['items'].length as List<dynamic>
+            : [];
 
         return items;
       } else {
@@ -399,7 +431,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     print("updating...");
 
     keyword = keyword.toString().toLowerCase();
-    platform = platform.toString().toLowerCase();
+    platform = platform.toString();
 
     setState(() {
       if (URLs[keyword] == null) {
@@ -417,10 +449,13 @@ class _WebViewContainerState extends State<WebViewContainer>
           int length = URLs[keyword][platform].length;
 
           setState(() {
-            URLs[keyword][platform]
-                .removeRange(_currentURLIndex, length - _currentDomainIndex);
+            if (_currentURLIndex < length - 1) {
+              URLs[keyword][platform]
+                  .removeRange(_currentURLIndex + 1, length - _currentURLIndex);
+            }
 
             for (var item in list) {
+              print("added");
               URLs[keyword][platform]
                   .add({'title': item['title'], 'link': item['link']});
             }
@@ -458,8 +493,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
         _searchResult = URLs[_searchText];
         // print("_searchResult $_searchResult");
-        _currentURLs =
-            URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
+        // _currentURLs = URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
+        _currentURLs = URLs[_searchText][_currentSearchPlatform];
         // print("_currentURLs $_currentURLs");
         _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
       }
@@ -501,7 +536,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  void _handleSearch(value, bool switchMode) async {
+  void _handleSearch(value) async {
     setState(() {
       _searchMode = "Default";
       _appBarColor = Colors.blue[100]!;
@@ -521,10 +556,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     print("realSearchText $realSearchText");
 
     // the search results
-    var items = await _performSearch(realSearchText);
+    var items = await _performSearch(realSearchText, _currentSearchPlatform);
 
     // update the URLs
-    await _updateURLs('replace', _searchText, 'google', items);
+    await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
     // update the current URLs
     await _updateCurrentURLs();
@@ -707,9 +742,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     if (_searchMode == "Drill-down") {
       print("real drilling | ${await _getSearchQuery()}");
 
-      var items = await _performSearch(await _getSearchQuery());
+      var items =
+          await _performSearch(await _getSearchQuery(), _currentSearchPlatform);
 
-      await _updateURLs('append', _searchText, 'google', items);
+      await _updateURLs('append', _searchText, _currentSearchPlatform, items);
       await _updateCurrentURLs();
       setState(() {
         _currentURLIndex++;
@@ -804,7 +840,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                       child: Marquee(
                         key: _marqueeKey,
                         text:
-                            '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
+                            // '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
+                            '$_realSearchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})',
                         style: const TextStyle(fontSize: 18),
                         scrollAxis: Axis.horizontal, //scroll direction
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,6 +868,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                 },
                 child: Draggable(
                   feedback: FloatingActionButton(
+                    isExtended: true,
                     onPressed: () {
                       if (_searchMode == "Default") {
                         print("drill ONCE");
@@ -866,9 +904,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                     double webViewWidth = webViewBox.size.width;
                     double webViewHeight = webViewBox.size.height;
 
-                    print(
-                        "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
-                    print(details.offset);
+                    // print(
+                    //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
+                    // print(details.offset);
                     setState(() {
                       // _hoverX = details.offset.dx;
                       if (details.offset.dx < webViewX) {
@@ -879,13 +917,13 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                       if (details.offset.dy - webViewY < 0) {
                         _hoverY = 0;
-                        print("1");
+                        // print("1");
                       } else if (details.offset.dy - webViewY > webViewHeight) {
                         _hoverY = webViewHeight - 1;
-                        print("2");
+                        // print("2");
                       } else {
                         _hoverY = details.offset.dy - webViewY;
-                        print("3");
+                        // print("3");
                       }
                     });
 
@@ -1098,28 +1136,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   _loadingPercentage = 100;
                                 });
 
-                                // if (!_swipe &&
-                                //     _searchMode == "Drill-down" &&
-                                //     !_currentURLsPlain.contains(url) &&
-                                //     !_redirecting) {
-                                //   if (_searchMode == "Drill-down") {
-                                //     print("drill-down");
-
-                                //     print("clickContent $_webpageContent");
-
-                                //     var items = await _performSearch(
-                                //         _webpageContent == ""
-                                //             ? await _controller_test!.getTitle()
-                                //             : (await _controller_test!
-                                //                     .getTitle())! +
-                                //                 _webpageContent);
-
-                                //     await _updateURLs(
-                                //         'append', _searchText, 'google', items);
-                                //     await _updateCurrentURLs();
-                                //   }
-                                // }
-
                                 setState(() {
                                   _swipe = false;
                                 });
@@ -1135,69 +1151,81 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 onTap: () {
                                   print("swiper tapped");
                                 },
-                                // onLongPress: () {
-                                //   _onChangeSearchMode();
-
-                                //   final snackBar = SnackBar(
-                                //     content: Text("$_searchMode mode"),
-                                //     shape: RoundedRectangleBorder(
-                                //       borderRadius: BorderRadius.circular(0.0),
-                                //     ),
-                                //     action: SnackBarAction(
-                                //       label: 'Undo',
-                                //       onPressed: () => _onChangeSearchMode(),
-                                //     ),
-                                //   );
-
-                                //   // Find the ScaffoldMessenger in the widget tree
-                                //   // and use it to show a SnackBar.
-                                //   ScaffoldMessenger.of(context)
-                                //       .showSnackBar(snackBar);
-                                // },
                                 child: Container(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      IconButton(
-                                        onPressed: () {},
-                                        icon: const Icon(Icons.arrow_back_ios),
+                                    child: Column(
+                                  children: [
+                                    if (_loadingPercentage < 100)
+                                      LinearProgressIndicator(
+                                        value: _loadingPercentage / 100.0,
+                                        minHeight: 5,
+                                        color: Colors.yellow,
                                       ),
-                                      IconButton(
-                                        onPressed: () {},
-                                        icon:
-                                            const Icon(Icons.arrow_forward_ios),
-                                      ),
-                                      DropdownButton<String>(
-                                        // key: _settingsPageKey,
-                                        value: _currentSearchPlatform,
-                                        icon: const Icon(Icons.arrow_drop_up),
-                                        elevation: 16,
-                                        // style: const TextStyle(color: Colors.deepPurple),
-                                        underline: Container(
-                                          height: 2,
-                                          // color: _appBarColor,
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        IconButton(
+                                          onPressed: () {
+                                            if (_currentURLIndex > 0) {
+                                              setState(() {
+                                                print("decrease");
+                                                _currentURLIndex--;
+                                                _swipe = true;
+                                              });
+                                              _loadNewPage();
+                                            }
+                                          },
+                                          icon:
+                                              const Icon(Icons.arrow_back_ios),
                                         ),
-                                        onChanged: (String? value) async {
-                                          print("value $value");
+                                        IconButton(
+                                          onPressed: () {
+                                            if (_currentURLIndex <
+                                                _currentURLs.length - 1) {
+                                              setState(() {
+                                                print("increase");
+                                                _currentURLIndex++;
+                                                _swipe = true;
+                                              });
+                                              _loadNewPage();
+                                            }
+                                          },
+                                          icon: const Icon(
+                                              Icons.arrow_forward_ios),
+                                        ),
+                                        DropdownButton<String>(
+                                          value: _currentSearchPlatform,
+                                          icon: const Icon(Icons.arrow_drop_up),
+                                          elevation: 16,
+                                          // style: const TextStyle(color: Colors.deepPurple),
+                                          underline: Container(
+                                            height: 2,
+                                            // color: _appBarColor,
+                                          ),
+                                          onChanged: (String? value) async {
+                                            print("value $value");
 
-                                          setState(() {
-                                            _currentSearchPlatform = value!;
-                                          });
-                                        },
-                                        items: SearchPlatformList.map<
-                                                DropdownMenuItem<String>>(
-                                            (String value) {
-                                          return DropdownMenuItem<String>(
-                                            value: value,
-                                            child: Text(value),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                  ),
-                                )
+                                            setState(() {
+                                              _currentSearchPlatform = value!;
+                                            });
+
+                                            _handleSearch(_realSearchText);
+                                          },
+                                          items: SearchPlatformList.map<
+                                                  DropdownMenuItem<String>>(
+                                              (String value) {
+                                            return DropdownMenuItem<String>(
+                                              value: value,
+                                              child: Text(value),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ))
                                 // Swiper(
                                 //   itemCount: _searchResult.length,
                                 //   loop: false,
