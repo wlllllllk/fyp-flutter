@@ -410,9 +410,10 @@ class _WebViewContainerState extends State<WebViewContainer>
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
         print(jsonResponse);
+        print(jsonResponse['items']);
 
-        var items = jsonResponse['items'].length > 0
-            ? jsonResponse['items'].length as List<dynamic>
+        var items = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
             : [];
 
         return items;
@@ -432,14 +433,17 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     keyword = keyword.toString().toLowerCase();
     platform = platform.toString();
+    print("list length: ${list.length}");
 
     setState(() {
-      if (URLs[keyword] == null) {
-        URLs[keyword] = {};
-      }
+      if (list.length > 0) {
+        if (URLs[keyword] == null) {
+          URLs[keyword] = {};
+        }
 
-      if (URLs[keyword][platform] == null) {
-        URLs[keyword][platform] = [];
+        if (URLs[keyword][platform] == null) {
+          URLs[keyword][platform] = [];
+        }
       }
     });
 
@@ -467,17 +471,20 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
       case "replace":
         {
-          setState(() {
-            URLs[keyword][platform] = [];
+          // only set the URL list if there are results
+          if (list.length > 0) {
+            setState(() {
+              URLs[keyword][platform] = [];
 
-            for (var item in list) {
-              URLs[keyword][platform]
-                  .add({'title': item['title'], 'link': item['link']});
-            }
+              for (var item in list) {
+                URLs[keyword][platform]
+                    .add({'title': item['title'], 'link': item['link']});
+              }
 
-            // URLs[keyword][platform]
-            //     .add({'title': 'manual', 'link': 'https://www.google.com'});
-          });
+              // URLs[keyword][platform]
+              //     .add({'title': 'manual', 'link': 'https://www.google.com'});
+            });
+          }
           break;
         }
     }
@@ -489,7 +496,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         print("no results");
         _searchResult = {};
       } else {
-        print("have results");
+        print("have results ${URLs[_searchText]}");
 
         _searchResult = URLs[_searchText];
         // print("_searchResult $_searchResult");
@@ -557,7 +564,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     // the search results
     var items = await _performSearch(realSearchText, _currentSearchPlatform);
-
+    print("items $items");
     // update the URLs
     await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
@@ -833,29 +840,29 @@ class _WebViewContainerState extends State<WebViewContainer>
           centerTitle: false,
           title: _searchText == ""
               ? const Text("Explore")
-              : _searchResult.isNotEmpty
-                  ? SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.03,
-                      // width: MediaQuery.of(context).size.width * 0.8,
-                      child: Marquee(
-                        key: _marqueeKey,
-                        text:
-                            // '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
-                            '$_realSearchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})',
-                        style: const TextStyle(fontSize: 18),
-                        scrollAxis: Axis.horizontal, //scroll direction
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        blankSpace: 50.0,
-                        velocity: 50.0, //speed
-                        pauseAfterRound: const Duration(seconds: 1),
-                        // startPadding: 10.0,
-                        accelerationDuration: const Duration(seconds: 1),
-                        accelerationCurve: Curves.linear,
-                        decelerationDuration: const Duration(milliseconds: 500),
-                        decelerationCurve: Curves.easeOut,
-                      ),
-                    )
-                  : Text('Results for $_searchText'),
+              : SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.03,
+                  // width: MediaQuery.of(context).size.width * 0.8,
+                  child: Marquee(
+                    key: _marqueeKey,
+                    text:
+                        // '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
+                        _searchResult.isNotEmpty
+                            ? '$_realSearchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
+                            : 'Results for $_searchText',
+                    style: const TextStyle(fontSize: 18),
+                    scrollAxis: Axis.horizontal, //scroll direction
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    blankSpace: 50.0,
+                    velocity: 50.0, //speed
+                    pauseAfterRound: const Duration(seconds: 1),
+                    // startPadding: 10.0,
+                    accelerationDuration: const Duration(seconds: 1),
+                    accelerationCurve: Curves.linear,
+                    decelerationDuration: const Duration(milliseconds: 500),
+                    decelerationCurve: Curves.easeOut,
+                  ),
+                ),
           actions: <Widget>[
             IconButton(
                 icon: const Icon(Icons.search), onPressed: _pushSearchPage)
