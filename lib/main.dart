@@ -58,7 +58,8 @@ List<String> SearchPlatformList = [
 
 enum Theme { Light, Dark, Auto }
 
-const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+// const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
@@ -915,11 +916,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                     //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
                     // print(details.offset);
                     setState(() {
-                      // _hoverX = details.offset.dx;
                       if (details.offset.dx < webViewX) {
                         _hoverX = webViewX;
                       } else if (details.offset.dx > webViewWidth) {
                         _hoverX = webViewX + webViewWidth;
+                      } else {
+                        _hoverX = details.offset.dx;
                       }
 
                       if (details.offset.dy - webViewY < 0) {
