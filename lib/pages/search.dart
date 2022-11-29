@@ -17,6 +17,8 @@ import 'package:path/path.dart' as p;
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class CredentialsProvider {
   CredentialsProvider();
@@ -47,10 +49,20 @@ class SearchPage extends StatefulWidget {
     Key? key,
     required this.realSearchText,
     required this.handleSearch,
+    required this.performSearch,
+    required this.updateURLs,
+    required this.updateCurrentURLs,
+    required this.moveSwiper,
+    required this.updateSearchText,
   }) : super(key: key);
 
   final String realSearchText;
   final handleSearch;
+  final performSearch;
+  final updateURLs;
+  final updateCurrentURLs;
+  final moveSwiper;
+  final updateSearchText;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -103,9 +115,52 @@ class _SearchPageState extends State<SearchPage> {
                             final XFile? image = await _picker.pickImage(
                                 source: ImageSource.camera);
                             print("image $image");
-                            _imageSearch(image, image!.path);
+                            Fluttertoast.showToast(
+                                msg: "image $image",
+                                toastLength: Toast.LENGTH_SHORT,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
+                            Map results =
+                                await _imageSearch(image, image!.path);
+                            print("image $results");
+                            Fluttertoast.showToast(
+                                msg: "image $results",
+                                toastLength: Toast.LENGTH_LONG,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
+                            await widget
+                                .updateSearchText(results["bestGuessLabel"]);
+                            var items = null;
+                            if (results['urls'].length == 0) {
+                              items = await widget.performSearch(
+                                  results["bestGuessLabel"], "Google");
+                              await widget.updateURLs("replace",
+                                  results['bestGuessLabel'], "Google", items);
+                            } else {
+                              await widget.updateURLs(
+                                  "replace",
+                                  results['bestGuessLabel'],
+                                  "Google",
+                                  results['urls']);
+                            }
+                            await widget.updateCurrentURLs();
+                            await widget.moveSwiper();
                           } catch (e) {
                             print("error $e");
+                            Fluttertoast.showToast(
+                                msg: "e $e",
+                                toastLength: Toast.LENGTH_SHORT,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
                           }
                           print("picked");
                         },
@@ -120,9 +175,52 @@ class _SearchPageState extends State<SearchPage> {
                             final XFile? image = await _picker.pickImage(
                                 source: ImageSource.gallery);
                             print("image $image");
-                            _imageSearch(image, image!.path);
+                            Fluttertoast.showToast(
+                                msg: "image $image",
+                                toastLength: Toast.LENGTH_SHORT,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
+                            Map results =
+                                await _imageSearch(image, image!.path);
+                            print("image $results");
+                            Fluttertoast.showToast(
+                                msg: "image $results",
+                                toastLength: Toast.LENGTH_LONG,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
+                            await widget
+                                .updateSearchText(results["bestGuessLabel"]);
+                            var items = null;
+                            if (results['urls'].length == 0) {
+                              items = await widget.performSearch(
+                                  results["bestGuessLabel"], "Google");
+                              await widget.updateURLs("replace",
+                                  results['bestGuessLabel'], "Google", items);
+                            } else {
+                              await widget.updateURLs(
+                                  "replace",
+                                  results['bestGuessLabel'],
+                                  "Google",
+                                  results['urls']);
+                            }
+                            await widget.updateCurrentURLs();
+                            await widget.moveSwiper();
                           } catch (e) {
                             print("error $e");
+                            Fluttertoast.showToast(
+                                msg: "e $e",
+                                toastLength: Toast.LENGTH_SHORT,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
                           }
                           print("picked");
                         },
@@ -185,7 +283,8 @@ _imageSearch(src, path) async {
     final bytes = io.File(path).readAsBytesSync();
     String img64 = base64Encode(bytes);
 
-    Future<vision.BatchAnnotateImagesResponse> search(String image) async {
+    // Future<vision.BatchAnnotateImagesResponse> search(String image) async {
+    Future<Map> search(String image) async {
       var _vision = vision.VisionApi(await _client);
       var _api = _vision.images;
       var _response =
@@ -214,42 +313,77 @@ _imageSearch(src, path) async {
       var i = 0;
 
       _response.responses?.forEach((data) {
-        _label = data.webDetection!.bestGuessLabels;
+        _label = data.webDetection?.bestGuessLabels ?? '';
 
-        entities = data.webDetection!.webEntities as List<vision.WebEntity>;
+        entities = data.webDetection?.webEntities != null
+            ? data.webDetection?.webEntities as List<vision.WebEntity>
+            : [];
 
         //full_match_image =
         //  data.webDetection!.fullMatchingImages as List<vision.WebImage>;
-        partial_match_image =
-            data.webDetection!.partialMatchingImages as List<vision.WebImage>;
-        page_with_match_image =
-            data.webDetection!.pagesWithMatchingImages as List<vision.WebPage>;
-        page_with_similar_image =
-            data.webDetection!.visuallySimilarImages as List<vision.WebImage>;
+        if (data.webDetection?.partialMatchingImages != null) {
+          partial_match_image =
+              data.webDetection!.partialMatchingImages as List<vision.WebImage>;
+          print("not null1 | ${data.webDetection?.partialMatchingImages}");
+        } else {
+          print("null1");
+        }
 
-        bestguess = _label!.single;
+        if (data.webDetection?.pagesWithMatchingImages != null) {
+          page_with_match_image = data.webDetection!.pagesWithMatchingImages
+              as List<vision.WebPage>;
+          print("not null2 | ${data.webDetection?.pagesWithMatchingImages}");
+        } else {
+          print("null2");
+        }
+
+        if (data.webDetection?.visuallySimilarImages != null) {
+          page_with_similar_image =
+              data.webDetection!.visuallySimilarImages as List<vision.WebImage>;
+          print("not null3 | ${data.webDetection?.visuallySimilarImages}");
+        } else {
+          print("null3");
+        }
+
+        print("_label 4 | ${_label}");
+        bestguess = _label?.single ?? '';
         //entity = entities!;
       });
-      print("best guess label=  " + bestguess.label.toString());
+
+      // print("best guess label=  " + bestguess.label.toString());
+      String bestGuessLabel = bestguess.label.toString();
+
       i = 0;
       var j = 0;
       //for (i; i < 10; i++) {
-      print(entities![i].description);
+      // print(entities![i].description);
       //  print("Full match url = " + full_match_image![i].url.toString());
-      print("Partial match url = " + partial_match_image![i].url.toString());
-      print("page with similar iamge = " +
-          page_with_similar_image![i].url.toString());
-      for (j = 0; j < page_with_match_image!.length; j++) {
-        print("page with match image title=" +
-            page_with_match_image![j].pageTitle.toString());
-        print("page with match image =" +
-            page_with_match_image![j].url.toString());
+      // print("Partial match url = " + partial_match_image![i].url.toString());
+      // print("page with similar iamge = " +
+      //     page_with_similar_image![i].url.toString());
+      Map results = {"bestGuessLabel": bestGuessLabel};
+      List urls = [];
+      int len = page_with_match_image?.length ?? 0;
+      for (j = 0; j < len; j++) {
+        // print("page with match image title=" +
+        //     page_with_match_image![j].pageTitle.toString());
+        // print("page with match image =" +
+        //     page_with_match_image![j].url.toString());
+        urls.add({
+          'title': page_with_match_image![j].pageTitle.toString(),
+          'link': page_with_match_image![j].url.toString()
+        });
       }
 
-      return _response;
+      results.addAll({'urls': urls});
+
+      // return _response;
+      return results;
     }
 
-    var response = search(img64);
+    var results = search(img64);
+    // print("results = ${await Future.value(results)}");
+    return await Future.value(results);
   } finally {
     await jsonCredential.delete();
     fileExists = jsonCredential.existsSync();

@@ -493,7 +493,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _drilling = true;
       _realSearchText = value.toString().trim();
-      _marqueeKey = UniqueKey();
     });
 
     print("_searchTimer.tick ${_searchTimer.tick}");
@@ -584,11 +583,13 @@ class _WebViewContainerState extends State<WebViewContainer>
   _updateURLs(mode, keyword, platform, list) async {
     print("updating...");
 
-    keyword = keyword.toString().toLowerCase();
+    keyword = keyword.toString();
     platform = platform.toString();
     print("list length: ${list.length}");
 
     setState(() {
+      _marqueeKey = UniqueKey();
+
       if (list.length > 0) {
         if (URLs[keyword] == null) {
           URLs[keyword] = {};
@@ -662,6 +663,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   void _loadNewPage() {
+    print("loading ${_currentURLs[_currentURLIndex]['link']}");
     _controller_test?.loadUrl(_currentURLs[_currentURLIndex]['link']);
   }
 
@@ -706,7 +708,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     print("search $value");
     String realSearchText = "";
     Map results = {};
-    value = value.toString().toLowerCase();
+    value = value.toString();
 
     print("_searchMode $_searchMode");
 
@@ -728,6 +730,14 @@ class _WebViewContainerState extends State<WebViewContainer>
     await _moveSwiper();
   }
 
+  void _updateSearchText(searchText) {
+    setState(() {
+      _realSearchText = searchText;
+      _searchText = searchText;
+      _currentSearchPlatform = "Google";
+    });
+  }
+
   final TextEditingController _searchFieldController = TextEditingController();
 
   void _pushSearchPage() {
@@ -742,9 +752,13 @@ class _WebViewContainerState extends State<WebViewContainer>
       MaterialPageRoute(
         builder: (context) {
           return SearchPage(
-            realSearchText: _realSearchText,
-            handleSearch: _handleSearch,
-          );
+              realSearchText: _realSearchText,
+              handleSearch: _handleSearch,
+              performSearch: _performSearch,
+              updateURLs: _updateURLs,
+              updateCurrentURLs: _updateCurrentURLs,
+              moveSwiper: _moveSwiper,
+              updateSearchText: _updateSearchText);
         },
       ),
     );
@@ -1068,11 +1082,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                     //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
                     // print(details.offset);
                     setState(() {
-                      // _hoverX = details.offset.dx;
                       if (details.offset.dx < webViewX) {
                         _hoverX = webViewX;
                       } else if (details.offset.dx > webViewWidth) {
                         _hoverX = webViewX + webViewWidth;
+                      } else {
+                        _hoverX = details.offset.dx;
                       }
 
                       if (details.offset.dy - webViewY < 0) {
@@ -1306,7 +1321,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                           // Vertical Swiper
                           Container(
-                            height: 60,
+                            height: _loadingPercentage < 100 ? 55 : 50,
                             child: GestureDetector(
                                 onTap: () {
                                   print("swiper tapped");
