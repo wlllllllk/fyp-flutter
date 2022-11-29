@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -1322,7 +1322,9 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                           // Vertical Swiper
                           Container(
-                            height: _loadingPercentage < 100 ? 55 : 50,
+                            height: Platform.isIOS
+                                ? (_loadingPercentage < 100 ? 65 : 60)
+                                : (_loadingPercentage < 100 ? 55 : 50),
                             child: GestureDetector(
                                 onTap: () {
                                   print("swiper tapped");
