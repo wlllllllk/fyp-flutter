@@ -23,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
 import 'package:google_vision/google_vision.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -47,6 +48,7 @@ void main() async {
           // colorSchemeSeed: Color.fromARGB(255, 49, 83, 97),
           useMaterial3: true),
       home: WebViewContainer(),
+      builder: EasyLoading.init(),
     ),
   );
 }
@@ -552,7 +554,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     var response = !_gg ? await http.get(url) : null;
 
-    // print("response: $response");
+    print("response: $response");
     setState(() {
       _drilling = false;
     });
@@ -609,8 +611,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
           setState(() {
             if (_currentURLIndex < length - 1) {
-              URLs[keyword][platform]
-                  .removeRange(_currentURLIndex + 1, length - _currentURLIndex);
+              URLs[keyword][platform].removeRange(_currentURLIndex + 1, length);
             }
 
             for (var item in list) {
@@ -901,7 +902,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   _performDrill() async {
-    print("drill CONTINUOUSLY");
+    print("drilling...");
     setState(() {
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
@@ -1399,6 +1400,17 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               child: Text(value),
                                             );
                                           }).toList(),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            _controller_test!.goBack();
+                                          },
+                                          style: TextButton.styleFrom(
+                                            primary: Colors.black87,
+                                          ),
+                                          child: const Text("Back"),
+                                          // icon: const Icon(Icons
+                                          //     .settings_backup_restore_rounded),
                                         ),
                                       ],
                                     ),

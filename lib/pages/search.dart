@@ -19,6 +19,7 @@ import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class CredentialsProvider {
   CredentialsProvider();
@@ -115,25 +116,11 @@ class _SearchPageState extends State<SearchPage> {
                             final XFile? image = await _picker.pickImage(
                                 source: ImageSource.camera);
                             print("image $image");
-                            // Fluttertoast.showToast(
-                            //     msg: "image $image",
-                            //     toastLength: Toast.LENGTH_SHORT,
-                            //     gravity: ToastGravity.CENTER,
-                            //     timeInSecForIosWeb: 1,
-                            //     backgroundColor: Colors.red,
-                            //     textColor: Colors.white,
-                            //     fontSize: 16.0);
+                            EasyLoading.showToast('image $image');
+                            EasyLoading.show(status: 'Searching...');
                             Map results =
                                 await _imageSearch(image, image!.path);
                             print("image $results");
-                            // Fluttertoast.showToast(
-                            //     msg: "image $results",
-                            //     toastLength: Toast.LENGTH_LONG,
-                            //     gravity: ToastGravity.CENTER,
-                            //     timeInSecForIosWeb: 1,
-                            //     backgroundColor: Colors.red,
-                            //     textColor: Colors.white,
-                            //     fontSize: 16.0);
                             await widget
                                 .updateSearchText(results["bestGuessLabel"]);
                             var items = null;
@@ -150,17 +137,13 @@ class _SearchPageState extends State<SearchPage> {
                                   results['urls']);
                             }
                             await widget.updateCurrentURLs();
+                            EasyLoading.dismiss();
+                            EasyLoading.showToast(
+                                'results length ${results['urls'].length}');
                             await widget.moveSwiper();
                           } catch (e) {
                             print("error $e");
-                            // Fluttertoast.showToast(
-                            //     msg: "e $e",
-                            //     toastLength: Toast.LENGTH_SHORT,
-                            //     gravity: ToastGravity.CENTER,
-                            //     timeInSecForIosWeb: 1,
-                            //     backgroundColor: Colors.red,
-                            //     textColor: Colors.white,
-                            //     fontSize: 16.0);
+                            EasyLoading.showToast('error $e');
                           }
                           print("picked");
                         },
@@ -175,25 +158,12 @@ class _SearchPageState extends State<SearchPage> {
                             final XFile? image = await _picker.pickImage(
                                 source: ImageSource.gallery);
                             print("image $image");
-                            // Fluttertoast.showToast(
-                            //     msg: "image $image",
-                            //     toastLength: Toast.LENGTH_SHORT,
-                            //     gravity: ToastGravity.CENTER,
-                            //     timeInSecForIosWeb: 1,
-                            //     backgroundColor: Colors.red,
-                            //     textColor: Colors.white,
-                            //     fontSize: 16.0);
+                            EasyLoading.showToast('image $image');
+                            EasyLoading.show(status: 'Searching...');
                             Map results =
                                 await _imageSearch(image, image!.path);
                             print("image $results");
-                            // Fluttertoast.showToast(
-                            //     msg: "image $results",
-                            //     toastLength: Toast.LENGTH_LONG,
-                            //     gravity: ToastGravity.CENTER,
-                            //     timeInSecForIosWeb: 1,
-                            //     backgroundColor: Colors.red,
-                            //     textColor: Colors.white,
-                            //     fontSize: 16.0);
+
                             await widget
                                 .updateSearchText(results["bestGuessLabel"]);
                             var items = null;
@@ -210,17 +180,13 @@ class _SearchPageState extends State<SearchPage> {
                                   results['urls']);
                             }
                             await widget.updateCurrentURLs();
+                            EasyLoading.dismiss();
+                            EasyLoading.showToast(
+                                'results length ${results['urls'].length}');
                             await widget.moveSwiper();
                           } catch (e) {
                             print("error $e");
-                            // Fluttertoast.showToast(
-                            //     msg: "e $e",
-                            //     toastLength: Toast.LENGTH_SHORT,
-                            //     gravity: ToastGravity.CENTER,
-                            //     timeInSecForIosWeb: 1,
-                            //     backgroundColor: Colors.red,
-                            //     textColor: Colors.white,
-                            //     fontSize: 16.0);
+                            EasyLoading.showToast('error $e');
                           }
                           print("picked");
                         },
@@ -345,7 +311,7 @@ _imageSearch(src, path) async {
           print("null3");
         }
 
-        print("_label 4 | ${_label}");
+        print("_label 4 | ${_label as List<vision.WebLabel>}");
         bestguess = _label?.single ?? '';
         //entity = entities!;
       });
