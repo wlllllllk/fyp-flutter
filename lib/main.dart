@@ -24,6 +24,8 @@ import 'package:marquee/marquee.dart';
 import 'package:google_vision/google_vision.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:scroll_snap_list/scroll_snap_list.dart';
+import 'package:preload_page_view/preload_page_view.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -100,6 +102,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _theme;
 
   GlobalKey _webViewKey = GlobalKey();
+
+  var _webViewKeyList = [];
+
   var _marqueeKey = UniqueKey();
   var _settingsPageKey = UniqueKey();
   Map URLs = {};
@@ -192,6 +197,8 @@ class _WebViewContainerState extends State<WebViewContainer>
   double _turns = 0.0;
   bool _drilling = false;
   double _hoverX = 0.0, _hoverY = 0.0;
+
+  int _focusedIndex = 0;
 
   // include only first page
   int _page = 1;
@@ -860,7 +867,8 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-    Factory(() => EagerGestureRecognizer())
+    Factory(() => VerticalDragGestureRecognizer()),
+    // Factory(() => HorizontalDragGestureRecognizer()),
   };
 
   Future<bool> _onWillPop(BuildContext context) async {
@@ -941,6 +949,199 @@ class _WebViewContainerState extends State<WebViewContainer>
         _searchMode = "Drill-down";
       }
     });
+  }
+
+  Widget _buildWebViewList(BuildContext context, var data) {
+    print("data $data");
+
+    if (data == "") {
+      return SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Text("End of Results"),
+      );
+    } else {
+      GlobalKey key = GlobalKey();
+      return SizedBox(
+        width: MediaQuery.of(context).size.width,
+
+        // child: Text("test${index}"),
+        child: WebView(
+          key: key,
+          // gestureRecognizers: gestureRecognizers,
+          gestureRecognizers: Set()
+            ..add(Factory<VerticalDragGestureRecognizer>(
+              () => VerticalDragGestureRecognizer(),
+            ))
+          // ..add((Factory<HorizontalDragGestureRecognizer>(
+          //   () => HorizontalDragGestureRecognizer(),
+          // ))),
+          ,
+
+          javascriptMode: JavascriptMode.unrestricted,
+          javascriptChannels: <JavascriptChannel>{
+            _toasterJavascriptChannel(context),
+            _getDrillTextChannel(context),
+          },
+          initialUrl: data['link'],
+          onWebViewCreated: (webViewController) {
+            // _controller_test = webViewController;
+            // setState(() {
+            //   _controller.add(webViewController);
+            //   _webViewKeyList.add(key);
+            // });
+
+            // print("_webViewKeyList ${_webViewKeyList.length}");
+            // print("_controller ${_controller.length}");
+
+            // print(_controller_test.runtimeType);
+
+            // if (_controller.isNotEmpty) {
+            //   _controller.removeLast();
+            // }
+            // _controller.add(webViewController);
+          },
+          onPageStarted: (url) async {
+            /*
+              if (!_redirectStopwatch.isRunning) {
+                _redirectStopwatch.start();
+                print("1 onPageStarted");
+              }
+
+              final isar = Isar.getInstance("url") ??
+                  await Isar.open([URLSchema], name: "url");
+
+              // check if the record exist
+              final urlRecord =
+                  await isar.uRLs.filter().urlEqualTo(_previousURL).findAll();
+
+              // print("urlRecord: ${urlRecord}");
+              // print("_previousURL: ${_previousURL}");
+
+              if (stopwatch.isRunning && _previousURL != "") {
+                stopwatch.stop();
+                // print(
+                //     "stopwatch stopped: ${stopwatch.elapsed}");
+
+                // final Duration dur = parseDuration(
+                //     '2w 5d 23h 59m 59s 999ms 999us');
+                // print("dur $dur");
+
+                if (urlRecord.isNotEmpty) {
+                  await isar.writeTxn(() async {
+                    final uRL = await isar.uRLs.get(urlRecord[0].id);
+
+                    uRL!.duration = stopwatch.elapsed.toString();
+
+                    await isar.uRLs.put(uRL);
+                  });
+                }
+                // new record
+                else {
+                  final newURL = URL()
+                    ..url = _previousURL
+                    ..title = await _controller[index].getTitle()
+                    ..duration = stopwatch.elapsed.toString();
+                  await isar.writeTxn(() async {
+                    await isar.uRLs.put(newURL);
+                  });
+                }
+
+                stopwatch.reset();
+              }
+*/
+            // setState(() {
+            //   _loadingPercentage = 0;
+            // });
+          },
+          onProgress: (progress) {
+            // setState(() {
+            //   _loadingPercentage = progress;
+            // });
+          },
+          onPageFinished: (url) async {
+            /*
+              print("3 onPageFinished");
+
+              _controller[index]
+                  .runJavascript("""window.addEventListener('click', (e) => {
+                                          var x = e.clientX, y = e.clientY;
+                                          var elementMouseIsOver = document.elementFromPoint(x, y);
+                                          var content = elementMouseIsOver.innerText;
+                                          if (content == undefined || content == null)
+                                            Print.postMessage("");
+                                          else
+                                            Print.postMessage(content);
+                                      });
+                                    """);
+
+              final isar = Isar.getInstance("url") ??
+                  await Isar.open([URLSchema], name: "url");
+
+              print("isar: $isar");
+
+              final urlRecord =
+                  await isar.uRLs.filter().urlEqualTo(url).findAll();
+
+              if (urlRecord.isNotEmpty) {
+                await isar.writeTxn(() async {
+                  final uRL = await isar.uRLs.get(urlRecord[0].id);
+
+                  uRL?.viewCount++;
+                  uRL?.lastViewed = DateTime.now();
+                  uRL?.title = await _controller[index].getTitle();
+
+                  await isar.uRLs.put(uRL!);
+                });
+              }
+              // new record
+              else {
+                final newURL = URL()
+                  ..url = url
+                  ..title = await _controller[index].getTitle();
+                await isar.writeTxn(() async {
+                  await isar.uRLs.put(newURL);
+                });
+              }
+
+              if (_redirectStopwatch.elapsedMilliseconds < 100) {
+                print("1 redirect");
+
+                setState(() {
+                  _redirecting = true;
+                });
+              } else {
+                print("2 redirect");
+
+                _redirectStopwatch.stop();
+                _redirectStopwatch.reset();
+                setState(() {
+                  _redirecting = false;
+                });
+              }
+
+              print("swiping $_swipe");
+
+              setState(() {
+                _previousURL = url;
+                if (!stopwatch.isRunning) {
+                  print("start stopwatch");
+                  stopwatch.start();
+                }
+                _loadingPercentage = 100;
+              });
+
+              setState(() {
+                _swipe = false;
+              });
+              */
+
+            // setState(() {
+            //   _loadingPercentage = 100;
+            // });
+          },
+        ),
+      );
+    }
   }
 
   @override
@@ -1146,192 +1347,246 @@ class _WebViewContainerState extends State<WebViewContainer>
                   ? Flexible(
                       child: Column(
                         children: <Widget>[
+                          // WebView
+                          // Expanded(
+                          // child:
+                          // GestureDetector(
+                          //   onTap: () {
+                          //     print("webview tapped");
+                          //   },
+                          //   onLongPress: () {
+                          //     print("webview long pressed");
+                          //   },
                           Expanded(
-                            // child:
-                            // GestureDetector(
-                            //   onTap: () {
-                            //     print("webview tapped");
-                            //   },
-                            //   onLongPress: () {
-                            //     print("webview long pressed");
-                            //   },
-                            child: WebView(
-                              key: _webViewKey,
-                              // gestureRecognizers: gestureRecognizers,
-                              javascriptMode: JavascriptMode.unrestricted,
-                              javascriptChannels: <JavascriptChannel>{
-                                _toasterJavascriptChannel(context),
-                                _getDrillTextChannel(context),
-                              },
-                              initialUrl: _currentURLs[_currentURLIndex]
-                                  ['link'],
-                              onWebViewCreated: (webViewController) {
-                                _controller_test = webViewController;
-                                print(_controller_test.runtimeType);
+                              // child: PageView(
+                              //   scrollDirection: Axis.horizontal,
+                              //   children: _currentURLs
+                              //       .map((e) => _buildWebViewList(context, e))
+                              //       .toList(),
+                              // ),
+                              child: PreloadPageView.builder(
+                            preloadPagesCount: 1,
+                            itemBuilder: (BuildContext context, int position) =>
+                                _buildWebViewList(
+                                    context,
+                                    position >= _currentURLs.length
+                                        ? ""
+                                        : _currentURLs[position]!),
+                            controller: PreloadPageController(initialPage: 0),
+                            onPageChanged: (int position) {
+                              print('page changed. current: $position');
+                            },
+                          )
 
-                                // if (_controller.isNotEmpty) {
-                                //   _controller.removeLast();
-                                // }
-                                // _controller.add(webViewController);
-                              },
-                              onPageStarted: (url) async {
-                                if (!_redirectStopwatch.isRunning) {
-                                  _redirectStopwatch.start();
-                                  print("1 onPageStarted");
-                                }
+                              // ScrollSnapList(
+                              //   onItemFocus: (index) => {
+                              //     setState(() {
+                              //       _focusedIndex = index;
+                              //     })
+                              //   },
+                              //   itemSize: MediaQuery.of(context).size.width,
+                              //   itemBuilder: _buildWebViewList,
 
-                                final isar = Isar.getInstance("url") ??
-                                    await Isar.open([URLSchema], name: "url");
+                              //   // (context, index) => SizedBox(
+                              //   //   width: MediaQuery.of(context).size.width,
+                              //   //   child: Padding(
+                              //   //     padding: const EdgeInsets.all(4.0),
+                              //   //     child: Card(
+                              //   //       shape: RoundedRectangleBorder(
+                              //   //         borderRadius: BorderRadius.circular(10.0),
+                              //   //       ),
+                              //   //       color: Colors.blue,
+                              //   //       child:
+                              //   //           Center(child: (Text("Box ${index}"))),
+                              //   //     ),
+                              //   //   ),
+                              //   // ),
+                              //   itemCount: _currentURLs.length,
+                              //   // dynamicItemSize: true,
+                              //   // dynamicSizeEquation: customEquation, //optional
+                              // ),
 
-                                // check if the record exist
-                                final urlRecord = await isar.uRLs
-                                    .filter()
-                                    .urlEqualTo(_previousURL)
-                                    .findAll();
+                              //     ],
+                              //   ),
+                              ),
 
-                                // print("urlRecord: ${urlRecord}");
-                                // print("_previousURL: ${_previousURL}");
+                          // WebView(
+                          //   key: _webViewKey,
+                          //   // gestureRecognizers: gestureRecognizers,
+                          //   javascriptMode: JavascriptMode.unrestricted,
+                          //   javascriptChannels: <JavascriptChannel>{
+                          //     _toasterJavascriptChannel(context),
+                          //     _getDrillTextChannel(context),
+                          //   },
+                          //   initialUrl: _currentURLs[_currentURLIndex]
+                          //       ['link'],
+                          //   onWebViewCreated: (webViewController) {
+                          //     _controller_test = webViewController;
+                          //     print(_controller_test.runtimeType);
 
-                                if (stopwatch.isRunning && _previousURL != "") {
-                                  stopwatch.stop();
-                                  // print(
-                                  //     "stopwatch stopped: ${stopwatch.elapsed}");
+                          //     // if (_controller.isNotEmpty) {
+                          //     //   _controller.removeLast();
+                          //     // }
+                          //     // _controller.add(webViewController);
+                          //   },
+                          //   onPageStarted: (url) async {
+                          //     if (!_redirectStopwatch.isRunning) {
+                          //       _redirectStopwatch.start();
+                          //       print("1 onPageStarted");
+                          //     }
 
-                                  // final Duration dur = parseDuration(
-                                  //     '2w 5d 23h 59m 59s 999ms 999us');
-                                  // print("dur $dur");
+                          //     final isar = Isar.getInstance("url") ??
+                          //         await Isar.open([URLSchema], name: "url");
 
-                                  if (urlRecord.isNotEmpty) {
-                                    await isar.writeTxn(() async {
-                                      final uRL =
-                                          await isar.uRLs.get(urlRecord[0].id);
+                          //     // check if the record exist
+                          //     final urlRecord = await isar.uRLs
+                          //         .filter()
+                          //         .urlEqualTo(_previousURL)
+                          //         .findAll();
 
-                                      uRL!.duration =
-                                          stopwatch.elapsed.toString();
+                          //     // print("urlRecord: ${urlRecord}");
+                          //     // print("_previousURL: ${_previousURL}");
 
-                                      await isar.uRLs.put(uRL);
-                                    });
-                                  }
-                                  // new record
-                                  else {
-                                    final newURL = URL()
-                                      ..url = _previousURL
-                                      ..title =
-                                          await _controller_test?.getTitle()
-                                      ..duration = stopwatch.elapsed.toString();
-                                    await isar.writeTxn(() async {
-                                      await isar.uRLs.put(newURL);
-                                    });
-                                  }
+                          //     if (stopwatch.isRunning && _previousURL != "") {
+                          //       stopwatch.stop();
+                          //       // print(
+                          //       //     "stopwatch stopped: ${stopwatch.elapsed}");
 
-                                  stopwatch.reset();
-                                }
+                          //       // final Duration dur = parseDuration(
+                          //       //     '2w 5d 23h 59m 59s 999ms 999us');
+                          //       // print("dur $dur");
 
-                                setState(() {
-                                  _loadingPercentage = 0;
-                                });
-                              },
-                              onProgress: (progress) {
-                                setState(() {
-                                  _loadingPercentage = progress;
-                                });
-                              },
-                              onPageFinished: (url) async {
-                                print("3 onPageFinished");
+                          //       if (urlRecord.isNotEmpty) {
+                          //         await isar.writeTxn(() async {
+                          //           final uRL =
+                          //               await isar.uRLs.get(urlRecord[0].id);
 
-                                _controller_test!.runJavascript(
-                                    """window.addEventListener('click', (e) => {
-                                            var x = e.clientX, y = e.clientY;
-                                            var elementMouseIsOver = document.elementFromPoint(x, y);
-                                            var content = elementMouseIsOver.innerText;
-                                            if (content == undefined || content == null)
-                                              Print.postMessage("");
-                                            else
-                                              Print.postMessage(content);
-                                        });
-                                      """);
+                          //           uRL!.duration =
+                          //               stopwatch.elapsed.toString();
 
-                                final isar = Isar.getInstance("url") ??
-                                    await Isar.open([URLSchema], name: "url");
+                          //           await isar.uRLs.put(uRL);
+                          //         });
+                          //       }
+                          //       // new record
+                          //       else {
+                          //         final newURL = URL()
+                          //           ..url = _previousURL
+                          //           ..title =
+                          //               await _controller_test?.getTitle()
+                          //           ..duration = stopwatch.elapsed.toString();
+                          //         await isar.writeTxn(() async {
+                          //           await isar.uRLs.put(newURL);
+                          //         });
+                          //       }
 
-                                print("isar: $isar");
+                          //       stopwatch.reset();
+                          //     }
 
-                                final urlRecord = await isar.uRLs
-                                    .filter()
-                                    .urlEqualTo(url)
-                                    .findAll();
+                          //     setState(() {
+                          //       _loadingPercentage = 0;
+                          //     });
+                          //   },
+                          //   onProgress: (progress) {
+                          //     setState(() {
+                          //       _loadingPercentage = progress;
+                          //     });
+                          //   },
+                          //   onPageFinished: (url) async {
+                          //     print("3 onPageFinished");
 
-                                if (urlRecord.isNotEmpty) {
-                                  await isar.writeTxn(() async {
-                                    final uRL =
-                                        await isar.uRLs.get(urlRecord[0].id);
+                          //     _controller_test!.runJavascript(
+                          //         """window.addEventListener('click', (e) => {
+                          //                 var x = e.clientX, y = e.clientY;
+                          //                 var elementMouseIsOver = document.elementFromPoint(x, y);
+                          //                 var content = elementMouseIsOver.innerText;
+                          //                 if (content == undefined || content == null)
+                          //                   Print.postMessage("");
+                          //                 else
+                          //                   Print.postMessage(content);
+                          //             });
+                          //           """);
 
-                                    uRL?.viewCount++;
-                                    uRL?.lastViewed = DateTime.now();
-                                    uRL?.title =
-                                        await _controller_test?.getTitle();
+                          //     final isar = Isar.getInstance("url") ??
+                          //         await Isar.open([URLSchema], name: "url");
 
-                                    await isar.uRLs.put(uRL!);
-                                  });
-                                }
-                                // new record
-                                else {
-                                  final newURL = URL()
-                                    ..url = url
-                                    ..title =
-                                        await _controller_test?.getTitle();
-                                  await isar.writeTxn(() async {
-                                    await isar.uRLs.put(newURL);
-                                  });
-                                }
+                          //     print("isar: $isar");
 
-                                if (_redirectStopwatch.elapsedMilliseconds <
-                                    100) {
-                                  print("1 redirect");
+                          //     final urlRecord = await isar.uRLs
+                          //         .filter()
+                          //         .urlEqualTo(url)
+                          //         .findAll();
 
-                                  setState(() {
-                                    _redirecting = true;
-                                  });
-                                } else {
-                                  print("2 redirect");
+                          //     if (urlRecord.isNotEmpty) {
+                          //       await isar.writeTxn(() async {
+                          //         final uRL =
+                          //             await isar.uRLs.get(urlRecord[0].id);
 
-                                  _redirectStopwatch.stop();
-                                  _redirectStopwatch.reset();
-                                  setState(() {
-                                    _redirecting = false;
-                                  });
-                                }
+                          //         uRL?.viewCount++;
+                          //         uRL?.lastViewed = DateTime.now();
+                          //         uRL?.title =
+                          //             await _controller_test?.getTitle();
 
-                                print("swiping $_swipe");
+                          //         await isar.uRLs.put(uRL!);
+                          //       });
+                          //     }
+                          //     // new record
+                          //     else {
+                          //       final newURL = URL()
+                          //         ..url = url
+                          //         ..title =
+                          //             await _controller_test?.getTitle();
+                          //       await isar.writeTxn(() async {
+                          //         await isar.uRLs.put(newURL);
+                          //       });
+                          //     }
 
-                                setState(() {
-                                  _previousURL = url;
-                                  if (!stopwatch.isRunning) {
-                                    print("start stopwatch");
-                                    stopwatch.start();
-                                  }
-                                  _loadingPercentage = 100;
-                                });
+                          //     if (_redirectStopwatch.elapsedMilliseconds <
+                          //         100) {
+                          //       print("1 redirect");
 
-                                setState(() {
-                                  _swipe = false;
-                                });
-                              },
-                            ),
-                            // ),
-                          ),
+                          //       setState(() {
+                          //         _redirecting = true;
+                          //       });
+                          //     } else {
+                          //       print("2 redirect");
 
-                          // Vertical Swiper
+                          //       _redirectStopwatch.stop();
+                          //       _redirectStopwatch.reset();
+                          //       setState(() {
+                          //         _redirecting = false;
+                          //       });
+                          //     }
+
+                          //     print("swiping $_swipe");
+
+                          //     setState(() {
+                          //       _previousURL = url;
+                          //       if (!stopwatch.isRunning) {
+                          //         print("start stopwatch");
+                          //         stopwatch.start();
+                          //       }
+                          //       _loadingPercentage = 100;
+                          //     });
+
+                          //     setState(() {
+                          //       _swipe = false;
+                          //     });
+                          //   },
+                          // ),
+                          // ),
+                          // ),
+
+                          // Bottom Bar
                           Container(
                             height: Platform.isIOS
                                 ? (_loadingPercentage < 100 ? 65 : 60)
                                 : (_loadingPercentage < 100 ? 55 : 50),
                             child: GestureDetector(
-                                onTap: () {
-                                  print("swiper tapped");
-                                },
-                                child: Container(
-                                    child: Column(
+                              onTap: () {
+                                print("swiper tapped");
+                              },
+                              child: Container(
+                                child: Column(
                                   children: [
                                     if (_loadingPercentage < 100)
                                       LinearProgressIndicator(
@@ -1406,7 +1661,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                             _controller_test!.goBack();
                                           },
                                           style: TextButton.styleFrom(
-                                            primary: Colors.black87,
+                                            foregroundColor: Colors.black87,
                                           ),
                                           child: const Text("Back"),
                                           // icon: const Icon(Icons
@@ -1415,87 +1670,91 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       ],
                                     ),
                                   ],
-                                ))
-                                // Swiper(
-                                //   itemCount: _searchResult.length,
-                                //   loop: false,
-                                //   scrollDirection: Axis.vertical,
-
-                                //   itemBuilder: (BuildContext context, int index) {
-                                //     return Container(
-                                //       child: Stack(
-                                //         children: <Widget>[
-                                //           // Horizontal Swiper
-                                //           Swiper(
-                                //             itemCount: _currentURLs.length,
-                                //             loop: false,
-                                //             scrollDirection: Axis.horizontal,
-                                //             controller:
-                                //                 _swiperControllerHorizontal,
-                                //             itemBuilder: (BuildContext context2,
-                                //                 int index2) {
-                                //               return Container(
-                                //                 decoration: BoxDecoration(
-                                //                   boxShadow: [
-                                //                     BoxShadow(
-                                //                       color: const Color.fromARGB(
-                                //                               255, 182, 182, 182)
-                                //                           .withOpacity(0.1),
-                                //                       spreadRadius: 3,
-                                //                       blurRadius: 5,
-                                //                       // offset: const Offset(0,
-                                //                       //     -50), // changes position of shadow
-                                //                     ),
-                                //                   ],
-                                //                 ),
-                                //                 child: const Align(
-                                //                   alignment: Alignment.center,
-                                //                   child: Text(
-                                //                     "Swipe here to change page",
-                                //                   ),
-                                //                 ),
-                                //               );
-                                //             },
-                                //             onIndexChanged: (index2) {
-                                //               setState(() {
-                                //                 _currentURLIndex = index2;
-                                //                 _swipe = true;
-                                //               });
-                                //               _loadNewPage();
-                                //             },
-                                //           ),
-                                //           if (_loadingPercentage < 100)
-                                //             LinearProgressIndicator(
-                                //               value: _loadingPercentage / 100.0,
-                                //               minHeight: 5,
-                                //               color: Colors.yellow,
-                                //             ),
-                                //         ],
-                                //       ),
-                                //     );
-                                //   },
-                                //   onIndexChanged: (index) {
-                                //     setState(() {
-                                //       _currentURLIndex = 0;
-                                //       _currentDomainIndex = index;
-                                //       _currentURLs = URLs[_searchText
-                                //               .toString()
-                                //               .toLowerCase()][
-                                //           _searchResult.keys
-                                //               .toList()[_currentDomainIndex]];
-
-                                //       // print("_currentURLs $_currentURLs");
-                                //       print("index $index");
-
-                                //       _loadNewPage();
-                                //     });
-                                //   },
-                                //   controller: _swiperControllerVertical,
-                                //   // pagination: SwiperPagination(),
-                                //   // control: SwiperControl(),
-                                // ),
                                 ),
+                              ),
+                            ),
                           ),
+
+                          // Swiper(
+                          //   itemCount: _searchResult.length,
+                          //   loop: false,
+                          //   scrollDirection: Axis.vertical,
+
+                          //   itemBuilder: (BuildContext context, int index) {
+                          //     return Container(
+                          //       child: Stack(
+                          //         children: <Widget>[
+                          //           // Horizontal Swiper
+                          //           Swiper(
+                          //             itemCount: _currentURLs.length,
+                          //             loop: false,
+                          //             scrollDirection: Axis.horizontal,
+                          //             controller:
+                          //                 _swiperControllerHorizontal,
+                          //             itemBuilder: (BuildContext context2,
+                          //                 int index2) {
+                          //               return Container(
+                          //                 decoration: BoxDecoration(
+                          //                   boxShadow: [
+                          //                     BoxShadow(
+                          //                       color: const Color.fromARGB(
+                          //                               255, 182, 182, 182)
+                          //                           .withOpacity(0.1),
+                          //                       spreadRadius: 3,
+                          //                       blurRadius: 5,
+                          //                       // offset: const Offset(0,
+                          //                       //     -50), // changes position of shadow
+                          //                     ),
+                          //                   ],
+                          //                 ),
+                          //                 child: const Align(
+                          //                   alignment: Alignment.center,
+                          //                   child: Text(
+                          //                     "Swipe here to change page",
+                          //                   ),
+                          //                 ),
+                          //               );
+                          //             },
+                          //             onIndexChanged: (index2) {
+                          //               setState(() {
+                          //                 _currentURLIndex = index2;
+                          //                 _swipe = true;
+                          //               });
+                          //               _loadNewPage();
+                          //             },
+                          //           ),
+                          //           if (_loadingPercentage < 100)
+                          //             LinearProgressIndicator(
+                          //               value: _loadingPercentage / 100.0,
+                          //               minHeight: 5,
+                          //               color: Colors.yellow,
+                          //             ),
+                          //         ],
+                          //       ),
+                          //     );
+                          //   },
+                          //   onIndexChanged: (index) {
+                          //     setState(() {
+                          //       _currentURLIndex = 0;
+                          //       _currentDomainIndex = index;
+                          //       _currentURLs = URLs[_searchText
+                          //               .toString()
+                          //               .toLowerCase()][
+                          //           _searchResult.keys
+                          //               .toList()[_currentDomainIndex]];
+
+                          //       // print("_currentURLs $_currentURLs");
+                          //       print("index $index");
+
+                          //       _loadNewPage();
+                          //     });
+                          //   },
+                          //   controller: _swiperControllerVertical,
+                          //   // pagination: SwiperPagination(),
+                          //   // control: SwiperControl(),
+                          // ),
+                          // ),
+                          // ),
                         ],
                       ),
                     )

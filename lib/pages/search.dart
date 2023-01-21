@@ -117,30 +117,32 @@ class _SearchPageState extends State<SearchPage> {
                                 source: ImageSource.camera);
                             print("image $image");
                             EasyLoading.showToast('image $image');
-                            EasyLoading.show(status: 'Searching...');
-                            Map results =
-                                await _imageSearch(image, image!.path);
-                            print("image $results");
-                            await widget
-                                .updateSearchText(results["bestGuessLabel"]);
-                            var items = null;
-                            if (results['urls'].length == 0) {
-                              items = await widget.performSearch(
-                                  results["bestGuessLabel"], "Google");
-                              await widget.updateURLs("replace",
-                                  results['bestGuessLabel'], "Google", items);
-                            } else {
-                              await widget.updateURLs(
-                                  "replace",
-                                  results['bestGuessLabel'],
-                                  "Google",
-                                  results['urls']);
+                            if (image != null) {
+                              EasyLoading.show(status: 'Searching...');
+                              Map results =
+                                  await _imageSearch(image, image.path);
+                              print("image $results");
+                              await widget
+                                  .updateSearchText(results["bestGuessLabel"]);
+                              var items = null;
+                              if (results['urls'].length == 0) {
+                                items = await widget.performSearch(
+                                    results["bestGuessLabel"], "Google");
+                                await widget.updateURLs("replace",
+                                    results['bestGuessLabel'], "Google", items);
+                              } else {
+                                await widget.updateURLs(
+                                    "replace",
+                                    results['bestGuessLabel'],
+                                    "Google",
+                                    results['urls']);
+                              }
+                              await widget.updateCurrentURLs();
+                              EasyLoading.dismiss();
+                              EasyLoading.showToast(
+                                  'results length ${results['urls'].length}');
+                              await widget.moveSwiper();
                             }
-                            await widget.updateCurrentURLs();
-                            EasyLoading.dismiss();
-                            EasyLoading.showToast(
-                                'results length ${results['urls'].length}');
-                            await widget.moveSwiper();
                           } catch (e) {
                             print("error $e");
                             EasyLoading.showToast('error $e');
@@ -159,31 +161,33 @@ class _SearchPageState extends State<SearchPage> {
                                 source: ImageSource.gallery);
                             print("image $image");
                             EasyLoading.showToast('image $image');
-                            EasyLoading.show(status: 'Searching...');
-                            Map results =
-                                await _imageSearch(image, image!.path);
-                            print("image $results");
+                            if (image != null) {
+                              EasyLoading.show(status: 'Searching...');
+                              Map results =
+                                  await _imageSearch(image, image.path);
+                              print("image $results");
 
-                            await widget
-                                .updateSearchText(results["bestGuessLabel"]);
-                            var items = null;
-                            if (results['urls'].length == 0) {
-                              items = await widget.performSearch(
-                                  results["bestGuessLabel"], "Google");
-                              await widget.updateURLs("replace",
-                                  results['bestGuessLabel'], "Google", items);
-                            } else {
-                              await widget.updateURLs(
-                                  "replace",
-                                  results['bestGuessLabel'],
-                                  "Google",
-                                  results['urls']);
+                              await widget
+                                  .updateSearchText(results["bestGuessLabel"]);
+                              var items = null;
+                              if (results['urls'].length == 0) {
+                                items = await widget.performSearch(
+                                    results["bestGuessLabel"], "Google");
+                                await widget.updateURLs("replace",
+                                    results['bestGuessLabel'], "Google", items);
+                              } else {
+                                await widget.updateURLs(
+                                    "replace",
+                                    results['bestGuessLabel'],
+                                    "Google",
+                                    results['urls']);
+                              }
+                              await widget.updateCurrentURLs();
+                              EasyLoading.dismiss();
+                              EasyLoading.showToast(
+                                  'results length ${results['urls'].length}');
+                              await widget.moveSwiper();
                             }
-                            await widget.updateCurrentURLs();
-                            EasyLoading.dismiss();
-                            EasyLoading.showToast(
-                                'results length ${results['urls'].length}');
-                            await widget.moveSwiper();
                           } catch (e) {
                             print("error $e");
                             EasyLoading.showToast('error $e');
@@ -329,7 +333,7 @@ _imageSearch(src, path) async {
       //     page_with_similar_image![i].url.toString());
       Map results = {"bestGuessLabel": bestGuessLabel};
       List urls = [];
-      int len = page_with_match_image?.length ?? 0;
+      int len = page_with_similar_image?.length ?? 0;
       for (j = 0; j < len; j++) {
         // print("page with match image title=" +
         //     page_with_match_image![j].pageTitle.toString());
