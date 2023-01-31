@@ -101,6 +101,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         ..repeat();
 
   var _searchAlgorithm;
+  var _preloadNumber;
   var _theme;
 
   // GlobalKey _webViewKey = GlobalKey();
@@ -215,11 +216,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     // final algorithm = await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
-
+    final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
     setState(() {
       _currentSearchPlatform = "Google";
       _searchAlgorithm = algorithm;
+      _preloadNumber = preloadNumber;
       _theme = theme;
     });
     print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
@@ -725,6 +727,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  void _updatePreloading(preloadNumber) {
+    setState(() {
+      _preloadNumber = preloadNumber;
+    });
+  }
+
   void _pushSettingsPage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -737,6 +745,8 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSearchAlgorithm: _updateSearchAlgorithm,
             searchAlgorithm: _searchAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
+            updatePreloading: _updatePreloading,
+            preloadNumber: _preloadNumber,
             prefs: prefs,
           );
         },
@@ -1368,7 +1378,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                           Expanded(
                             child: PreloadPageView.builder(
                               key: _pageKey,
-                              preloadPagesCount: 1,
+                              preloadPagesCount: _preloadNumber,
                               itemBuilder:
                                   (BuildContext context, int position) =>
                                       _buildWebView(

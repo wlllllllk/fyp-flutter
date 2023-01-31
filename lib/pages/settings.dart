@@ -10,12 +10,16 @@ class SettingsPage extends StatefulWidget {
     required this.updateSearchAlgorithm,
     required this.searchAlgorithm,
     required this.SearchAlgorithmList,
+    required this.updatePreloading,
+    required this.preloadNumber,
     required this.prefs,
   }) : super(key: key);
 
   final updateSelectedPageIndex;
   final updateSearchAlgorithm;
   final searchAlgorithm;
+  final updatePreloading;
+  final int preloadNumber;
   final List<String> SearchAlgorithmList;
   final SharedPreferences prefs;
 
@@ -26,11 +30,13 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   // int _selectedPageIndex = selectedPageIndex;
   var _searchAlgorithm;
+  var _preloadNumber;
 
   @override
   void initState() {
     super.initState();
     _searchAlgorithm = widget.searchAlgorithm;
+    _preloadNumber = widget.preloadNumber;
   }
 
   @override
@@ -85,8 +91,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         _searchAlgorithm = value;
                       });
 
-                      // SharedPreferences prefs =
-                      //     await SharedPreferences.getInstance();
                       await widget.prefs.setString(
                         "searchAlgorithm",
                         value!,
@@ -97,6 +101,43 @@ class _SettingsPageState extends State<SettingsPage> {
                         return DropdownMenuItem<String>(
                           value: entry.value,
                           child: Text(entry.value),
+                        );
+                      },
+                    ).toList(),
+                  ),
+                ),
+                ListTile(
+                  title: const Text("Result Preloading"),
+                  subtitle: const Text(
+                      "Number of results to be preloaded. More may increase data usage. Need to restart the app to take effect."),
+                  trailing: DropdownButton<int>(
+                    value: _preloadNumber,
+                    icon: const Icon(Icons.arrow_downward),
+                    elevation: 16,
+                    // style: const TextStyle(color: Colors.deepPurple),
+                    underline: Container(
+                      height: 2,
+                      // color: _appBarColor,
+                    ),
+                    onChanged: (int? value) async {
+                      print("_preloadNumber $value");
+
+                      widget.updatePreloading(value);
+
+                      setState(() {
+                        _preloadNumber = value;
+                      });
+
+                      await widget.prefs.setInt(
+                        "preloadNumber",
+                        value!,
+                      );
+                    },
+                    items: [0, 1].asMap().entries.map(
+                      (entry) {
+                        return DropdownMenuItem<int>(
+                          value: entry.value,
+                          child: Text(entry.value.toString()),
                         );
                       },
                     ).toList(),
