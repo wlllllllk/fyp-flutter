@@ -207,6 +207,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _currentWebViewController = null;
   int _focusedIndex = 0;
   double _scrollX = 0.0, _scrollY = 0.0;
+  String _currentWebViewTitle = "";
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
@@ -953,6 +954,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             if (bingo) {
               setState(() {
                 _loadingPercentage = 0;
+                _currentWebViewTitle = "Loading...";
               });
             }
           },
@@ -1041,8 +1043,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                 */
 
             if (bingo) {
+              String title = await _currentWebViewController.getTitle();
               setState(() {
                 _loadingPercentage = 100;
+                _currentWebViewTitle = title;
               });
             }
           },
@@ -1271,6 +1275,26 @@ class _WebViewContainerState extends State<WebViewContainer>
                           //   onLongPress: () {
                           //     print("webview long pressed");
                           //   },
+                          // Title Bar
+                          SizedBox(
+                            // height: autoSize(50, context),
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 10.0,
+                                    right: 10.0,
+                                    top: 5.0,
+                                    bottom: 5.0),
+                                child: Text(
+                                  _currentWebViewTitle,
+                                  style: const TextStyle(fontSize: 16),
+                                  overflow: TextOverflow.visible,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
@@ -1307,6 +1331,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                                   setState(() {
                                     _currentURLIndex = position;
+                                    _currentWebViewTitle =
+                                        _currentURLs[position]!['title'];
                                   });
                                   print("current ${_currentURLs[position]}");
 
