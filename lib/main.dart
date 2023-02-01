@@ -886,11 +886,12 @@ class _WebViewContainerState extends State<WebViewContainer>
           gestureRecognizers: Set()
             ..add(Factory<VerticalDragGestureRecognizer>(
               () => VerticalDragGestureRecognizer(),
-            )),
-
-          // ..add((Factory<HorizontalDragGestureRecognizer>(
-          //   () => HorizontalDragGestureRecognizer(),
-          // ))
+            ))
+            ..add(
+              (Factory<HorizontalDragGestureRecognizer>(
+                () => HorizontalDragGestureRecognizer(),
+              )),
+            ),
           // ),
           javascriptMode: JavascriptMode.unrestricted,
           javascriptChannels: <JavascriptChannel>{
@@ -904,6 +905,8 @@ class _WebViewContainerState extends State<WebViewContainer>
             }
           },
           onPageStarted: (url) async {
+            print("1 onPageStarted");
+
             /*
                 if (!_redirectStopwatch.isRunning) {
                   _redirectStopwatch.start();
@@ -967,8 +970,9 @@ class _WebViewContainerState extends State<WebViewContainer>
             }
           },
           onPageFinished: (url) async {
+            print("3 onPageFinished");
+
             /*
-                print("3 onPageFinished");
         
                 _controller[index]
                     .runJavascript("""window.addEventListener('click', (e) => {
@@ -1045,9 +1049,10 @@ class _WebViewContainerState extends State<WebViewContainer>
 
             if (bingo) {
               String title = await _currentWebViewController.getTitle();
+              print("title: $title | data['title']: ${data['title']}");
               setState(() {
                 _loadingPercentage = 100;
-                _currentWebViewTitle = title;
+                _currentWebViewTitle = data["title"];
               });
             }
           },
@@ -1304,16 +1309,16 @@ class _WebViewContainerState extends State<WebViewContainer>
                               onDoubleTap: () {
                                 print("webview double tapped");
                               },
-                              onPanStart: (details) {
-                                print(
-                                    "webview pan start ${details.globalPosition}");
-                                _scrollX = details.globalPosition.dx;
-                                _scrollY = details.globalPosition.dy;
-                              },
-                              onPanDown: (details) {
-                                print(
-                                    "webview pan end ${details.globalPosition}");
-                              },
+                              // onPanStart: (details) {
+                              //   print(
+                              //       "webview pan start ${details.globalPosition}");
+                              //   _scrollX = details.globalPosition.dx;
+                              //   _scrollY = details.globalPosition.dy;
+                              // },
+                              // onPanDown: (details) {
+                              //   print(
+                              //       "webview pan end ${details.globalPosition}");
+                              // },
                               child: PreloadPageView.builder(
                                 // physics: const NeverScrollableScrollPhysics(),
                                 key: _pageKey,
@@ -1413,6 +1418,23 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         IconButton(
                                           onPressed: () async {
                                             if (_currentURLIndex > 0) {
+                                              print("jump to first page");
+                                              setState(() {
+                                                // _currentURLIndex--;
+                                                _swipe = true;
+                                              });
+
+                                              _preloadPageController
+                                                  .jumpToPage(0);
+                                              // _loadNewPage();
+                                            }
+                                          },
+                                          icon: const Icon(Icons.first_page,
+                                              size: 30),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            if (_currentURLIndex > 0) {
                                               print("decrease");
                                               setState(() {
                                                 // _currentURLIndex--;
@@ -1434,8 +1456,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               // _loadNewPage();
                                             }
                                           },
-                                          icon:
-                                              const Icon(Icons.arrow_back_ios),
+                                          icon: const Icon(Icons.arrow_back_ios,
+                                              size: 20),
                                         ),
                                         IconButton(
                                           onPressed: () async {
@@ -1458,7 +1480,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                             }
                                           },
                                           icon: const Icon(
-                                              Icons.arrow_forward_ios),
+                                              Icons.arrow_forward_ios,
+                                              size: 20),
                                         ),
                                         DropdownButton<String>(
                                           value: _currentSearchPlatform,
