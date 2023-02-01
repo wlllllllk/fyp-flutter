@@ -206,6 +206,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _currentWebViewKey = null;
   var _currentWebViewController = null;
   int _focusedIndex = 0;
+  double _scrollX = 0.0, _scrollY = 0.0;
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
@@ -264,33 +265,12 @@ class _WebViewContainerState extends State<WebViewContainer>
   //   super.dispose();
   // }
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _handleSearch.addListener(() {
-  //     setState(() {
-  //       _searchText = _handleSearch.text;
-  //       print("result ${URL_list_test[_searchText]}");
-
-  //       if (URL_list_test[_searchText] != null) {
-  //         _searchResult = URL_list_test[_searchText];
-  //       } else {
-  //         _searchResult = [];
-  //       }
-  //     });
-  //   });
-  // }
-
   final RestartableTimer _searchTimer = RestartableTimer(
     const Duration(seconds: 5),
     () {
       print("5 seconds passed");
     },
   );
-
-  //  _resetSearchCounter() {
-  //   _searchCount = 0;
-  // }
 
   _getSearchQuery() async {
     String query = "";
@@ -456,8 +436,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
-        print(jsonResponse);
-        print(jsonResponse['items']);
+        // print(jsonResponse);
+        // print(jsonResponse['items']);
 
         var items = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
@@ -562,7 +542,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         print("no results");
         _searchResult = {};
       } else {
-        print("have results ${URLs[_searchText]}");
+        // print("have results ${URLs[_searchText]}");
 
         _searchResult = URLs[_searchText];
         // print("_searchResult $_searchResult");
@@ -640,7 +620,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     // the search results
     var items = await _performSearch(realSearchText, _currentSearchPlatform);
-    print("items $items");
+    // print("items $items");
     // update the URLs
     await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
@@ -786,12 +766,13 @@ class _WebViewContainerState extends State<WebViewContainer>
     // _getHistory();
   }
 
-  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-    Factory(() => VerticalDragGestureRecognizer()),
-    // Factory(() => HorizontalDragGestureRecognizer()),
-  };
+  // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
+  //   Factory(() => VerticalDragGestureRecognizer()),
+  //   // Factory(() => HorizontalDragGestureRecognizer()),
+  // };
 
   Future<bool> _onWillPop(BuildContext context) async {
+    print("type ${_currentWebViewController?.runtimeType}");
     if (_currentWebViewController?.runtimeType != null) {
       if (await _currentWebViewController!.canGoBack()) {
         print("onwill goback");
@@ -884,6 +865,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   Widget _buildWebView(BuildContext context, var data, int position) {
     // print("data $data");
     print("building...");
+    // print("building... | ${data}");
 
     if (data == "") {
       return SizedBox(
@@ -891,33 +873,23 @@ class _WebViewContainerState extends State<WebViewContainer>
         child: Text("End of Results"),
       );
     } else {
-      // GlobalKey key = GlobalKey();
-      // Key key = UniqueKey();
       bool bingo = false;
       if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
-        // print(
-        // "bingo ${_currentURLs[_currentURLIndex]['link']} | ${data['link']}");
-        // _currentWebViewKey = key;
-        // _currentWebViewController = webViewController;
         bingo = true;
       }
 
       return SizedBox(
         width: MediaQuery.of(context).size.width,
-
         // child: Text("test${index}"),
         child: WebView(
-          // key: UniqueKey(),
-          // gestureRecognizers: gestureRecognizers,
           gestureRecognizers: Set()
             ..add(Factory<VerticalDragGestureRecognizer>(
               () => VerticalDragGestureRecognizer(),
-            ))
+            )),
           // ..add((Factory<HorizontalDragGestureRecognizer>(
           //   () => HorizontalDragGestureRecognizer(),
-          // ))),
-          ,
-
+          // ))
+          // ),
           javascriptMode: JavascriptMode.unrestricted,
           javascriptChannels: <JavascriptChannel>{
             _toasterJavascriptChannel(context),
@@ -925,51 +897,9 @@ class _WebViewContainerState extends State<WebViewContainer>
           },
           initialUrl: data['link'],
           onWebViewCreated: (webViewController) async {
-            // _controller_test = webViewController;
-            // if (!_webViewKeyList.contains(webViewController)) {
-            // _webViewKeyList.add(webViewController);
-            // }
-            // print(
-            //     "${await webViewController.currentUrl()} | ${_webViewKeyList.length}");
-
-            // if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
-            //   // print(
-            //   // "bingo ${_currentURLs[_currentURLIndex]['link']} | ${data['link']}");
-            //   _currentWebViewKey = key;
-            //   _currentWebViewController = webViewController;
-            // }
-
             if (bingo) {
               _currentWebViewController = webViewController;
             }
-
-            // if (_webViewKeyList.length <= 2) {
-            //   if (!_webViewKeyList.contains(webViewController)) {
-            //     _webViewKeyList.add(webViewController);
-            //     print(
-            //         "${await webViewController.currentUrl()} | ${_webViewKeyList.length}");
-            //   }
-            // } else {
-            //   _webViewKeyList.removeAt(0);
-            //   _webViewKeyList.add(webViewController);
-            //   print(
-            //       "${await webViewController.currentUrl()} | ${_webViewKeyList.length}");
-            // }
-
-            // setState(() {
-            //   _controller.add(webViewController);
-            //   _webViewKeyList.add(key);
-            // });
-
-            // print("_webViewKeyList ${_webViewKeyList.length}");
-            // print("_controller ${_controller.length}");
-
-            // print(_controller_test.runtimeType);
-
-            // if (_controller.isNotEmpty) {
-            //   _controller.removeLast();
-            // }
-            // _controller.add(webViewController);
           },
           onPageStarted: (url) async {
             /*
@@ -1020,14 +950,18 @@ class _WebViewContainerState extends State<WebViewContainer>
                   stopwatch.reset();
                 }
         */
-            // setState(() {
-            //   _loadingPercentage = 0;
-            // });
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = 0;
+              });
+            }
           },
           onProgress: (progress) {
-            // setState(() {
-            //   _loadingPercentage = progress;
-            // });
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = progress;
+              });
+            }
           },
           onPageFinished: (url) async {
             /*
@@ -1106,9 +1040,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                 });
                 */
 
-            // setState(() {
-            //   _loadingPercentage = 100;
-            // });
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = 100;
+              });
+            }
           },
         ),
       );
@@ -1318,47 +1254,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                 ),
               )
             : null,
-        body:
-            // NestedScrollView(
-            //   floatHeaderSlivers: true,
-            //   headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            //     SliverAppBar.medium(
-            //       floating: true,
-            //       snap: true,
-            //       centerTitle: false,
-            //       title: _searchText == ""
-            //           ? const Text("Explore")
-            //           : SizedBox(
-            //               height: MediaQuery.of(context).size.height * 0.03,
-            //               // width: MediaQuery.of(context).size.width * 0.8,
-            //               child: Marquee(
-            //                 key: _marqueeKey,
-            //                 text:
-            //                     // '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
-            //                     _searchResult.isNotEmpty
-            //                         ? '$_realSearchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
-            //                         : 'Results for $_searchText',
-            //                 style: const TextStyle(fontSize: 18),
-            //                 scrollAxis: Axis.horizontal, //scroll direction
-            //                 crossAxisAlignment: CrossAxisAlignment.start,
-            //                 blankSpace: 50.0,
-            //                 velocity: 50.0, //speed
-            //                 pauseAfterRound: const Duration(seconds: 1),
-            //                 // startPadding: 10.0,
-            //                 accelerationDuration: const Duration(seconds: 1),
-            //                 accelerationCurve: Curves.linear,
-            //                 decelerationDuration: const Duration(milliseconds: 500),
-            //                 decelerationCurve: Curves.easeOut,
-            //               ),
-            //             ),
-            //       actions: <Widget>[
-            //         IconButton(
-            //             icon: const Icon(Icons.search), onPressed: _pushSearchPage)
-            //       ],
-            //     ),
-            //   ],
-            //   body:
-            Column(
+        body: Column(
           children: <Widget>[
             Container(
               child: _searchResult.isNotEmpty
@@ -1376,242 +1272,95 @@ class _WebViewContainerState extends State<WebViewContainer>
                           //     print("webview long pressed");
                           //   },
                           Expanded(
-                            child: PreloadPageView.builder(
-                              key: _pageKey,
-                              preloadPagesCount: _preloadNumber,
-                              itemBuilder:
-                                  (BuildContext context, int position) =>
-                                      _buildWebView(
-                                          context,
-                                          position >= _currentURLs.length
-                                              ? ""
-                                              : _currentURLs[position]!,
-                                          position),
-                              controller: _preloadPageController,
-                              onPageChanged: (int position) async {
-                                print('page changed. current: $position');
+                            child: GestureDetector(
+                              onTap: () {
+                                print("webview tapped");
+                              },
+                              onDoubleTap: () {
+                                print("webview double tapped");
+                              },
+                              onPanStart: (details) {
+                                print(
+                                    "webview pan start ${details.globalPosition}");
+                                _scrollX = details.globalPosition.dx;
+                                _scrollY = details.globalPosition.dy;
+                              },
+                              onPanDown: (details) {
+                                print(
+                                    "webview pan end ${details.globalPosition}");
+                              },
+                              child: PreloadPageView.builder(
+                                // physics: const NeverScrollableScrollPhysics(),
+                                key: _pageKey,
+                                preloadPagesCount: _preloadNumber,
+                                itemBuilder:
+                                    (BuildContext context, int position) =>
+                                        _buildWebView(
+                                            context,
+                                            position >= _currentURLs.length
+                                                ? ""
+                                                : _currentURLs[position]!,
+                                            position),
+                                controller: _preloadPageController,
+                                onPageChanged: (int position) async {
+                                  print('page changed. current: $position');
 
-                                // fetch more results if we are at the end of the list
-                                if (position + 1 >= _currentURLs.length) {
-                                  print("reached end of list");
-
-                                  setState(() {
-                                    page++;
-                                    _start = (page - 1) * 10 + 1;
-                                  });
-
-                                  var items = await _performSearch(
-                                      _searchText, _currentSearchPlatform);
-                                  print("items $items");
-                                  // update the URLs
-                                  await _updateURLs('extend', _searchText,
-                                      _currentSearchPlatform, items);
-
-                                  // update the current URLs
-                                  await _updateCurrentURLs();
-                                } else {
                                   setState(() {
                                     _currentURLIndex = position;
                                   });
                                   print("current ${_currentURLs[position]}");
-                                }
 
-                                // print(
-                                //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
+                                  // fetch more results if we are almost at the end of the list
+                                  if (position + 1 >= _currentURLs.length) {
+                                    print("reached end of list");
 
-                                // if (position > _prevPos) {
-                                //   print("next");
-                                //   // setState(() {
-                                //   //   _webViewKeyList.removeAt(0);
-                                //   // });
-                                // } else if (position < _prevPos) {
-                                //   print("prev");
-                                //   // setState(() {
-                                //   //   _webViewKeyList.removeLast();
-                                //   // });
-                                // }
+                                    setState(() {
+                                      page++;
+                                      _start = (page - 1) * 10 + 1;
+                                    });
 
-                                // setState(() {
-                                //   _webViewKeyList.clear();
-                                // });
+                                    var items = await _performSearch(
+                                        _searchText, _currentSearchPlatform);
+                                    print("items $items");
+                                    // update the URLs
+                                    await _updateURLs('extend', _searchText,
+                                        _currentSearchPlatform, items);
 
-                                // print("length ${_webViewKeyList.length}");
+                                    // update the current URLs
+                                    await _updateCurrentURLs();
+                                  }
 
-                                // setState(() {
-                                //   _prevPos = position;
-                                // });
-                              },
+                                  // print(
+                                  //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
+
+                                  // if (position > _prevPos) {
+                                  //   print("next");
+                                  //   // setState(() {
+                                  //   //   _webViewKeyList.removeAt(0);
+                                  //   // });
+                                  // } else if (position < _prevPos) {
+                                  //   print("prev");
+                                  //   // setState(() {
+                                  //   //   _webViewKeyList.removeLast();
+                                  //   // });
+                                  // }
+
+                                  // setState(() {
+                                  //   _webViewKeyList.clear();
+                                  // });
+
+                                  // print("length ${_webViewKeyList.length}");
+
+                                  // setState(() {
+                                  //   _prevPos = position;
+                                  // });
+                                },
+                              ),
                             ),
                           ),
 
-                          // WebView(
-                          //   key: _webViewKey,
-                          //   // gestureRecognizers: gestureRecognizers,
-                          //   javascriptMode: JavascriptMode.unrestricted,
-                          //   javascriptChannels: <JavascriptChannel>{
-                          //     _toasterJavascriptChannel(context),
-                          //     _getDrillTextChannel(context),
-                          //   },
-                          //   initialUrl: _currentURLs[_currentURLIndex]
-                          //       ['link'],
-                          //   onWebViewCreated: (webViewController) {
-                          //     _controller_test = webViewController;
-                          //     print(_controller_test.runtimeType);
-
-                          //     // if (_controller.isNotEmpty) {
-                          //     //   _controller.removeLast();
-                          //     // }
-                          //     // _controller.add(webViewController);
-                          //   },
-                          //   onPageStarted: (url) async {
-                          //     if (!_redirectStopwatch.isRunning) {
-                          //       _redirectStopwatch.start();
-                          //       print("1 onPageStarted");
-                          //     }
-
-                          //     final isar = Isar.getInstance("url") ??
-                          //         await Isar.open([URLSchema], name: "url");
-
-                          //     // check if the record exist
-                          //     final urlRecord = await isar.uRLs
-                          //         .filter()
-                          //         .urlEqualTo(_previousURL)
-                          //         .findAll();
-
-                          //     // print("urlRecord: ${urlRecord}");
-                          //     // print("_previousURL: ${_previousURL}");
-
-                          //     if (stopwatch.isRunning && _previousURL != "") {
-                          //       stopwatch.stop();
-                          //       // print(
-                          //       //     "stopwatch stopped: ${stopwatch.elapsed}");
-
-                          //       // final Duration dur = parseDuration(
-                          //       //     '2w 5d 23h 59m 59s 999ms 999us');
-                          //       // print("dur $dur");
-
-                          //       if (urlRecord.isNotEmpty) {
-                          //         await isar.writeTxn(() async {
-                          //           final uRL =
-                          //               await isar.uRLs.get(urlRecord[0].id);
-
-                          //           uRL!.duration =
-                          //               stopwatch.elapsed.toString();
-
-                          //           await isar.uRLs.put(uRL);
-                          //         });
-                          //       }
-                          //       // new record
-                          //       else {
-                          //         final newURL = URL()
-                          //           ..url = _previousURL
-                          //           ..title =
-                          //               await _controller_test?.getTitle()
-                          //           ..duration = stopwatch.elapsed.toString();
-                          //         await isar.writeTxn(() async {
-                          //           await isar.uRLs.put(newURL);
-                          //         });
-                          //       }
-
-                          //       stopwatch.reset();
-                          //     }
-
-                          //     setState(() {
-                          //       _loadingPercentage = 0;
-                          //     });
-                          //   },
-                          //   onProgress: (progress) {
-                          //     setState(() {
-                          //       _loadingPercentage = progress;
-                          //     });
-                          //   },
-                          //   onPageFinished: (url) async {
-                          //     print("3 onPageFinished");
-
-                          //     _controller_test!.runJavascript(
-                          //         """window.addEventListener('click', (e) => {
-                          //                 var x = e.clientX, y = e.clientY;
-                          //                 var elementMouseIsOver = document.elementFromPoint(x, y);
-                          //                 var content = elementMouseIsOver.innerText;
-                          //                 if (content == undefined || content == null)
-                          //                   Print.postMessage("");
-                          //                 else
-                          //                   Print.postMessage(content);
-                          //             });
-                          //           """);
-
-                          //     final isar = Isar.getInstance("url") ??
-                          //         await Isar.open([URLSchema], name: "url");
-
-                          //     print("isar: $isar");
-
-                          //     final urlRecord = await isar.uRLs
-                          //         .filter()
-                          //         .urlEqualTo(url)
-                          //         .findAll();
-
-                          //     if (urlRecord.isNotEmpty) {
-                          //       await isar.writeTxn(() async {
-                          //         final uRL =
-                          //             await isar.uRLs.get(urlRecord[0].id);
-
-                          //         uRL?.viewCount++;
-                          //         uRL?.lastViewed = DateTime.now();
-                          //         uRL?.title =
-                          //             await _controller_test?.getTitle();
-
-                          //         await isar.uRLs.put(uRL!);
-                          //       });
-                          //     }
-                          //     // new record
-                          //     else {
-                          //       final newURL = URL()
-                          //         ..url = url
-                          //         ..title =
-                          //             await _controller_test?.getTitle();
-                          //       await isar.writeTxn(() async {
-                          //         await isar.uRLs.put(newURL);
-                          //       });
-                          //     }
-
-                          //     if (_redirectStopwatch.elapsedMilliseconds <
-                          //         100) {
-                          //       print("1 redirect");
-
-                          //       setState(() {
-                          //         _redirecting = true;
-                          //       });
-                          //     } else {
-                          //       print("2 redirect");
-
-                          //       _redirectStopwatch.stop();
-                          //       _redirectStopwatch.reset();
-                          //       setState(() {
-                          //         _redirecting = false;
-                          //       });
-                          //     }
-
-                          //     print("swiping $_swipe");
-
-                          //     setState(() {
-                          //       _previousURL = url;
-                          //       if (!stopwatch.isRunning) {
-                          //         print("start stopwatch");
-                          //         stopwatch.start();
-                          //       }
-                          //       _loadingPercentage = 100;
-                          //     });
-
-                          //     setState(() {
-                          //       _swipe = false;
-                          //     });
-                          //   },
-                          // ),
-                          // ),
-                          // ),
-
                           // Bottom Bar
-                          Container(
+                          SizedBox(
                             height: Platform.isIOS
                                 ? (_loadingPercentage < 100 ? 65 : 60)
                                 : (_loadingPercentage < 100 ? 55 : 50),
@@ -1708,87 +1457,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                               ),
                             ),
                           ),
-
-                          // Swiper(
-                          //   itemCount: _searchResult.length,
-                          //   loop: false,
-                          //   scrollDirection: Axis.vertical,
-
-                          //   itemBuilder: (BuildContext context, int index) {
-                          //     return Container(
-                          //       child: Stack(
-                          //         children: <Widget>[
-                          //           // Horizontal Swiper
-                          //           Swiper(
-                          //             itemCount: _currentURLs.length,
-                          //             loop: false,
-                          //             scrollDirection: Axis.horizontal,
-                          //             controller:
-                          //                 _swiperControllerHorizontal,
-                          //             itemBuilder: (BuildContext context2,
-                          //                 int index2) {
-                          //               return Container(
-                          //                 decoration: BoxDecoration(
-                          //                   boxShadow: [
-                          //                     BoxShadow(
-                          //                       color: const Color.fromARGB(
-                          //                               255, 182, 182, 182)
-                          //                           .withOpacity(0.1),
-                          //                       spreadRadius: 3,
-                          //                       blurRadius: 5,
-                          //                       // offset: const Offset(0,
-                          //                       //     -50), // changes position of shadow
-                          //                     ),
-                          //                   ],
-                          //                 ),
-                          //                 child: const Align(
-                          //                   alignment: Alignment.center,
-                          //                   child: Text(
-                          //                     "Swipe here to change page",
-                          //                   ),
-                          //                 ),
-                          //               );
-                          //             },
-                          //             onIndexChanged: (index2) {
-                          //               setState(() {
-                          //                 _currentURLIndex = index2;
-                          //                 _swipe = true;
-                          //               });
-                          //               _loadNewPage();
-                          //             },
-                          //           ),
-                          //           if (_loadingPercentage < 100)
-                          //             LinearProgressIndicator(
-                          //               value: _loadingPercentage / 100.0,
-                          //               minHeight: 5,
-                          //               color: Colors.yellow,
-                          //             ),
-                          //         ],
-                          //       ),
-                          //     );
-                          //   },
-                          //   onIndexChanged: (index) {
-                          //     setState(() {
-                          //       _currentURLIndex = 0;
-                          //       _currentDomainIndex = index;
-                          //       _currentURLs = URLs[_searchText
-                          //               .toString()
-                          //               .toLowerCase()][
-                          //           _searchResult.keys
-                          //               .toList()[_currentDomainIndex]];
-
-                          //       // print("_currentURLs $_currentURLs");
-                          //       print("index $index");
-
-                          //       _loadNewPage();
-                          //     });
-                          //   },
-                          //   controller: _swiperControllerVertical,
-                          //   // pagination: SwiperPagination(),
-                          //   // control: SwiperControl(),
-                          // ),
-                          // ),
-                          // ),
                         ],
                       ),
                     )
