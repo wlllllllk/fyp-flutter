@@ -555,10 +555,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  void _loadNewPage() {
-    print("loading ${_currentURLs[_currentURLIndex]['link']}");
-    _currentWebViewController?.loadUrl(_currentURLs[_currentURLIndex]['link']);
-  }
+  // void _loadNewPage() {
+  //   print("loading ${_currentURLs[_currentURLIndex]['link']}");
+  //   _currentWebViewController?.loadUrl(_currentURLs[_currentURLIndex]['link']);
+  // }
 
   _moveSwiper() async {
     setState(() {
@@ -593,7 +593,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       // _preloadPageController.jumpToPage(0);
 
       // if (_searchMode != "Drill-down") _loadNewPage();
-      _loadNewPage();
+      // _loadNewPage();
       // }
 
       // if (!switchMode && _searchMode != "Drill-down") {
@@ -837,7 +837,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         _currentURLIndex++;
         _swipe = true;
       });
-      _loadNewPage();
+      // _loadNewPage();
     }
 
     setState(() {
@@ -887,6 +887,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             ..add(Factory<VerticalDragGestureRecognizer>(
               () => VerticalDragGestureRecognizer(),
             )),
+
           // ..add((Factory<HorizontalDragGestureRecognizer>(
           //   () => HorizontalDragGestureRecognizer(),
           // ))
@@ -1410,29 +1411,50 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           CrossAxisAlignment.start,
                                       children: [
                                         IconButton(
-                                          onPressed: () {
+                                          onPressed: () async {
                                             if (_currentURLIndex > 0) {
+                                              print("decrease");
                                               setState(() {
-                                                print("decrease");
-                                                _currentURLIndex--;
+                                                // _currentURLIndex--;
                                                 _swipe = true;
                                               });
-                                              _loadNewPage();
+
+                                              // _preloadPageController
+                                              //     .animateToPage(
+                                              //         _currentURLIndex++,
+                                              //         duration: const Duration(
+                                              //             milliseconds: 300),
+                                              //         curve: Curves.easeIn);
+
+                                              await _preloadPageController
+                                                  .previousPage(
+                                                      duration: const Duration(
+                                                          milliseconds: 300),
+                                                      curve: Curves.easeIn);
+                                              // _loadNewPage();
                                             }
                                           },
                                           icon:
                                               const Icon(Icons.arrow_back_ios),
                                         ),
                                         IconButton(
-                                          onPressed: () {
+                                          onPressed: () async {
                                             if (_currentURLIndex <
                                                 _currentURLs.length - 1) {
+                                              print(
+                                                  "increase | ${_preloadPageController.page}");
+
                                               setState(() {
-                                                print("increase");
-                                                _currentURLIndex++;
+                                                // _currentURLIndex++;
                                                 _swipe = true;
                                               });
-                                              _loadNewPage();
+
+                                              await _preloadPageController
+                                                  .nextPage(
+                                                      duration: const Duration(
+                                                          milliseconds: 300),
+                                                      curve: Curves.easeIn);
+                                              // _loadNewPage();
                                             }
                                           },
                                           icon: const Icon(
