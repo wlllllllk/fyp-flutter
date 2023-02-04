@@ -62,7 +62,8 @@ List<String> SearchAlgorithmList = [
   "Webpage Content",
   "Title With Webpage Content",
   "Hovered Webpage Content",
-  "New Mode"
+  "New Mode",
+  "TEST HIGHLIGHT"
 ];
 
 List<String> SearchPlatformList = [
@@ -191,7 +192,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   final stopwatch = Stopwatch();
   final _redirectStopwatch = Stopwatch();
   int _selectedPageIndex = 0;
+  Color _defaultAppBarColor = Colors.white;
   Color _appBarColor = Colors.blue[100]!;
+  Color _themedAppBarColor = Colors.blue[100]!;
   Color _fabColor = Colors.blue[100]!;
   String _searchMode = "Default";
   bool _swipe = false;
@@ -205,9 +208,12 @@ class _WebViewContainerState extends State<WebViewContainer>
   int _prevPos = 0;
   var _currentWebViewKey = null;
   var _currentWebViewController = null;
+  Map _webViewControllers = {};
   int _focusedIndex = 0;
   double _scrollX = 0.0, _scrollY = 0.0;
   String _currentWebViewTitle = "";
+  // var _next;
+  bool _platformChanged = false;
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
@@ -276,6 +282,14 @@ class _WebViewContainerState extends State<WebViewContainer>
   _getSearchQuery() async {
     String query = "";
     switch (_searchAlgorithm) {
+      case "TEST HIGHLIGHT":
+        await _currentWebViewController!.runJavascript("""
+                        var element = document.elementFromPoint($_hoverX, $_hoverY);
+                        element.style.border = "2px solid red";
+                        Drill.postMessage(centre.innerText);
+                      """);
+        print("TEST HIGHLIGHT: $_webpageContent");
+        break;
       case "Title":
         query = (await _currentWebViewController!.getTitle())!;
         break;
@@ -553,6 +567,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
       }
     });
+
+    print("_currentURLs ${_currentURLs}");
   }
 
   // void _loadNewPage() {
@@ -597,13 +613,15 @@ class _WebViewContainerState extends State<WebViewContainer>
       // }
 
       // if (!switchMode && _searchMode != "Drill-down") {
+
+      _pageKey = GlobalKey();
     });
   }
 
   void _handleSearch(value) async {
     setState(() {
       _searchMode = "Default";
-      _appBarColor = Colors.blue[100]!;
+      _appBarColor = _defaultAppBarColor;
       _fabColor = Colors.blue[100]!;
     });
 
@@ -769,7 +787,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
   //   Factory(() => VerticalDragGestureRecognizer()),
-  //   // Factory(() => HorizontalDragGestureRecognizer()),
+  //   Factory(() => HorizontalDragGestureRecognizer()),
+  //   Factory(() => LongPressGestureRecognizer()),
   // };
 
   Future<bool> _onWillPop(BuildContext context) async {
@@ -816,7 +835,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
-        _appBarColor = Colors.blue[100]!;
+        _appBarColor = _defaultAppBarColor;
         _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
@@ -834,16 +853,39 @@ class _WebViewContainerState extends State<WebViewContainer>
       await _updateURLs('append', _searchText, _currentSearchPlatform, items);
       await _updateCurrentURLs();
       setState(() {
-        _currentURLIndex++;
+        // _currentURLIndex++;
         _swipe = true;
       });
+
+      // await _preloadPageController
+
+      print("current 1 ${await _currentWebViewController?.currentUrl()}");
+
+      // await _currentWebViewController.loadUrl(
+      //     url: _currentURLs[_currentURLIndex]);
+
+      await _preloadPageController
+          .nextPage(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut)
+          .whenComplete(() => null);
+
+      print(
+          "current 2 ${await _currentWebViewController?.currentUrl()} | ${await _currentWebViewController?.getTitle()}");
+      await _currentWebViewController
+          ?.loadUrl(_currentURLs[_currentURLIndex]['link']);
+
+      // await _currentWebViewController?.loadUrl('https://flutter.dev');
+
       // _loadNewPage();
     }
 
     setState(() {
+      // _pageKey = GlobalKey();
+
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
-        _appBarColor = Colors.blue[100]!;
+        _appBarColor = _defaultAppBarColor;
         _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
@@ -852,16 +894,6 @@ class _WebViewContainerState extends State<WebViewContainer>
       }
     });
   }
-
-  // void _extendResult() async {
-  //   var items = await _performSearch(_searchText, _currentSearchPlatform);
-  //   print("items $items");
-  //   // update the URLs
-  //   await _updateURLs('extend', _searchText, _currentSearchPlatform, items);
-
-  //   // update the current URLs
-  //   await _updateCurrentURLs();
-  // }
 
   Widget _buildWebView(BuildContext context, var data, int position) {
     // print("data $data");
@@ -877,7 +909,11 @@ class _WebViewContainerState extends State<WebViewContainer>
       bool bingo = false;
       if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
         bingo = true;
+        // if (position == 0) _next = _currentURLs[_currentURLIndex + 1]['link'];
+        // print("_next $_next");
       }
+
+      // print("building... | bingo: ${bingo} | data: ${data}");
 
       return SizedBox(
         width: MediaQuery.of(context).size.width,
@@ -887,9 +923,12 @@ class _WebViewContainerState extends State<WebViewContainer>
             ..add(Factory<VerticalDragGestureRecognizer>(
               () => VerticalDragGestureRecognizer(),
             ))
+            ..add(Factory<HorizontalDragGestureRecognizer>(
+              () => HorizontalDragGestureRecognizer(),
+            ))
             ..add(
-              (Factory<HorizontalDragGestureRecognizer>(
-                () => HorizontalDragGestureRecognizer(),
+              (Factory<LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer(),
               )),
             ),
           // ),
@@ -900,9 +939,19 @@ class _WebViewContainerState extends State<WebViewContainer>
           },
           initialUrl: data['link'],
           onWebViewCreated: (webViewController) async {
+            // for initial load only
             if (bingo) {
+              // setState(() {
               _currentWebViewController = webViewController;
+              // });
+
+              print(
+                  "bingo ${await webViewController.currentUrl()} | ${data['link']}");
             }
+            print(
+                "not bingo ${await webViewController.currentUrl()} | ${data['link']}");
+            _webViewControllers.addAll({position: webViewController});
+            print("webview controllers ${_webViewControllers}");
           },
           onPageStarted: (url) async {
             print("1 onPageStarted");
@@ -1053,12 +1102,25 @@ class _WebViewContainerState extends State<WebViewContainer>
               setState(() {
                 _loadingPercentage = 100;
                 _currentWebViewTitle = data["title"];
+                // _currentWebViewTitle = title;
               });
             }
           },
         ),
       );
     }
+  }
+
+  _changeSearchPlatform() {
+    int index = SearchPlatformList.indexOf(_currentSearchPlatform);
+    int newIndex = (index + 1);
+    if (newIndex >= SearchPlatformList.length) {
+      newIndex = 0;
+    }
+    setState(() {
+      _currentSearchPlatform = SearchPlatformList[newIndex];
+      _platformChanged = true;
+    });
   }
 
   @override
@@ -1073,7 +1135,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(
-                  color: _appBarColor,
+                  color: _themedAppBarColor,
                 ),
                 child: const Text('Menu'),
               ),
@@ -1156,109 +1218,127 @@ class _WebViewContainerState extends State<WebViewContainer>
           ],
         ),
         floatingActionButton: _searchResult.isNotEmpty
-            ? GestureDetector(
-                onLongPress: () {
-                  _performDrill();
-                },
-                child: Draggable(
-                  feedback: FloatingActionButton(
-                    isExtended: true,
-                    onPressed: () {
-                      if (_searchMode == "Default") {
-                        print("drill ONCE");
-                        // drill logic
-                      } else {
-                        print("already in drill-down mode");
-                      }
-                    },
-                    backgroundColor: _fabColor,
-                    splashColor: Colors.amber[100],
-                    child: AnimatedBuilder(
-                      animation: _drillingAnimationController,
-                      builder: (_, child) {
-                        return Transform.rotate(
-                          angle: _drilling
-                              ? _drillingAnimationController.value * 2 * math.pi
-                              : 0.0,
-                          child: child,
-                        );
-                      },
-                      child: const Icon(MyFlutterApp.drill),
-                    ),
-                  ),
-                  childWhenDragging: Container(),
-                  onDragStarted: () {},
-                  onDragEnd: (details) async {
-                    RenderBox webViewBox = _pageKey.currentContext
-                        ?.findRenderObject() as RenderBox;
-                    Offset webViewPosition =
-                        webViewBox.localToGlobal(Offset.zero);
-                    double webViewX = webViewPosition.dx;
-                    double webViewY = webViewPosition.dy;
-                    double webViewWidth = webViewBox.size.width;
-                    double webViewHeight = webViewBox.size.height;
-
-                    // print(
-                    //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
-                    // print(details.offset);
-
-                    setState(() {
-                      if (details.offset.dx < webViewX) {
-                        _hoverX = webViewX;
-                      } else if (details.offset.dx > webViewWidth) {
-                        _hoverX = webViewX + webViewWidth;
-                      } else {
-                        _hoverX = details.offset.dx;
-                      }
-
-                      if (details.offset.dy - webViewY < 0) {
-                        // _hoverY = 0;
-                        _hoverY = -1;
-                        // print("1");
-                      } else if (details.offset.dy - webViewY > webViewHeight) {
-                        // _hoverY = webViewHeight - 1;
-                        _hoverY = -1;
-                        // print("2");
-                      } else {
-                        _hoverY = details.offset.dy - webViewY;
-                        // _hoverY = -1;
-
-                        // print("3");
-                      }
-                    });
-
-                    // print("hoverX: $_hoverX, hoverY: $_hoverY");
-
-                    // await _controller_test!.runJavascript("""
-                    //     var x = window.innerWidth/2;
-                    //     var y = window.innerHeight/2;
-                    //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
-                    //     Drill.postMessage(centre.innerText);
-                    //   """);
-                    _hoverY >= 0 ? _performDrill() : print("cancel");
+            ? Align(
+                alignment: Platform.isIOS
+                    ? const Alignment(1, 0.95)
+                    : const Alignment(1, 0.88),
+                child: GestureDetector(
+                  onLongPress: () {
+                    // _performDrill();
+                    _handleSearch(_realSearchText);
                   },
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      // if (_searchMode == "Default") {
-                      //   print("drill ONCE");
-                      //   // drill logic
-                      // } else {
-                      //   print("already in drill-down mode");
-                      // }
-                    },
-                    backgroundColor: _fabColor,
-                    splashColor: Colors.amber[100],
-                    child: AnimatedBuilder(
-                      animation: _drillingAnimationController,
-                      builder: (_, child) {
-                        return Transform.rotate(
-                          angle: _drilling
-                              ? _drillingAnimationController.value * 2 * math.pi
-                              : 0.0,
-                          child: child,
-                        );
+                  child: Draggable(
+                    feedback: FloatingActionButton.extended(
+                      isExtended: true,
+                      label: Text("123"),
+                      onPressed: () {
+                        if (_searchMode == "Default") {
+                          print("drill ONCE");
+                          // drill logic
+                        } else {
+                          print("already in drill-down mode");
+                        }
                       },
-                      child: const Icon(MyFlutterApp.drill),
+                      backgroundColor: _fabColor,
+                      splashColor: Colors.amber[100],
+                      // child: AnimatedBuilder(
+                      //   animation: _drillingAnimationController,
+                      //   builder: (_, child) {
+                      //     return Transform.rotate(
+                      //       angle: _drilling
+                      //           ? _drillingAnimationController.value *
+                      //               2 *
+                      //               math.pi
+                      //           : 0.0,
+                      //       child: child,
+                      //     );
+                      //   },
+                      //   child: const Icon(MyFlutterApp.drill),
+                      // ),
+                    ),
+                    childWhenDragging: Container(),
+                    onDragStarted: () {
+                      setState(() {
+                        _appBarColor = Colors.red[400]!;
+                      });
+                    },
+                    onDragEnd: (details) async {
+                      setState(() {
+                        _appBarColor = _defaultAppBarColor;
+                      });
+
+                      RenderBox webViewBox = _pageKey.currentContext
+                          ?.findRenderObject() as RenderBox;
+                      Offset webViewPosition =
+                          webViewBox.localToGlobal(Offset.zero);
+                      double webViewX = webViewPosition.dx;
+                      double webViewY = webViewPosition.dy;
+                      double webViewWidth = webViewBox.size.width;
+                      double webViewHeight = webViewBox.size.height;
+
+                      // print(
+                      //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
+                      // print(details.offset);
+
+                      setState(() {
+                        if (details.offset.dx < webViewX) {
+                          _hoverX = webViewX;
+                        } else if (details.offset.dx > webViewWidth) {
+                          _hoverX = webViewX + webViewWidth;
+                        } else {
+                          _hoverX = details.offset.dx;
+                        }
+
+                        if (details.offset.dy - webViewY < 0) {
+                          // _hoverY = 0;
+                          _hoverY = -1;
+                          // print("1");
+                        } else if (details.offset.dy - webViewY >
+                            webViewHeight) {
+                          // _hoverY = webViewHeight - 1;
+                          _hoverY = -1;
+                          // print("2");
+                        } else {
+                          _hoverY = details.offset.dy - webViewY;
+                          // _hoverY = -1;
+
+                          // print("3");
+                        }
+                      });
+
+                      // print("hoverX: $_hoverX, hoverY: $_hoverY");
+
+                      // await _controller_test!.runJavascript("""
+                      //     var x = window.innerWidth/2;
+                      //     var y = window.innerHeight/2;
+                      //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
+                      //     Drill.postMessage(centre.innerText);
+                      //   """);
+                      await _getSearchQuery();
+                      // _hoverY >= 0 ? _performDrill() : print("cancel");
+                    },
+                    child: FloatingActionButton.extended(
+                      onPressed: () {
+                        _changeSearchPlatform();
+                      },
+                      label: Text(_currentSearchPlatform),
+                      backgroundColor: _fabColor,
+                      splashColor: Colors.amber[100],
+                      icon: const Icon(MyFlutterApp.drill),
+                      // child: AnimatedBuilder(
+                      //   animation: _drillingAnimationController,
+                      //   builder: (_, child) {
+                      //     return Transform.rotate(
+                      //       angle: _drilling
+                      //           ? _drillingAnimationController.value *
+                      //               2 *
+                      //               math.pi
+                      //           : 0.0,
+                      //       child: child,
+                      //     );
+                      //   },
+                      //   child: const Icon(MyFlutterApp.drill),
+                      // ),
                     ),
                   ),
                 ),
@@ -1282,21 +1362,26 @@ class _WebViewContainerState extends State<WebViewContainer>
                           //     print("webview long pressed");
                           //   },
                           // Title Bar
-                          SizedBox(
-                            // height: autoSize(50, context),
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                    left: 10.0,
-                                    right: 10.0,
-                                    top: 5.0,
-                                    bottom: 5.0),
-                                child: Text(
-                                  _currentWebViewTitle,
-                                  style: const TextStyle(fontSize: 16),
-                                  overflow: TextOverflow.visible,
-                                  textAlign: TextAlign.center,
+                          ColoredBox(
+                            color: Colors.white,
+                            child: SizedBox(
+                              // height: autoSize(50, context),
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 10.0,
+                                      right: 10.0,
+                                      top: 5.0,
+                                      bottom: 5.0),
+                                  child: Text(
+                                    _currentWebViewTitle,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                    ),
+                                    overflow: TextOverflow.visible,
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1320,7 +1405,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //       "webview pan end ${details.globalPosition}");
                               // },
                               child: PreloadPageView.builder(
-                                // physics: const NeverScrollableScrollPhysics(),
+                                physics: const NeverScrollableScrollPhysics(),
                                 key: _pageKey,
                                 preloadPagesCount: _preloadNumber,
                                 itemBuilder:
@@ -1331,16 +1416,52 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                 ? ""
                                                 : _currentURLs[position]!,
                                             position),
+                                itemCount: _currentURLs.length,
                                 controller: _preloadPageController,
                                 onPageChanged: (int position) async {
                                   print('page changed. current: $position');
+                                  // print(
+                                  //     "${_currentURLs[position]!['title']} | $_next");
+
+                                  // var temp = _webViewControllers[_next];
+
+                                  // var temp = _
+
+                                  // print("temp 1 $temp");
+                                  // print("temp 2 ${_webViewControllers[temp]}");
 
                                   setState(() {
                                     _currentURLIndex = position;
                                     _currentWebViewTitle =
                                         _currentURLs[position]!['title'];
+                                    _loadingPercentage = 100;
+
+                                    // if (_webViewControllers[
+                                    //         _currentURLs[position]!['link']] ==
+                                    //     null) {
+                                    //   print("add 1");
+                                    //   _webViewControllers.addAll({
+                                    //     _currentURLs[position]!['link']:
+                                    //         _webViewControllers[_next]
+                                    //   });
+                                    // }
+
+                                    _currentWebViewController =
+                                        _webViewControllers[position];
+
+                                    print(
+                                        "_webViewControllers $_webViewControllers");
                                   });
-                                  print("current ${_currentURLs[position]}");
+
+                                  print(
+                                      "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
+                                  print(
+                                      "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.currentUrl()}");
+                                  print(
+                                      "controller 3 ${await _currentWebViewController}");
+
+                                  // print(
+                                  //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
 
                                   // fetch more results if we are almost at the end of the list
                                   if (position + 1 >= _currentURLs.length) {
@@ -1392,15 +1513,17 @@ class _WebViewContainerState extends State<WebViewContainer>
                           ),
 
                           // Bottom Bar
-                          SizedBox(
-                            height: Platform.isIOS
-                                ? (_loadingPercentage < 100 ? 65 : 60)
-                                : (_loadingPercentage < 100 ? 55 : 50),
-                            child: GestureDetector(
-                              onTap: () {
-                                print("swiper tapped");
-                              },
-                              child: Container(
+
+                          ColoredBox(
+                            color: _appBarColor,
+                            child: SizedBox(
+                              height: Platform.isIOS
+                                  ? (_loadingPercentage < 100 ? 65 : 60)
+                                  : (_loadingPercentage < 100 ? 55 : 50),
+                              child: GestureDetector(
+                                onTap: () {
+                                  print("swiper tapped");
+                                },
                                 child: Column(
                                   children: [
                                     if (_loadingPercentage < 100)
@@ -1483,44 +1606,52 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               Icons.arrow_forward_ios,
                                               size: 20),
                                         ),
-                                        DropdownButton<String>(
-                                          value: _currentSearchPlatform,
-                                          icon: const Icon(Icons.arrow_drop_up),
-                                          elevation: 16,
-                                          // style: const TextStyle(color: Colors.deepPurple),
-                                          underline: Container(
-                                            height: 2,
-                                            // color: _appBarColor,
-                                          ),
-                                          onChanged: (String? value) async {
-                                            print("value $value");
+                                        // DropdownButton<String>(
+                                        //   value: _currentSearchPlatform,
+                                        //   icon: const Icon(Icons.arrow_drop_up),
+                                        //   elevation: 16,
+                                        //   // style: const TextStyle(color: Colors.deepPurple),
+                                        //   underline: Container(
+                                        //     height: 2,
+                                        //     // color: _appBarColor,
+                                        //   ),
+                                        //   onChanged: (String? value) async {
+                                        //     print("value $value");
 
-                                            setState(() {
-                                              _currentSearchPlatform = value!;
-                                            });
+                                        //     setState(() {
+                                        //       _currentSearchPlatform = value!;
+                                        //     });
 
-                                            _handleSearch(_realSearchText);
+                                        //     _handleSearch(_realSearchText);
+                                        //   },
+                                        //   items: SearchPlatformList.map<
+                                        //           DropdownMenuItem<String>>(
+                                        //       (String value) {
+                                        //     return DropdownMenuItem<String>(
+                                        //       value: value,
+                                        //       child: Text(value),
+                                        //     );
+                                        //   }).toList(),
+                                        // ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            await _currentWebViewController!
+                                                .goBack();
                                           },
-                                          items: SearchPlatformList.map<
-                                                  DropdownMenuItem<String>>(
-                                              (String value) {
-                                            return DropdownMenuItem<String>(
-                                              value: value,
-                                              child: Text(value),
-                                            );
-                                          }).toList(),
+                                          icon:
+                                              const Icon(Icons.undo, size: 30),
                                         ),
-                                        TextButton(
-                                          onPressed: () {
-                                            _currentWebViewController!.goBack();
-                                          },
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: Colors.black87,
-                                          ),
-                                          child: const Text("Back"),
-                                          // icon: const Icon(Icons
-                                          //     .settings_backup_restore_rounded),
-                                        ),
+                                        // TextButton(
+                                        //   onPressed: () {
+                                        //     _currentWebViewController!.goBack();
+                                        //   },
+                                        //   style: TextButton.styleFrom(
+                                        //     foregroundColor: Colors.black87,
+                                        //   ),
+                                        //   child: const Text("Back"),
+                                        //   // icon: const Icon(Icons
+                                        //   //     .settings_backup_restore_rounded),
+                                        // ),
                                       ],
                                     ),
                                   ],

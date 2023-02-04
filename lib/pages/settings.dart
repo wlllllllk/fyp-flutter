@@ -66,6 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         body: Container(
+          color: Colors.white,
           child: Align(
             alignment: Alignment.center,
             child: ListView(
