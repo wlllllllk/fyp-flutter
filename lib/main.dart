@@ -555,10 +555,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  // void _loadNewPage() {
-  //   print("loading ${_currentURLs[_currentURLIndex]['link']}");
-  //   _currentWebViewController?.loadUrl(_currentURLs[_currentURLIndex]['link']);
-  // }
+  void _loadNewPage() {
+    _controller_test?.loadUrl(_currentURLs[_currentURLIndex]['link']);
+  }
 
   _moveSwiper() async {
     setState(() {
@@ -1391,11 +1390,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                             ),
                           ),
 
-                          // Bottom Bar
-                          SizedBox(
-                            height: Platform.isIOS
-                                ? (_loadingPercentage < 100 ? 65 : 60)
-                                : (_loadingPercentage < 100 ? 55 : 50),
+                          // Vertical Swiper
+                          Container(
+                            height: 60,
                             child: GestureDetector(
                               onTap: () {
                                 print("swiper tapped");
