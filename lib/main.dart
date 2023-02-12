@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -23,6 +23,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
 import 'package:google_vision/google_vision.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:scroll_snap_list/scroll_snap_list.dart';
+import 'package:preload_page_view/preload_page_view.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -47,6 +50,7 @@ void main() async {
           // colorSchemeSeed: Color.fromARGB(255, 49, 83, 97),
           useMaterial3: true),
       home: WebViewContainer(),
+      builder: EasyLoading.init(),
     ),
   );
 }
@@ -72,13 +76,16 @@ List<String> SearchPlatformList = [
 
 enum Theme { Light, Dark, Auto }
 
-const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+// const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
 const SEARCH_ENGINE_ID_FACEBOOK = "a48841f7c9ed94dd6";
 const SEARCH_ENGINE_ID_INSTAGRAM = "a74dea74df886441a";
 const SEARCH_ENGINE_ID_LINKEDIN = "c1f02371fcab94ca7";
+
+int page = 1;
 
 class WebViewContainer extends StatefulWidget {
   const WebViewContainer({super.key});
@@ -94,11 +101,17 @@ class _WebViewContainerState extends State<WebViewContainer>
         ..repeat();
 
   var _searchAlgorithm;
+  var _preloadNumber;
   var _theme;
 
-  GlobalKey _webViewKey = GlobalKey();
+  // GlobalKey _webViewKey = GlobalKey();
+
+  // var _webViewKeyList = [];
+
   var _marqueeKey = UniqueKey();
   var _settingsPageKey = UniqueKey();
+  var _pageKey = GlobalKey();
+
   Map URLs = {};
   // Map _drillURLs = {};
   // final Map URL_list = {
@@ -189,22 +202,28 @@ class _WebViewContainerState extends State<WebViewContainer>
   double _turns = 0.0;
   bool _drilling = false;
   double _hoverX = 0.0, _hoverY = 0.0;
+  int _prevPos = 0;
+  var _currentWebViewKey = null;
+  var _currentWebViewController = null;
+  int _focusedIndex = 0;
+  double _scrollX = 0.0, _scrollY = 0.0;
+  String _currentWebViewTitle = "";
 
   // include only first page
-  int _page = 1;
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
-  int _start = (1 - 1) * 10 + 1;
+  int _start = (page - 1) * 10 + 1;
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
     // final algorithm = await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
-
+    final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
     setState(() {
       _currentSearchPlatform = "Google";
       _searchAlgorithm = algorithm;
+      _preloadNumber = preloadNumber;
       _theme = theme;
     });
     print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
@@ -219,35 +238,32 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   // TextEditingController _handleSearch = TextEditingController();
-  List<WebViewController> _controller = [];
-  WebViewController? _controller_test;
+  List<WebViewController> _webViewController = [];
+  // WebViewController? _controller_test;
 
   SwiperController _swiperControllerVertical = new SwiperController();
   SwiperController _swiperControllerHorizontal = new SwiperController();
 
+  PreloadPageController _preloadPageController = PreloadPageController(
+    initialPage: 0,
+    // loop: true,
+    // preloadPagesCount: 3,
+    // autoPlay: true,
+    // autoPlayInterval: Duration(seconds: 3),
+    // autoPlayAnimationDuration: Duration(milliseconds: 800),
+    // autoPlayCurve: Curves.fastOutSlowIn,
+    // enlargeCenterPage: true,
+    // scrollDirection: Axis.vertical,
+    // onPageChanged: (index, reason) {
+    //   print("index: $index, reason: $reason");
+    // },
+  );
   // @override
   // void dispose() {
   //   // Clean up the controller when the widget is removed from the
   //   // widget tree.
   //   _handleSearch.dispose();
   //   super.dispose();
-  // }
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _handleSearch.addListener(() {
-  //     setState(() {
-  //       _searchText = _handleSearch.text;
-  //       print("result ${URL_list_test[_searchText]}");
-
-  //       if (URL_list_test[_searchText] != null) {
-  //         _searchResult = URL_list_test[_searchText];
-  //       } else {
-  //         _searchResult = [];
-  //       }
-  //     });
-  //   });
   // }
 
   final RestartableTimer _searchTimer = RestartableTimer(
@@ -257,194 +273,52 @@ class _WebViewContainerState extends State<WebViewContainer>
     },
   );
 
-  //  _resetSearchCounter() {
-  //   _searchCount = 0;
-  // }
-/*
-  _getGalleryImage() async {
-    File? _image;
-
-    //get gallery images
-    final image_Path =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-
-    if (image_Path == null) return;
-    final imagetemp = File(image_Path.path);
-    print(imagetemp);
-
-    setState(() {
-      _image = imagetemp;
-    });
-
-    _imageSearch(_image, image_Path.path);
-  }
-
-  _getCameraImage() async {
-    File? _image;
-
-    //get camera images
-    final image_Path =
-        await ImagePicker().pickImage(source: ImageSource.camera);
-
-    if (image_Path == null) return;
-    final imagetemp = File(image_Path.path);
-    print(imagetemp);
-
-    setState(() {
-      _image = imagetemp;
-    });
-
-    _imageSearch(_image, image_Path.path);
-  }
-
-  _imageSearch(src, path) async {
-    Directory dir = (await getApplicationDocumentsDirectory());
-    bool fileExists = false;
-    String filename = "credential.json";
-    File jsonCredential = File(dir.path + "/" + filename);
-    jsonCredential.createSync();
-    fileExists = jsonCredential.existsSync();
-    const myJsonAsString =
-        '{ "type": "service_account", "project_id": "iron-ripple-361505", "private_key_id": "0cf917e05a8a26c96d3afd8a8d3715bc80010751", "private_key": "-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDr+dECe18jdmz1\\nNBG4IH09GxfL7n502s7eY2jnFqd6KJOko/JGQtn6NvxbCHhhubhQqp5dPVw/Ge6h\\nrwFdaQqVvS8z3kQVFaiAdWJjDvSlOZNLL7PLbwrE5CHbhgtC3xD0KUrGUMtLSf4U\\n4svXx3SB1US5vR1Ywtn/tjtlhfKgJD+aP7JeTs2ITT6DpKKyLIdmnUsHnCoQGh6b\\nJN00nDZuG6VB71o5lMy0mhGPFXR20WwP7wKckyI+Vk0n4vRu17kmNojBudFAYVvQ\\nwPcA6XfP/Il5z0fg5pQwEBy8suxZngfIc0jNCLhbAOxk82eC8QK73YFosOrq4KUM\\nzzLwTwBHAgMBAAECggEAH1i/COneRbCLISLgFwoLKPgK4rZqn6zwsxPDO9jDZFO0\\nko02zK+VE4svXbZpK24yNlZb6tM7svmHvNGpyECrvSAgVO8PMzp+ePC0TP1lG/e4\\ngdHd5psjHpbsNSRVevYf40IC+AeD4fCmgHFvlllIDaEzhnWWoD5jcCJt5HrKiWGA\\nsDwICkmCQZju6ZMa78f5XbZKYtFD/Pj+GyhHkZrvs6TGf7x1juGJBEL4WKuL1xVI\\neQiFhsZ04mjYUhdfSgMxblKkhCqpWNM4HsDmexSJOTATUDLgVLPEfy8sy1tzyTir\\nE23PISLUxkjpEXRdu76OiOVxpD7CVrFoFh5Sz0qiAQKBgQD4iB6H3/rjfQI4G69Y\\nt7fx+8hAms+8fEEj8tVN23Es4Bbg7kobO3+dHBqEXNa3ZRcUJXFx/km2IKbnIiyt\\nxY6nDk0lRwAXKAbO1t97GvZlduQvU0Q9nVpxo3sOFHkirTEj+TZXSwWGU9utqNzA\\nPu7SIR4zhb3yM9t/yoBS0042RwKBgQDzERvNG1Fay/FoBwbultO52GhOS3Z++ASp\\n58V4Oqef5e/ifxuwHZQKJ1dSUTocnSufMNBnTzh64uqQyOfJ6VnUICcincbP4BCJ\\n2aCPNB0pZnsHBJG4HLgndhd8fasqo2EsPg0q3DIUkKU48N5XUYbOQQgRNRx3Gfoy\\nzfAui1vmAQKBgD54MHxkvzJZJKqnws5g93p6mB4tC5RMAy+fBSCZzPvDo9yL6NKp\\nhO0fuEaW812Lql5k/vvxN+PwlyM3wtU2+CFjhd6d1xb696Mb/XZ7E33zgW2n11pJ\\naAdyWSbz3HLr55MsPA17DPtzrp8a98nWx77HlkjLEDCF+mFHrDOla15XAoGAVl0/\\n2ZLZRz+rmODWT7P7qs7/0MHzao3Jam1VtrBwmtnicEHlnqAD18++sRr3YO9fboKz\\nqeF2GgPCgItCAHYPWtXJ0fzphTcB6VkQOZG0wt8M26N9+0MJE8xb7/ne9Zlzj3rE\\nxvPSP4hdjGvZNIFdOq/Uo/iREqiCQ8b0jjUqBAECgYEA9IEUdwRaMytZfi2GNdfI\\n+iujVtD6yFqZpiEZA4wX3qmtFR5xjF2WElli9mlfVJbQkzQUmWIAz/KW1X47lbHu\\nUN8HeZo0BITSCz+VnPGOg75o/IiX/bOPaIBY4uVPj7DQZQqZmYDcqy++ZHfVsJRV\\nuXyVCi+0wSsb+JRBhZRk26Y=\\n-----END PRIVATE KEY-----\\n", "client_email": "vision@iron-ripple-361505.iam.gserviceaccount.com", "client_id": "101967982492272397269", "auth_uri": "https://accounts.google.com/o/oauth2/auth","token_uri": "https://oauth2.googleapis.com/token","auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/vision%40iron-ripple-361505.iam.gserviceaccount.com"}';
-    final decoded = json.decode(myJsonAsString);
-    jsonCredential.writeAsStringSync(json.encode(decoded));
-    bool exist = await io.File(jsonCredential.path).exists();
-    if (exist) {
-      print("STILL HERE ");
-    } else {
-      print("JSON CRED doesnt exits");
-    }
-
-    try {
-      var _client = await CredentialsProvider().client;
-
-      final bytes = io.File(path).readAsBytesSync();
-      String img64 = base64Encode(bytes);
-
-      Future<vision.BatchAnnotateImagesResponse> search(String image) async {
-        var _vision = vision.VisionApi(await _client);
-        var _api = _vision.images;
-        var _response =
-            await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
-          "requests": [
-            {
-              "image": {"content": image},
-              "features": [
-                {"type": "WEB_DETECTION"}
-              ]
-            }
-          ]
-        }));
-        // print(entity.entityId);
-        List<vision.WebEntity>? entities;
-        List<vision.WebImage>? full_match_image;
-        List<vision.WebImage>? partial_match_image;
-        List<vision.WebPage>? page_with_match_image;
-        List<vision.WebImage>? page_with_similar_image;
-
-        var bestguess = vision.WebLabel();
-
-        var imgUrl = vision.WebImage();
-
-        var _label;
-        var i = 0;
-
-        _response.responses?.forEach((data) {
-          _label = data.webDetection!.bestGuessLabels;
-
-          entities = data.webDetection!.webEntities as List<vision.WebEntity>;
-
-          //full_match_image =
-          //  data.webDetection!.fullMatchingImages as List<vision.WebImage>;
-          partial_match_image =
-              data.webDetection!.partialMatchingImages as List<vision.WebImage>;
-          page_with_match_image = data.webDetection!.pagesWithMatchingImages
-              as List<vision.WebPage>;
-          page_with_similar_image =
-              data.webDetection!.visuallySimilarImages as List<vision.WebImage>;
-
-          bestguess = _label!.single;
-          //entity = entities!;
-        });
-        print("best guess label=  " + bestguess.label.toString());
-        i = 0;
-        var j = 0;
-        //for (i; i < 10; i++) {
-        print(entities![i].description);
-        //  print("Full match url = " + full_match_image![i].url.toString());
-        print("Partial match url = " + partial_match_image![i].url.toString());
-        print("page with similar iamge = " +
-            page_with_similar_image![i].url.toString());
-        for (j = 0; j < page_with_match_image!.length; j++) {
-          print("page with match image title=" +
-              page_with_match_image![j].pageTitle.toString());
-          print("page with match image =" +
-              page_with_match_image![j].url.toString());
-        }
-
-        return _response;
-      }
-
-      var response = search(img64);
-    } finally {
-      await jsonCredential.delete();
-      fileExists = jsonCredential.existsSync();
-      print("FINALLY = " + fileExists.toString());
-      bool exist = await io.File(jsonCredential.path).exists();
-      if (exist) {
-        print("STILL HERE ");
-      } else {
-        print("JSON CRED doesnt exits");
-      }
-    }
-  }
-  */
-
   _getSearchQuery() async {
     String query = "";
     switch (_searchAlgorithm) {
       case "Title":
-        query = (await _controller_test!.getTitle())!;
+        query = (await _currentWebViewController!.getTitle())!;
         break;
       case "Webpage Content":
-        await _controller_test!.runJavascript("""
+        await _currentWebViewController!.runJavascript("""
                         var x = window.innerWidth/2;
                         var y = window.innerHeight/2;
                         var centre = document.elementFromPoint(x, y);
                         Drill.postMessage(centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
-          query = (await _controller_test!.getTitle())!;
+          query = (await _currentWebViewController!.getTitle())!;
         } else {
           query = _webpageContent;
         }
         break;
       case "Title With Webpage Content":
-        await _controller_test!.runJavascript("""
+        await _currentWebViewController!.runJavascript("""
                         var x = window.innerWidth/2;
                         var y = window.innerHeight/2;
                         var centre = document.elementFromPoint(x, y);
                         Drill.postMessage(centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
-          query = (await _controller_test!.getTitle())!;
+          query = (await _currentWebViewController!.getTitle())!;
         } else {
-          query = "${await _controller_test!.getTitle()} $_webpageContent";
+          query =
+              "${await _currentWebViewController!.getTitle()} $_webpageContent";
         }
         break;
       case "Hovered Webpage Content":
-        await _controller_test!.runJavascript("""
+        await _currentWebViewController!.runJavascript("""
                         var centre = document.elementFromPoint($_hoverX, $_hoverY);
                         Drill.postMessage(centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
-          query = (await _controller_test!.getTitle())!;
+          query = (await _currentWebViewController!.getTitle())!;
         } else {
           query = _webpageContent;
         }
         break;
       case "New Mode":
-        await _controller_test!.runJavascript("""
+        await _currentWebViewController!.runJavascript("""
                 var elementMouseIsOver = document.elementFromPoint($_hoverX, $_hoverY);
                 var content = elementMouseIsOver.innerText;
 
@@ -477,7 +351,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       """);
 
         if (_webpageContent == null || _webpageContent == "") {
-          query = (await _controller_test!.getTitle())!;
+          query = (await _currentWebViewController!.getTitle())!;
         } else {
           query = _webpageContent;
         }
@@ -493,7 +367,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _drilling = true;
       _realSearchText = value.toString().trim();
-      _marqueeKey = UniqueKey();
     });
 
     print("_searchTimer.tick ${_searchTimer.tick}");
@@ -543,16 +416,18 @@ class _WebViewContainerState extends State<WebViewContainer>
         break;
     }
 
+    print("page: $page | _start: $_start");
+
     var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
       'key': API_KEY,
       'cx': ENGINE_ID,
       'q': value,
-      'start': _start.toString()
+      'start': _start.toString(),
     });
 
     var response = !_gg ? await http.get(url) : null;
 
-    // print("response: $response");
+    print("response: $response");
     setState(() {
       _drilling = false;
     });
@@ -562,8 +437,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
-        print(jsonResponse);
-        print(jsonResponse['items']);
+        // print(jsonResponse);
+        // print(jsonResponse['items']);
 
         var items = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
@@ -584,11 +459,13 @@ class _WebViewContainerState extends State<WebViewContainer>
   _updateURLs(mode, keyword, platform, list) async {
     print("updating...");
 
-    keyword = keyword.toString().toLowerCase();
+    keyword = keyword.toString();
     platform = platform.toString();
     print("list length: ${list.length}");
 
     setState(() {
+      _marqueeKey = UniqueKey();
+
       if (list.length > 0) {
         if (URLs[keyword] == null) {
           URLs[keyword] = {};
@@ -607,8 +484,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
           setState(() {
             if (_currentURLIndex < length - 1) {
-              URLs[keyword][platform]
-                  .removeRange(_currentURLIndex + 1, length - _currentURLIndex);
+              URLs[keyword][platform].removeRange(_currentURLIndex + 1, length);
             }
 
             for (var item in list) {
@@ -640,6 +516,24 @@ class _WebViewContainerState extends State<WebViewContainer>
           }
           break;
         }
+      case "extend":
+        {
+          // only set the URL list if there are results
+          if (list.length > 0) {
+            setState(() {
+              // URLs[keyword][platform] = [];
+
+              for (var item in list) {
+                URLs[keyword][platform]
+                    .add({'title': item['title'], 'link': item['link']});
+              }
+
+              // URLs[keyword][platform]
+              //     .add({'title': 'manual', 'link': 'https://www.google.com'});
+            });
+          }
+          break;
+        }
     }
   }
 
@@ -649,7 +543,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         print("no results");
         _searchResult = {};
       } else {
-        print("have results ${URLs[_searchText]}");
+        // print("have results ${URLs[_searchText]}");
 
         _searchResult = URLs[_searchText];
         // print("_searchResult $_searchResult");
@@ -661,9 +555,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  void _loadNewPage() {
-    _controller_test?.loadUrl(_currentURLs[_currentURLIndex]['link']);
-  }
+  // void _loadNewPage() {
+  //   print("loading ${_currentURLs[_currentURLIndex]['link']}");
+  //   _currentWebViewController?.loadUrl(_currentURLs[_currentURLIndex]['link']);
+  // }
 
   _moveSwiper() async {
     setState(() {
@@ -674,7 +569,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         _isSearching = false;
       }
 
-      print("_controller_test?.runtimeType ${_controller_test?.runtimeType}");
+      print(
+          "_currentWebViewController?.runtimeType ${_currentWebViewController?.runtimeType}");
 
       // if (_controller_test?.runtimeType != null) {
       // if (_controller_test?.runtimeType != null && !switchMode && !drilling) {
@@ -688,8 +584,16 @@ class _WebViewContainerState extends State<WebViewContainer>
       _currentDomainIndex = 0;
       _currentURLIndex = 0;
 
+      // print("_preloadPageController.page ${_preloadPageController.page}");
+      print(
+          "_preloadPageController.positions ${_preloadPageController.positions}");
+      if (_preloadPageController.positions.isNotEmpty) {
+        _preloadPageController.jumpToPage(0);
+      }
+      // _preloadPageController.jumpToPage(0);
+
       // if (_searchMode != "Drill-down") _loadNewPage();
-      _loadNewPage();
+      // _loadNewPage();
       // }
 
       // if (!switchMode && _searchMode != "Drill-down") {
@@ -706,7 +610,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     print("search $value");
     String realSearchText = "";
     Map results = {};
-    value = value.toString().toLowerCase();
+    value = value.toString();
 
     print("_searchMode $_searchMode");
 
@@ -717,7 +621,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     // the search results
     var items = await _performSearch(realSearchText, _currentSearchPlatform);
-    print("items $items");
+    // print("items $items");
     // update the URLs
     await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
@@ -726,6 +630,14 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     // move the swiper
     await _moveSwiper();
+  }
+
+  void _updateSearchText(searchText) {
+    setState(() {
+      _realSearchText = searchText;
+      _searchText = searchText;
+      _currentSearchPlatform = "Google";
+    });
   }
 
   final TextEditingController _searchFieldController = TextEditingController();
@@ -742,9 +654,13 @@ class _WebViewContainerState extends State<WebViewContainer>
       MaterialPageRoute(
         builder: (context) {
           return SearchPage(
-            realSearchText: _realSearchText,
-            handleSearch: _handleSearch,
-          );
+              realSearchText: _realSearchText,
+              handleSearch: _handleSearch,
+              performSearch: _performSearch,
+              updateURLs: _updateURLs,
+              updateCurrentURLs: _updateCurrentURLs,
+              moveSwiper: _moveSwiper,
+              updateSearchText: _updateSearchText);
         },
       ),
     );
@@ -792,6 +708,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  void _updatePreloading(preloadNumber) {
+    setState(() {
+      _preloadNumber = preloadNumber;
+    });
+  }
+
   void _pushSettingsPage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -804,6 +726,8 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSearchAlgorithm: _updateSearchAlgorithm,
             searchAlgorithm: _searchAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
+            updatePreloading: _updatePreloading,
+            preloadNumber: _preloadNumber,
             prefs: prefs,
           );
         },
@@ -843,15 +767,17 @@ class _WebViewContainerState extends State<WebViewContainer>
     // _getHistory();
   }
 
-  final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-    Factory(() => EagerGestureRecognizer())
-  };
+  // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
+  //   Factory(() => VerticalDragGestureRecognizer()),
+  //   // Factory(() => HorizontalDragGestureRecognizer()),
+  // };
 
   Future<bool> _onWillPop(BuildContext context) async {
-    if (_controller_test?.runtimeType != null) {
-      if (await _controller_test!.canGoBack()) {
+    print("type ${_currentWebViewController?.runtimeType}");
+    if (_currentWebViewController?.runtimeType != null) {
+      if (await _currentWebViewController!.canGoBack()) {
         print("onwill goback");
-        _controller_test!.goBack();
+        _currentWebViewController!.goBack();
         return Future.value(false);
       } else {
         debugPrint("_exit will not go back");
@@ -886,7 +812,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   _performDrill() async {
-    print("drill CONTINUOUSLY");
+    print("drilling...");
     setState(() {
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
@@ -911,7 +837,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         _currentURLIndex++;
         _swipe = true;
       });
-      _loadNewPage();
+      // _loadNewPage();
     }
 
     setState(() {
@@ -925,6 +851,214 @@ class _WebViewContainerState extends State<WebViewContainer>
         _searchMode = "Drill-down";
       }
     });
+  }
+
+  // void _extendResult() async {
+  //   var items = await _performSearch(_searchText, _currentSearchPlatform);
+  //   print("items $items");
+  //   // update the URLs
+  //   await _updateURLs('extend', _searchText, _currentSearchPlatform, items);
+
+  //   // update the current URLs
+  //   await _updateCurrentURLs();
+  // }
+
+  Widget _buildWebView(BuildContext context, var data, int position) {
+    // print("data $data");
+    print("building...");
+    // print("building... | ${data}");
+
+    if (data == "") {
+      return SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Text("End of Results"),
+      );
+    } else {
+      bool bingo = false;
+      if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
+        bingo = true;
+      }
+
+      return SizedBox(
+        width: MediaQuery.of(context).size.width,
+        // child: Text("test${index}"),
+        child: WebView(
+          gestureRecognizers: Set()
+            ..add(Factory<VerticalDragGestureRecognizer>(
+              () => VerticalDragGestureRecognizer(),
+            ))
+            ..add(
+              (Factory<HorizontalDragGestureRecognizer>(
+                () => HorizontalDragGestureRecognizer(),
+              )),
+            ),
+          // ),
+          javascriptMode: JavascriptMode.unrestricted,
+          javascriptChannels: <JavascriptChannel>{
+            _toasterJavascriptChannel(context),
+            _getDrillTextChannel(context),
+          },
+          initialUrl: data['link'],
+          onWebViewCreated: (webViewController) async {
+            if (bingo) {
+              _currentWebViewController = webViewController;
+            }
+          },
+          onPageStarted: (url) async {
+            print("1 onPageStarted");
+
+            /*
+                if (!_redirectStopwatch.isRunning) {
+                  _redirectStopwatch.start();
+                  print("1 onPageStarted");
+                }
+        
+                final isar = Isar.getInstance("url") ??
+                    await Isar.open([URLSchema], name: "url");
+        
+                // check if the record exist
+                final urlRecord =
+                    await isar.uRLs.filter().urlEqualTo(_previousURL).findAll();
+        
+                // print("urlRecord: ${urlRecord}");
+                // print("_previousURL: ${_previousURL}");
+        
+                if (stopwatch.isRunning && _previousURL != "") {
+                  stopwatch.stop();
+                  // print(
+                  //     "stopwatch stopped: ${stopwatch.elapsed}");
+        
+                  // final Duration dur = parseDuration(
+                  //     '2w 5d 23h 59m 59s 999ms 999us');
+                  // print("dur $dur");
+        
+                  if (urlRecord.isNotEmpty) {
+                    await isar.writeTxn(() async {
+                      final uRL = await isar.uRLs.get(urlRecord[0].id);
+        
+                      uRL!.duration = stopwatch.elapsed.toString();
+        
+                      await isar.uRLs.put(uRL);
+                    });
+                  }
+                  // new record
+                  else {
+                    final newURL = URL()
+                      ..url = _previousURL
+                      ..title = await _controller[index].getTitle()
+                      ..duration = stopwatch.elapsed.toString();
+                    await isar.writeTxn(() async {
+                      await isar.uRLs.put(newURL);
+                    });
+                  }
+        
+                  stopwatch.reset();
+                }
+        */
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = 0;
+                _currentWebViewTitle = "Loading...";
+              });
+            }
+          },
+          onProgress: (progress) {
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = progress;
+              });
+            }
+          },
+          onPageFinished: (url) async {
+            print("3 onPageFinished");
+
+            /*
+        
+                _controller[index]
+                    .runJavascript("""window.addEventListener('click', (e) => {
+                                            var x = e.clientX, y = e.clientY;
+                                            var elementMouseIsOver = document.elementFromPoint(x, y);
+                                            var content = elementMouseIsOver.innerText;
+                                            if (content == undefined || content == null)
+                                              Print.postMessage("");
+                                            else
+                                              Print.postMessage(content);
+                                        });
+                                      """);
+        
+                final isar = Isar.getInstance("url") ??
+                    await Isar.open([URLSchema], name: "url");
+        
+                print("isar: $isar");
+        
+                final urlRecord =
+                    await isar.uRLs.filter().urlEqualTo(url).findAll();
+        
+                if (urlRecord.isNotEmpty) {
+                  await isar.writeTxn(() async {
+                    final uRL = await isar.uRLs.get(urlRecord[0].id);
+        
+                    uRL?.viewCount++;
+                    uRL?.lastViewed = DateTime.now();
+                    uRL?.title = await _controller[index].getTitle();
+        
+                    await isar.uRLs.put(uRL!);
+                  });
+                }
+                // new record
+                else {
+                  final newURL = URL()
+                    ..url = url
+                    ..title = await _controller[index].getTitle();
+                  await isar.writeTxn(() async {
+                    await isar.uRLs.put(newURL);
+                  });
+                }
+        
+                if (_redirectStopwatch.elapsedMilliseconds < 100) {
+                  print("1 redirect");
+        
+                  setState(() {
+                    _redirecting = true;
+                  });
+                } else {
+                  print("2 redirect");
+        
+                  _redirectStopwatch.stop();
+                  _redirectStopwatch.reset();
+                  setState(() {
+                    _redirecting = false;
+                  });
+                }
+        
+                print("swiping $_swipe");
+        
+                setState(() {
+                  _previousURL = url;
+                  if (!stopwatch.isRunning) {
+                    print("start stopwatch");
+                    stopwatch.start();
+                  }
+                  _loadingPercentage = 100;
+                });
+        
+                setState(() {
+                  _swipe = false;
+                });
+                */
+
+            if (bingo) {
+              String title = await _currentWebViewController.getTitle();
+              print("title: $title | data['title']: ${data['title']}");
+              setState(() {
+                _loadingPercentage = 100;
+                _currentWebViewTitle = data["title"];
+              });
+            }
+          },
+        ),
+      );
+    }
   }
 
   @override
@@ -1055,7 +1189,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                   childWhenDragging: Container(),
                   onDragStarted: () {},
                   onDragEnd: (details) async {
-                    RenderBox webViewBox = _webViewKey.currentContext
+                    RenderBox webViewBox = _pageKey.currentContext
                         ?.findRenderObject() as RenderBox;
                     Offset webViewPosition =
                         webViewBox.localToGlobal(Offset.zero);
@@ -1067,25 +1201,33 @@ class _WebViewContainerState extends State<WebViewContainer>
                     // print(
                     //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
                     // print(details.offset);
+
                     setState(() {
-                      // _hoverX = details.offset.dx;
                       if (details.offset.dx < webViewX) {
                         _hoverX = webViewX;
                       } else if (details.offset.dx > webViewWidth) {
                         _hoverX = webViewX + webViewWidth;
+                      } else {
+                        _hoverX = details.offset.dx;
                       }
 
                       if (details.offset.dy - webViewY < 0) {
-                        _hoverY = 0;
+                        // _hoverY = 0;
+                        _hoverY = -1;
                         // print("1");
                       } else if (details.offset.dy - webViewY > webViewHeight) {
-                        _hoverY = webViewHeight - 1;
+                        // _hoverY = webViewHeight - 1;
+                        _hoverY = -1;
                         // print("2");
                       } else {
                         _hoverY = details.offset.dy - webViewY;
+                        // _hoverY = -1;
+
                         // print("3");
                       }
                     });
+
+                    // print("hoverX: $_hoverX, hoverY: $_hoverY");
 
                     // await _controller_test!.runJavascript("""
                     //     var x = window.innerWidth/2;
@@ -1093,7 +1235,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
                     //     Drill.postMessage(centre.innerText);
                     //   """);
-                    _performDrill();
+                    _hoverY >= 0 ? _performDrill() : print("cancel");
                   },
                   child: FloatingActionButton(
                     onPressed: () {
@@ -1129,190 +1271,137 @@ class _WebViewContainerState extends State<WebViewContainer>
                   ? Flexible(
                       child: Column(
                         children: <Widget>[
-                          Expanded(
-                            // child:
-                            // GestureDetector(
-                            //   onTap: () {
-                            //     print("webview tapped");
-                            //   },
-                            //   onLongPress: () {
-                            //     print("webview long pressed");
-                            //   },
-                            child: WebView(
-                              key: _webViewKey,
-                              // gestureRecognizers: gestureRecognizers,
-                              javascriptMode: JavascriptMode.unrestricted,
-                              javascriptChannels: <JavascriptChannel>{
-                                _toasterJavascriptChannel(context),
-                                _getDrillTextChannel(context),
-                              },
-                              initialUrl: _currentURLs[_currentURLIndex]
-                                  ['link'],
-                              onWebViewCreated: (webViewController) {
-                                _controller_test = webViewController;
-                                print(_controller_test.runtimeType);
-
-                                // if (_controller.isNotEmpty) {
-                                //   _controller.removeLast();
-                                // }
-                                // _controller.add(webViewController);
-                              },
-                              onPageStarted: (url) async {
-                                if (!_redirectStopwatch.isRunning) {
-                                  _redirectStopwatch.start();
-                                  print("1 onPageStarted");
-                                }
-
-                                final isar = Isar.getInstance("url") ??
-                                    await Isar.open([URLSchema], name: "url");
-
-                                // check if the record exist
-                                final urlRecord = await isar.uRLs
-                                    .filter()
-                                    .urlEqualTo(_previousURL)
-                                    .findAll();
-
-                                // print("urlRecord: ${urlRecord}");
-                                // print("_previousURL: ${_previousURL}");
-
-                                if (stopwatch.isRunning && _previousURL != "") {
-                                  stopwatch.stop();
-                                  // print(
-                                  //     "stopwatch stopped: ${stopwatch.elapsed}");
-
-                                  // final Duration dur = parseDuration(
-                                  //     '2w 5d 23h 59m 59s 999ms 999us');
-                                  // print("dur $dur");
-
-                                  if (urlRecord.isNotEmpty) {
-                                    await isar.writeTxn(() async {
-                                      final uRL =
-                                          await isar.uRLs.get(urlRecord[0].id);
-
-                                      uRL!.duration =
-                                          stopwatch.elapsed.toString();
-
-                                      await isar.uRLs.put(uRL);
-                                    });
-                                  }
-                                  // new record
-                                  else {
-                                    final newURL = URL()
-                                      ..url = _previousURL
-                                      ..title =
-                                          await _controller_test?.getTitle()
-                                      ..duration = stopwatch.elapsed.toString();
-                                    await isar.writeTxn(() async {
-                                      await isar.uRLs.put(newURL);
-                                    });
-                                  }
-
-                                  stopwatch.reset();
-                                }
-
-                                setState(() {
-                                  _loadingPercentage = 0;
-                                });
-                              },
-                              onProgress: (progress) {
-                                setState(() {
-                                  _loadingPercentage = progress;
-                                });
-                              },
-                              onPageFinished: (url) async {
-                                print("3 onPageFinished");
-
-                                _controller_test!.runJavascript(
-                                    """window.addEventListener('click', (e) => {
-                                            var x = e.clientX, y = e.clientY;
-                                            var elementMouseIsOver = document.elementFromPoint(x, y);
-                                            var content = elementMouseIsOver.innerText;
-                                            if (content == undefined || content == null)
-                                              Print.postMessage("");
-                                            else
-                                              Print.postMessage(content);
-                                        });
-                                      """);
-
-                                final isar = Isar.getInstance("url") ??
-                                    await Isar.open([URLSchema], name: "url");
-
-                                print("isar: $isar");
-
-                                final urlRecord = await isar.uRLs
-                                    .filter()
-                                    .urlEqualTo(url)
-                                    .findAll();
-
-                                if (urlRecord.isNotEmpty) {
-                                  await isar.writeTxn(() async {
-                                    final uRL =
-                                        await isar.uRLs.get(urlRecord[0].id);
-
-                                    uRL?.viewCount++;
-                                    uRL?.lastViewed = DateTime.now();
-                                    uRL?.title =
-                                        await _controller_test?.getTitle();
-
-                                    await isar.uRLs.put(uRL!);
-                                  });
-                                }
-                                // new record
-                                else {
-                                  final newURL = URL()
-                                    ..url = url
-                                    ..title =
-                                        await _controller_test?.getTitle();
-                                  await isar.writeTxn(() async {
-                                    await isar.uRLs.put(newURL);
-                                  });
-                                }
-
-                                if (_redirectStopwatch.elapsedMilliseconds <
-                                    100) {
-                                  print("1 redirect");
-
-                                  setState(() {
-                                    _redirecting = true;
-                                  });
-                                } else {
-                                  print("2 redirect");
-
-                                  _redirectStopwatch.stop();
-                                  _redirectStopwatch.reset();
-                                  setState(() {
-                                    _redirecting = false;
-                                  });
-                                }
-
-                                print("swiping $_swipe");
-
-                                setState(() {
-                                  _previousURL = url;
-                                  if (!stopwatch.isRunning) {
-                                    print("start stopwatch");
-                                    stopwatch.start();
-                                  }
-                                  _loadingPercentage = 100;
-                                });
-
-                                setState(() {
-                                  _swipe = false;
-                                });
-                              },
+                          // WebView
+                          // Expanded(
+                          // child:
+                          // GestureDetector(
+                          //   onTap: () {
+                          //     print("webview tapped");
+                          //   },
+                          //   onLongPress: () {
+                          //     print("webview long pressed");
+                          //   },
+                          // Title Bar
+                          SizedBox(
+                            // height: autoSize(50, context),
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 10.0,
+                                    right: 10.0,
+                                    top: 5.0,
+                                    bottom: 5.0),
+                                child: Text(
+                                  _currentWebViewTitle,
+                                  style: const TextStyle(fontSize: 16),
+                                  overflow: TextOverflow.visible,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                            // ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                print("webview tapped");
+                              },
+                              onDoubleTap: () {
+                                print("webview double tapped");
+                              },
+                              // onPanStart: (details) {
+                              //   print(
+                              //       "webview pan start ${details.globalPosition}");
+                              //   _scrollX = details.globalPosition.dx;
+                              //   _scrollY = details.globalPosition.dy;
+                              // },
+                              // onPanDown: (details) {
+                              //   print(
+                              //       "webview pan end ${details.globalPosition}");
+                              // },
+                              child: PreloadPageView.builder(
+                                // physics: const NeverScrollableScrollPhysics(),
+                                key: _pageKey,
+                                preloadPagesCount: _preloadNumber,
+                                itemBuilder:
+                                    (BuildContext context, int position) =>
+                                        _buildWebView(
+                                            context,
+                                            position >= _currentURLs.length
+                                                ? ""
+                                                : _currentURLs[position]!,
+                                            position),
+                                controller: _preloadPageController,
+                                onPageChanged: (int position) async {
+                                  print('page changed. current: $position');
+
+                                  setState(() {
+                                    _currentURLIndex = position;
+                                    _currentWebViewTitle =
+                                        _currentURLs[position]!['title'];
+                                  });
+                                  print("current ${_currentURLs[position]}");
+
+                                  // fetch more results if we are almost at the end of the list
+                                  if (position + 1 >= _currentURLs.length) {
+                                    print("reached end of list");
+
+                                    setState(() {
+                                      page++;
+                                      _start = (page - 1) * 10 + 1;
+                                    });
+
+                                    var items = await _performSearch(
+                                        _searchText, _currentSearchPlatform);
+                                    print("items $items");
+                                    // update the URLs
+                                    await _updateURLs('extend', _searchText,
+                                        _currentSearchPlatform, items);
+
+                                    // update the current URLs
+                                    await _updateCurrentURLs();
+                                  }
+
+                                  // print(
+                                  //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
+
+                                  // if (position > _prevPos) {
+                                  //   print("next");
+                                  //   // setState(() {
+                                  //   //   _webViewKeyList.removeAt(0);
+                                  //   // });
+                                  // } else if (position < _prevPos) {
+                                  //   print("prev");
+                                  //   // setState(() {
+                                  //   //   _webViewKeyList.removeLast();
+                                  //   // });
+                                  // }
+
+                                  // setState(() {
+                                  //   _webViewKeyList.clear();
+                                  // });
+
+                                  // print("length ${_webViewKeyList.length}");
+
+                                  // setState(() {
+                                  //   _prevPos = position;
+                                  // });
+                                },
+                              ),
+                            ),
                           ),
 
-                          // Vertical Swiper
-                          Container(
-                            height: 60,
+                          // Bottom Bar
+                          SizedBox(
+                            height: Platform.isIOS
+                                ? (_loadingPercentage < 100 ? 65 : 60)
+                                : (_loadingPercentage < 100 ? 55 : 50),
                             child: GestureDetector(
-                                onTap: () {
-                                  print("swiper tapped");
-                                },
-                                child: Container(
-                                    child: Column(
+                              onTap: () {
+                                print("swiper tapped");
+                              },
+                              child: Container(
+                                child: Column(
                                   children: [
                                     if (_loadingPercentage < 100)
                                       LinearProgressIndicator(
@@ -1327,33 +1416,72 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           CrossAxisAlignment.start,
                                       children: [
                                         IconButton(
-                                          onPressed: () {
+                                          onPressed: () async {
                                             if (_currentURLIndex > 0) {
+                                              print("jump to first page");
                                               setState(() {
-                                                print("decrease");
-                                                _currentURLIndex--;
+                                                // _currentURLIndex--;
                                                 _swipe = true;
                                               });
-                                              _loadNewPage();
+
+                                              _preloadPageController
+                                                  .jumpToPage(0);
+                                              // _loadNewPage();
                                             }
                                           },
-                                          icon:
-                                              const Icon(Icons.arrow_back_ios),
+                                          icon: const Icon(Icons.first_page,
+                                              size: 30),
                                         ),
                                         IconButton(
-                                          onPressed: () {
-                                            if (_currentURLIndex <
-                                                _currentURLs.length - 1) {
+                                          onPressed: () async {
+                                            if (_currentURLIndex > 0) {
+                                              print("decrease");
                                               setState(() {
-                                                print("increase");
-                                                _currentURLIndex++;
+                                                // _currentURLIndex--;
                                                 _swipe = true;
                                               });
-                                              _loadNewPage();
+
+                                              // _preloadPageController
+                                              //     .animateToPage(
+                                              //         _currentURLIndex++,
+                                              //         duration: const Duration(
+                                              //             milliseconds: 300),
+                                              //         curve: Curves.easeIn);
+
+                                              await _preloadPageController
+                                                  .previousPage(
+                                                      duration: const Duration(
+                                                          milliseconds: 300),
+                                                      curve: Curves.easeIn);
+                                              // _loadNewPage();
+                                            }
+                                          },
+                                          icon: const Icon(Icons.arrow_back_ios,
+                                              size: 20),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            if (_currentURLIndex <
+                                                _currentURLs.length - 1) {
+                                              print(
+                                                  "increase | ${_preloadPageController.page}");
+
+                                              setState(() {
+                                                // _currentURLIndex++;
+                                                _swipe = true;
+                                              });
+
+                                              await _preloadPageController
+                                                  .nextPage(
+                                                      duration: const Duration(
+                                                          milliseconds: 300),
+                                                      curve: Curves.easeIn);
+                                              // _loadNewPage();
                                             }
                                           },
                                           icon: const Icon(
-                                              Icons.arrow_forward_ios),
+                                              Icons.arrow_forward_ios,
+                                              size: 20),
                                         ),
                                         DropdownButton<String>(
                                           value: _currentSearchPlatform,
@@ -1382,89 +1510,23 @@ class _WebViewContainerState extends State<WebViewContainer>
                                             );
                                           }).toList(),
                                         ),
+                                        TextButton(
+                                          onPressed: () {
+                                            _currentWebViewController!.goBack();
+                                          },
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.black87,
+                                          ),
+                                          child: const Text("Back"),
+                                          // icon: const Icon(Icons
+                                          //     .settings_backup_restore_rounded),
+                                        ),
                                       ],
                                     ),
                                   ],
-                                ))
-                                // Swiper(
-                                //   itemCount: _searchResult.length,
-                                //   loop: false,
-                                //   scrollDirection: Axis.vertical,
-
-                                //   itemBuilder: (BuildContext context, int index) {
-                                //     return Container(
-                                //       child: Stack(
-                                //         children: <Widget>[
-                                //           // Horizontal Swiper
-                                //           Swiper(
-                                //             itemCount: _currentURLs.length,
-                                //             loop: false,
-                                //             scrollDirection: Axis.horizontal,
-                                //             controller:
-                                //                 _swiperControllerHorizontal,
-                                //             itemBuilder: (BuildContext context2,
-                                //                 int index2) {
-                                //               return Container(
-                                //                 decoration: BoxDecoration(
-                                //                   boxShadow: [
-                                //                     BoxShadow(
-                                //                       color: const Color.fromARGB(
-                                //                               255, 182, 182, 182)
-                                //                           .withOpacity(0.1),
-                                //                       spreadRadius: 3,
-                                //                       blurRadius: 5,
-                                //                       // offset: const Offset(0,
-                                //                       //     -50), // changes position of shadow
-                                //                     ),
-                                //                   ],
-                                //                 ),
-                                //                 child: const Align(
-                                //                   alignment: Alignment.center,
-                                //                   child: Text(
-                                //                     "Swipe here to change page",
-                                //                   ),
-                                //                 ),
-                                //               );
-                                //             },
-                                //             onIndexChanged: (index2) {
-                                //               setState(() {
-                                //                 _currentURLIndex = index2;
-                                //                 _swipe = true;
-                                //               });
-                                //               _loadNewPage();
-                                //             },
-                                //           ),
-                                //           if (_loadingPercentage < 100)
-                                //             LinearProgressIndicator(
-                                //               value: _loadingPercentage / 100.0,
-                                //               minHeight: 5,
-                                //               color: Colors.yellow,
-                                //             ),
-                                //         ],
-                                //       ),
-                                //     );
-                                //   },
-                                //   onIndexChanged: (index) {
-                                //     setState(() {
-                                //       _currentURLIndex = 0;
-                                //       _currentDomainIndex = index;
-                                //       _currentURLs = URLs[_searchText
-                                //               .toString()
-                                //               .toLowerCase()][
-                                //           _searchResult.keys
-                                //               .toList()[_currentDomainIndex]];
-
-                                //       // print("_currentURLs $_currentURLs");
-                                //       print("index $index");
-
-                                //       _loadNewPage();
-                                //     });
-                                //   },
-                                //   controller: _swiperControllerVertical,
-                                //   // pagination: SwiperPagination(),
-                                //   // control: SwiperControl(),
-                                // ),
                                 ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1486,6 +1548,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             ),
           ],
         ),
+        // ),
       ),
     );
   }
