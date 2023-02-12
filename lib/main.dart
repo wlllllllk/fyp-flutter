@@ -41,6 +41,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';*/
 
+import 'components/custom_text_selection_file.dart';
 part 'main.g.dart';
 
 void main() async {
@@ -78,7 +79,8 @@ List<String> SearchPlatformList = [
 enum Theme { Light, Dark, Auto }
 
 // const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
@@ -189,7 +191,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
   String _previousURL = "";
-  final stopwatch = Stopwatch();
+  final activityStopwatch = Stopwatch();
   final _redirectStopwatch = Stopwatch();
   int _selectedPageIndex = 0;
   Color _defaultAppBarColor = Colors.white;
@@ -286,7 +288,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         await _currentWebViewController!.runJavascript("""
                         var element = document.elementFromPoint($_hoverX, $_hoverY);
                         element.style.border = "2px solid red";
-                        Drill.postMessage(centre.innerText);
+                        Drill.postMessage(element.innerText);
                       """);
         print("TEST HIGHLIGHT: $_webpageContent");
         break;
@@ -457,6 +459,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         var items = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
+        // print("items: ${items}");
 
         return items;
       } else {
@@ -895,6 +898,131 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  _recordActivity() async {
+    print("begin record...");
+
+    // if (!_redirectStopwatch.isRunning) {
+    //   _redirectStopwatch.start();
+    //   print("1 onPageStarted");
+    // }
+
+    // first stop the activityStopwatch if it is running
+    if (activityStopwatch.isRunning) {
+      activityStopwatch.stop();
+    }
+
+    // get the database
+    final isar =
+        Isar.getInstance("url") ?? await Isar.open([URLSchema], name: "url");
+    print("isar: $isar");
+
+    // check if the record exist
+    final urlRecord = await isar.uRLs
+        .filter()
+        .urlEqualTo(_currentURLs[_currentURLIndex]["title"])
+        .findAll();
+    print("urlRecord: ${urlRecord}");
+
+    // print(
+    //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
+
+    // final Duration dur = parseDuration(
+    //     '2w 5d 23h 59m 59s 999ms 999us');
+    // print("dur $dur");
+
+    // record exists
+    if (urlRecord.isNotEmpty) {
+      await isar.writeTxn(() async {
+        final uRL = await isar.uRLs.get(urlRecord[0].id);
+
+        uRL!.duration = activityStopwatch.elapsed.toString();
+        uRL!.lastViewed = DateTime.now();
+        uRL!.viewCount = uRL!.viewCount++;
+
+        await isar.uRLs.put(uRL);
+      });
+    }
+    // new record
+    else {
+      final newURL = URL()
+        ..url = _previousURL
+        ..title = _currentURLs[_currentURLIndex]["title"]
+        ..duration = activityStopwatch.elapsed.toString()
+        ..viewCount = 1
+        ..lastViewed = DateTime.now();
+      await isar.writeTxn(() async {
+        await isar.uRLs.put(newURL);
+      });
+    }
+
+    // reset the activityStopwatch
+    activityStopwatch.reset();
+
+    // update current url and start activityStopwatch
+    setState(() {
+      _previousURL = _currentURLs[_currentURLIndex]["link"];
+      if (!activityStopwatch.isRunning) {
+        print("start activityStopwatch");
+        activityStopwatch.start();
+      }
+    });
+
+////////////////////////////////////
+    // final urlRecord = await isar.uRLs.filter().urlEqualTo(url).findAll();
+
+    // if (urlRecord.isNotEmpty) {
+    //   await isar.writeTxn(() async {
+    //     final uRL = await isar.uRLs.get(urlRecord[0].id);
+
+    //     uRL?.viewCount++;
+    //     uRL?.lastViewed = DateTime.now();
+    //     uRL?.title = await _controller[index].getTitle();
+
+    //     await isar.uRLs.put(uRL!);
+    //   });
+    // }
+    // // new record
+    // else {
+    //   final newURL = URL()
+    //     ..url = url
+    //     ..title = await _controller[index].getTitle();
+    //   await isar.writeTxn(() async {
+    //     await isar.uRLs.put(newURL);
+    //   });
+    // }
+
+    // if (_redirectStopwatch.elapsedMilliseconds < 100) {
+    //   print("1 redirect");
+
+    //   setState(() {
+    //     _redirecting = true;
+    //   });
+    // } else {
+    //   print("2 redirect");
+
+    //   _redirectStopwatch.stop();
+    //   _redirectStopwatch.reset();
+    //   setState(() {
+    //     _redirecting = false;
+    //   });
+    // }
+
+    // print("swiping $_swipe");
+
+    // setState(() {
+    //   _previousURL = url;
+    //   if (!activityStopwatch.isRunning) {
+    //     print("start activityStopwatch");
+    //     activityStopwatch.start();
+    //   }
+    //   _loadingPercentage = 100;
+    // });
+
+    // setState(() {
+    //   _swipe = false;
+    // });
+  }
+
   Widget _buildWebView(BuildContext context, var data, int position) {
     // print("data $data");
     print("building...");
@@ -910,7 +1038,12 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
         bingo = true;
         // if (position == 0) _next = _currentURLs[_currentURLIndex + 1]['link'];
-        // print("_next $_next");
+        print("bingo $bingo");
+        // if (!activityStopwatch.isRunning) {
+        //   print("start activityStopwatch");
+        //   activityStopwatch.start();
+        // }
+        // _recordActivity();
       }
 
       // print("building... | bingo: ${bingo} | data: ${data}");
@@ -972,10 +1105,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                 // print("urlRecord: ${urlRecord}");
                 // print("_previousURL: ${_previousURL}");
         
-                if (stopwatch.isRunning && _previousURL != "") {
-                  stopwatch.stop();
+                if (activityStopwatch.isRunning && _previousURL != "") {
+                  activityStopwatch.stop();
                   // print(
-                  //     "stopwatch stopped: ${stopwatch.elapsed}");
+                  //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
         
                   // final Duration dur = parseDuration(
                   //     '2w 5d 23h 59m 59s 999ms 999us');
@@ -985,7 +1118,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     await isar.writeTxn(() async {
                       final uRL = await isar.uRLs.get(urlRecord[0].id);
         
-                      uRL!.duration = stopwatch.elapsed.toString();
+                      uRL!.duration = activityStopwatch.elapsed.toString();
         
                       await isar.uRLs.put(uRL);
                     });
@@ -995,13 +1128,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                     final newURL = URL()
                       ..url = _previousURL
                       ..title = await _controller[index].getTitle()
-                      ..duration = stopwatch.elapsed.toString();
+                      ..duration = activityStopwatch.elapsed.toString();
                     await isar.writeTxn(() async {
                       await isar.uRLs.put(newURL);
                     });
                   }
         
-                  stopwatch.reset();
+                  activityStopwatch.reset();
                 }
         */
             if (bingo) {
@@ -1084,9 +1217,9 @@ class _WebViewContainerState extends State<WebViewContainer>
         
                 setState(() {
                   _previousURL = url;
-                  if (!stopwatch.isRunning) {
-                    print("start stopwatch");
-                    stopwatch.start();
+                  if (!activityStopwatch.isRunning) {
+                    print("start activityStopwatch");
+                    activityStopwatch.start();
                   }
                   _loadingPercentage = 100;
                 });
@@ -1228,34 +1361,60 @@ class _WebViewContainerState extends State<WebViewContainer>
                     _handleSearch(_realSearchText);
                   },
                   child: Draggable(
-                    feedback: FloatingActionButton.extended(
-                      isExtended: true,
-                      label: Text("123"),
-                      onPressed: () {
-                        if (_searchMode == "Default") {
-                          print("drill ONCE");
-                          // drill logic
-                        } else {
-                          print("already in drill-down mode");
-                        }
-                      },
-                      backgroundColor: _fabColor,
-                      splashColor: Colors.amber[100],
-                      // child: AnimatedBuilder(
-                      //   animation: _drillingAnimationController,
-                      //   builder: (_, child) {
-                      //     return Transform.rotate(
-                      //       angle: _drilling
-                      //           ? _drillingAnimationController.value *
-                      //               2 *
-                      //               math.pi
-                      //           : 0.0,
-                      //       child: child,
-                      //     );
-                      //   },
-                      //   child: const Icon(MyFlutterApp.drill),
-                      // ),
+                    feedback: Container(
+                      width: 30,
+                      height: 30,
+                      // margin: EdgeInsets.all(0),
+                      // padding: EdgeInsets.only(right: 20),
+                      // decoration: BoxDecoration(
+                      //     borderRadius: BorderRadius.circular(0),
+                      //     border:
+                      //         Border.all(width: 2, color: Colors.blue[900]!)),
+                      // child: RotationTransition(
+                      //   turns: new AlwaysStoppedAnimation(-45 / 360),
+                      //   child: FittedBox(
+                      child: Transform(
+                        transform: Matrix4.translationValues(-15, 5, 0)
+                          ..rotateZ(-30 * 3.1415927 / 180),
+                        child: const ColorFiltered(
+                          colorFilter:
+                              ColorFilter.mode(Colors.black87, BlendMode.srcIn),
+                          child: Icon(
+                            Icons.navigation,
+                            size: 30,
+                          ),
+                        ),
+                      ),
                     ),
+
+                    // FloatingActionButton.extended(
+                    //   isExtended: true,
+                    //   label: Text("123"),
+                    //   onPressed: () {
+                    //     if (_searchMode == "Default") {
+                    //       print("drill ONCE");
+                    //       // drill logic
+                    //     } else {
+                    //       print("already in drill-down mode");
+                    //     }
+                    //   },
+                    //   backgroundColor: _fabColor,
+                    //   splashColor: Colors.amber[100],
+                    // child: AnimatedBuilder(
+                    //   animation: _drillingAnimationController,
+                    //   builder: (_, child) {
+                    //     return Transform.rotate(
+                    //       angle: _drilling
+                    //           ? _drillingAnimationController.value *
+                    //               2 *
+                    //               math.pi
+                    //           : 0.0,
+                    //       child: child,
+                    //     );
+                    //   },
+                    //   child: const Icon(MyFlutterApp.drill),
+                    // ),
+                    // ),
                     childWhenDragging: Container(),
                     onDragStarted: () {
                       setState(() {
@@ -1314,8 +1473,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                       //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
                       //     Drill.postMessage(centre.innerText);
                       //   """);
-                      await _getSearchQuery();
-                      // _hoverY >= 0 ? _performDrill() : print("cancel");
+
+                      // _hoverY >= 0 ? await _getSearchQuery() : print("cancel");
+                      _hoverY >= 0 ? _performDrill() : print("cancel");
                     },
                     child: FloatingActionButton.extended(
                       onPressed: () {
