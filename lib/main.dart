@@ -555,10 +555,11 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+/*
   void _loadNewPage() {
     _controller_test?.loadUrl(_currentURLs[_currentURLIndex]['link']);
   }
-
+*/
   _moveSwiper() async {
     setState(() {
       if (_isSearching) {

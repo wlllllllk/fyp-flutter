@@ -19,6 +19,10 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';
 
+// import 'package:permission_handler/permission_handler.dart';
+// import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 class CredentialsProvider {
   CredentialsProvider();
 
@@ -114,9 +118,36 @@ class _SearchPageState extends State<SearchPage> {
                             final XFile? image = await _picker.pickImage(
                                 source: ImageSource.camera);
                             print("image $image");
-                            _imageSearch(image, image!.path);
+                            EasyLoading.showToast('image $image');
+                            if (image != null) {
+                              EasyLoading.show(status: 'Searching...');
+                              Map results =
+                                  await _imageSearch(image, image.path);
+                              print("image $results");
+                              await widget
+                                  .updateSearchText(results["bestGuessLabel"]);
+                              var items = null;
+                              if (results['urls'].length == 0) {
+                                items = await widget.performSearch(
+                                    results["bestGuessLabel"], "Google");
+                                await widget.updateURLs("replace",
+                                    results['bestGuessLabel'], "Google", items);
+                              } else {
+                                await widget.updateURLs(
+                                    "replace",
+                                    results['bestGuessLabel'],
+                                    "Google",
+                                    results['urls']);
+                              }
+                              await widget.updateCurrentURLs();
+                              EasyLoading.dismiss();
+                              EasyLoading.showToast(
+                                  'results length ${results['urls'].length}');
+                              await widget.moveSwiper();
+                            }
                           } catch (e) {
                             print("error $e");
+                            EasyLoading.showToast('error $e');
                           }
                           print("picked");
                         },
@@ -131,9 +162,37 @@ class _SearchPageState extends State<SearchPage> {
                             final XFile? image = await _picker.pickImage(
                                 source: ImageSource.gallery);
                             print("image $image");
-                            _imageSearch(image, image!.path);
+                            EasyLoading.showToast('image $image');
+                            if (image != null) {
+                              EasyLoading.show(status: 'Searching...');
+                              Map results =
+                                  await _imageSearch(image, image.path);
+                              print("image $results");
+
+                              await widget
+                                  .updateSearchText(results["bestGuessLabel"]);
+                              var items = null;
+                              if (results['urls'].length == 0) {
+                                items = await widget.performSearch(
+                                    results["bestGuessLabel"], "Google");
+                                await widget.updateURLs("replace",
+                                    results['bestGuessLabel'], "Google", items);
+                              } else {
+                                await widget.updateURLs(
+                                    "replace",
+                                    results['bestGuessLabel'],
+                                    "Google",
+                                    results['urls']);
+                              }
+                              await widget.updateCurrentURLs();
+                              EasyLoading.dismiss();
+                              EasyLoading.showToast(
+                                  'results length ${results['urls'].length}');
+                              await widget.moveSwiper();
+                            }
                           } catch (e) {
                             print("error $e");
+                            EasyLoading.showToast('error $e');
                           }
                           print("picked");
                         },
@@ -196,7 +255,42 @@ _imageSearch(src, path) async {
     final bytes = io.File(path).readAsBytesSync();
     String img64 = base64Encode(bytes);
 
-    Future<vision.BatchAnnotateImagesResponse> search(String image) async {
+    Future<String?> TextDetection(String image) async {
+      var _vision = vision.VisionApi(await _client);
+      var _api = _vision.images;
+      var _response =
+          await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
+        "requests": [
+          {
+            "image": {"content": image},
+            "features": [
+              {
+                "type": "TEXT_DETECTION",
+              }
+            ]
+          }
+        ]
+      }));
+
+      List<vision.EntityAnnotation>? entities;
+
+      _response.responses?.forEach((data) {
+        entities = data.textAnnotations as List<vision.EntityAnnotation>?;
+      });
+      if (entities == null) {
+        print("No words is detected");
+        exit(1);
+      }
+      int len = entities!.length;
+      print("Output text: ");
+      for (int j = 0; j < len; j++) {
+        print(entities![j].description);
+      }
+      return entities![1].description;
+    }
+
+    // Future<vision.BatchAnnotateImagesResponse> search(String image) async {
+    Future<Map> webSearch(String image) async {
       var _vision = vision.VisionApi(await _client);
       var _api = _vision.images;
       var _response =
@@ -260,7 +354,8 @@ _imageSearch(src, path) async {
           print("null3");
         }
 
-        bestguess = _label!.single;
+        print("_label 4 | ${_label as List<vision.WebLabel>}");
+        bestguess = _label?.single ?? '';
         //entity = entities!;
       });
 
@@ -272,14 +367,21 @@ _imageSearch(src, path) async {
       //for (i; i < 10; i++) {
       // print(entities![i].description);
       //  print("Full match url = " + full_match_image![i].url.toString());
-      print("Partial match url = " + partial_match_image![i].url.toString());
-      print("page with similar iamge = " +
-          page_with_similar_image![i].url.toString());
-      for (j = 0; j < page_with_match_image!.length; j++) {
-        print("page with match image title=" +
-            page_with_match_image![j].pageTitle.toString());
-        print("page with match image =" +
-            page_with_match_image![j].url.toString());
+      // print("Partial match url = " + partial_match_image![i].url.toString());
+      // print("page with similar iamge = " +
+      //     page_with_similar_image![i].url.toString());
+      Map results = {"bestGuessLabel": bestGuessLabel};
+      List urls = [];
+      int len = page_with_similar_image?.length ?? 0;
+      for (j = 0; j < len; j++) {
+        // print("page with match image title=" +
+        //     page_with_match_image![j].pageTitle.toString());
+        // print("page with match image =" +
+        //     page_with_match_image![j].url.toString());
+        urls.add({
+          'title': page_with_match_image![j].pageTitle.toString(),
+          'link': page_with_match_image![j].url.toString()
+        });
       }
 
       results.addAll({'urls': urls});
@@ -288,7 +390,11 @@ _imageSearch(src, path) async {
       return results;
     }
 
-    var response = search(img64);
+    var webResults = webSearch(img64);
+    TextDetection(img64);
+
+    // print("results = ${await Future.value(results)}");
+    return await Future.value(webResults);
   } finally {
     await jsonCredential.delete();
     fileExists = jsonCredential.existsSync();
