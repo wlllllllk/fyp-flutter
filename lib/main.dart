@@ -41,6 +41,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';*/
 
+import 'components/custom_text_selection_file.dart';
 part 'main.g.dart';
 
 void main() async {
@@ -62,7 +63,8 @@ List<String> SearchAlgorithmList = [
   "Webpage Content",
   "Title With Webpage Content",
   "Hovered Webpage Content",
-  "New Mode"
+  "New Mode",
+  "TEST HIGHLIGHT"
 ];
 
 List<String> SearchPlatformList = [
@@ -77,7 +79,8 @@ List<String> SearchPlatformList = [
 enum Theme { Light, Dark, Auto }
 
 // const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
@@ -188,10 +191,12 @@ class _WebViewContainerState extends State<WebViewContainer>
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
   String _previousURL = "";
-  final stopwatch = Stopwatch();
+  final activityStopwatch = Stopwatch();
   final _redirectStopwatch = Stopwatch();
   int _selectedPageIndex = 0;
+  Color _defaultAppBarColor = Colors.white;
   Color _appBarColor = Colors.blue[100]!;
+  Color _themedAppBarColor = Colors.blue[100]!;
   Color _fabColor = Colors.blue[100]!;
   String _searchMode = "Default";
   bool _swipe = false;
@@ -276,6 +281,14 @@ class _WebViewContainerState extends State<WebViewContainer>
   _getSearchQuery() async {
     String query = "";
     switch (_searchAlgorithm) {
+      case "TEST HIGHLIGHT":
+        await _currentWebViewController!.runJavascript("""
+                        var element = document.elementFromPoint($_hoverX, $_hoverY);
+                        element.style.border = "2px solid red";
+                        Drill.postMessage(element.innerText);
+                      """);
+        print("TEST HIGHLIGHT: $_webpageContent");
+        break;
       case "Title":
         query = (await _currentWebViewController!.getTitle())!;
         break;
@@ -443,6 +456,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         var items = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
+        // print("items: ${items}");
 
         return items;
       } else {
@@ -553,6 +567,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
       }
     });
+
+    print("_currentURLs ${_currentURLs}");
   }
 
 /*
@@ -597,13 +613,15 @@ class _WebViewContainerState extends State<WebViewContainer>
       // }
 
       // if (!switchMode && _searchMode != "Drill-down") {
+
+      _pageKey = GlobalKey();
     });
   }
 
   void _handleSearch(value) async {
     setState(() {
       _searchMode = "Default";
-      _appBarColor = Colors.blue[100]!;
+      _appBarColor = _defaultAppBarColor;
       _fabColor = Colors.blue[100]!;
     });
 
@@ -816,7 +834,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
-        _appBarColor = Colors.blue[100]!;
+        _appBarColor = _defaultAppBarColor;
         _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
@@ -834,16 +852,18 @@ class _WebViewContainerState extends State<WebViewContainer>
       await _updateURLs('append', _searchText, _currentSearchPlatform, items);
       await _updateCurrentURLs();
       setState(() {
-        _currentURLIndex++;
+        // _currentURLIndex++;
         _swipe = true;
       });
       // _loadNewPage();
     }
 
     setState(() {
+      // _pageKey = GlobalKey();
+
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
-        _appBarColor = Colors.blue[100]!;
+        _appBarColor = _defaultAppBarColor;
         _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
@@ -923,10 +943,17 @@ class _WebViewContainerState extends State<WebViewContainer>
                 // print("urlRecord: ${urlRecord}");
                 // print("_previousURL: ${_previousURL}");
         
+<<<<<<< HEAD
                 if (stopwatch.isRunning && _previousURL != "") {
                   stopwatch.stop();
                   // print(
                   //     "stopwatch stopped: ${stopwatch.elapsed}");
+=======
+                if (activityStopwatch.isRunning && _previousURL != "") {
+                  activityStopwatch.stop();
+                  // print(
+                  //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
+>>>>>>> 721ff2e606c1d5e048a6465cb8da743ba2f07338
         
                   // final Duration dur = parseDuration(
                   //     '2w 5d 23h 59m 59s 999ms 999us');
@@ -936,7 +963,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                     await isar.writeTxn(() async {
                       final uRL = await isar.uRLs.get(urlRecord[0].id);
         
+<<<<<<< HEAD
                       uRL!.duration = stopwatch.elapsed.toString();
+=======
+                      uRL!.duration = activityStopwatch.elapsed.toString();
+>>>>>>> 721ff2e606c1d5e048a6465cb8da743ba2f07338
         
                       await isar.uRLs.put(uRL);
                     });
@@ -946,13 +977,21 @@ class _WebViewContainerState extends State<WebViewContainer>
                     final newURL = URL()
                       ..url = _previousURL
                       ..title = await _controller[index].getTitle()
+<<<<<<< HEAD
                       ..duration = stopwatch.elapsed.toString();
+=======
+                      ..duration = activityStopwatch.elapsed.toString();
+>>>>>>> 721ff2e606c1d5e048a6465cb8da743ba2f07338
                     await isar.writeTxn(() async {
                       await isar.uRLs.put(newURL);
                     });
                   }
         
+<<<<<<< HEAD
                   stopwatch.reset();
+=======
+                  activityStopwatch.reset();
+>>>>>>> 721ff2e606c1d5e048a6465cb8da743ba2f07338
                 }
         */
             if (bingo) {
@@ -1035,9 +1074,15 @@ class _WebViewContainerState extends State<WebViewContainer>
         
                 setState(() {
                   _previousURL = url;
+<<<<<<< HEAD
                   if (!stopwatch.isRunning) {
                     print("start stopwatch");
                     stopwatch.start();
+=======
+                  if (!activityStopwatch.isRunning) {
+                    print("start activityStopwatch");
+                    activityStopwatch.start();
+>>>>>>> 721ff2e606c1d5e048a6465cb8da743ba2f07338
                   }
                   _loadingPercentage = 100;
                 });
@@ -1073,7 +1118,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(
-                  color: _appBarColor,
+                  color: _themedAppBarColor,
                 ),
                 child: const Text('Menu'),
               ),
@@ -1237,28 +1282,145 @@ class _WebViewContainerState extends State<WebViewContainer>
                     //   """);
                     _hoverY >= 0 ? _performDrill() : print("cancel");
                   },
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      // if (_searchMode == "Default") {
-                      //   print("drill ONCE");
-                      //   // drill logic
-                      // } else {
-                      //   print("already in drill-down mode");
-                      // }
+                  child: Draggable(
+                    feedback: Container(
+                      width: 30,
+                      height: 30,
+                      // margin: EdgeInsets.all(0),
+                      // padding: EdgeInsets.only(right: 20),
+                      // decoration: BoxDecoration(
+                      //     borderRadius: BorderRadius.circular(0),
+                      //     border:
+                      //         Border.all(width: 2, color: Colors.blue[900]!)),
+                      // child: RotationTransition(
+                      //   turns: new AlwaysStoppedAnimation(-45 / 360),
+                      //   child: FittedBox(
+                      child: Transform(
+                        transform: Matrix4.translationValues(-15, 5, 0)
+                          ..rotateZ(-30 * 3.1415927 / 180),
+                        child: const ColorFiltered(
+                          colorFilter:
+                              ColorFilter.mode(Colors.black87, BlendMode.srcIn),
+                          child: Icon(
+                            Icons.navigation,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // FloatingActionButton.extended(
+                    //   isExtended: true,
+                    //   label: Text("123"),
+                    //   onPressed: () {
+                    //     if (_searchMode == "Default") {
+                    //       print("drill ONCE");
+                    //       // drill logic
+                    //     } else {
+                    //       print("already in drill-down mode");
+                    //     }
+                    //   },
+                    //   backgroundColor: _fabColor,
+                    //   splashColor: Colors.amber[100],
+                    // child: AnimatedBuilder(
+                    //   animation: _drillingAnimationController,
+                    //   builder: (_, child) {
+                    //     return Transform.rotate(
+                    //       angle: _drilling
+                    //           ? _drillingAnimationController.value *
+                    //               2 *
+                    //               math.pi
+                    //           : 0.0,
+                    //       child: child,
+                    //     );
+                    //   },
+                    //   child: const Icon(MyFlutterApp.drill),
+                    // ),
+                    // ),
+                    childWhenDragging: Container(),
+                    onDragStarted: () {
+                      setState(() {
+                        _appBarColor = Colors.red[400]!;
+                      });
                     },
-                    backgroundColor: _fabColor,
-                    splashColor: Colors.amber[100],
-                    child: AnimatedBuilder(
-                      animation: _drillingAnimationController,
-                      builder: (_, child) {
-                        return Transform.rotate(
-                          angle: _drilling
-                              ? _drillingAnimationController.value * 2 * math.pi
-                              : 0.0,
-                          child: child,
-                        );
+                    onDragEnd: (details) async {
+                      setState(() {
+                        _appBarColor = _defaultAppBarColor;
+                      });
+
+                      RenderBox webViewBox = _pageKey.currentContext
+                          ?.findRenderObject() as RenderBox;
+                      Offset webViewPosition =
+                          webViewBox.localToGlobal(Offset.zero);
+                      double webViewX = webViewPosition.dx;
+                      double webViewY = webViewPosition.dy;
+                      double webViewWidth = webViewBox.size.width;
+                      double webViewHeight = webViewBox.size.height;
+
+                      // print(
+                      //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
+                      // print(details.offset);
+
+                      setState(() {
+                        if (details.offset.dx < webViewX) {
+                          _hoverX = webViewX;
+                        } else if (details.offset.dx > webViewWidth) {
+                          _hoverX = webViewX + webViewWidth;
+                        } else {
+                          _hoverX = details.offset.dx;
+                        }
+
+                        if (details.offset.dy - webViewY < 0) {
+                          // _hoverY = 0;
+                          _hoverY = -1;
+                          // print("1");
+                        } else if (details.offset.dy - webViewY >
+                            webViewHeight) {
+                          // _hoverY = webViewHeight - 1;
+                          _hoverY = -1;
+                          // print("2");
+                        } else {
+                          _hoverY = details.offset.dy - webViewY;
+                          // _hoverY = -1;
+
+                          // print("3");
+                        }
+                      });
+
+                      // print("hoverX: $_hoverX, hoverY: $_hoverY");
+
+                      // await _controller_test!.runJavascript("""
+                      //     var x = window.innerWidth/2;
+                      //     var y = window.innerHeight/2;
+                      //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
+                      //     Drill.postMessage(centre.innerText);
+                      //   """);
+
+                      // _hoverY >= 0 ? await _getSearchQuery() : print("cancel");
+                      _hoverY >= 0 ? _performDrill() : print("cancel");
+                    },
+                    child: FloatingActionButton.extended(
+                      onPressed: () {
+                        _changeSearchPlatform();
                       },
-                      child: const Icon(MyFlutterApp.drill),
+                      label: Text(_currentSearchPlatform),
+                      backgroundColor: _fabColor,
+                      splashColor: Colors.amber[100],
+                      icon: const Icon(MyFlutterApp.drill),
+                      // child: AnimatedBuilder(
+                      //   animation: _drillingAnimationController,
+                      //   builder: (_, child) {
+                      //     return Transform.rotate(
+                      //       angle: _drilling
+                      //           ? _drillingAnimationController.value *
+                      //               2 *
+                      //               math.pi
+                      //           : 0.0,
+                      //       child: child,
+                      //     );
+                      //   },
+                      //   child: const Icon(MyFlutterApp.drill),
+                      // ),
                     ),
                   ),
                 ),
@@ -1481,32 +1643,40 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               Icons.arrow_forward_ios,
                                               size: 20),
                                         ),
-                                        DropdownButton<String>(
-                                          value: _currentSearchPlatform,
-                                          icon: const Icon(Icons.arrow_drop_up),
-                                          elevation: 16,
-                                          // style: const TextStyle(color: Colors.deepPurple),
-                                          underline: Container(
-                                            height: 2,
-                                            // color: _appBarColor,
-                                          ),
-                                          onChanged: (String? value) async {
-                                            print("value $value");
+                                        // DropdownButton<String>(
+                                        //   value: _currentSearchPlatform,
+                                        //   icon: const Icon(Icons.arrow_drop_up),
+                                        //   elevation: 16,
+                                        //   // style: const TextStyle(color: Colors.deepPurple),
+                                        //   underline: Container(
+                                        //     height: 2,
+                                        //     // color: _appBarColor,
+                                        //   ),
+                                        //   onChanged: (String? value) async {
+                                        //     print("value $value");
 
-                                            setState(() {
-                                              _currentSearchPlatform = value!;
-                                            });
+                                        //     setState(() {
+                                        //       _currentSearchPlatform = value!;
+                                        //     });
 
-                                            _handleSearch(_realSearchText);
+                                        //     _handleSearch(_realSearchText);
+                                        //   },
+                                        //   items: SearchPlatformList.map<
+                                        //           DropdownMenuItem<String>>(
+                                        //       (String value) {
+                                        //     return DropdownMenuItem<String>(
+                                        //       value: value,
+                                        //       child: Text(value),
+                                        //     );
+                                        //   }).toList(),
+                                        // ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            await _currentWebViewController!
+                                                .goBack();
                                           },
-                                          items: SearchPlatformList.map<
-                                                  DropdownMenuItem<String>>(
-                                              (String value) {
-                                            return DropdownMenuItem<String>(
-                                              value: value,
-                                              child: Text(value),
-                                            );
-                                          }).toList(),
+                                          icon:
+                                              const Icon(Icons.undo, size: 30),
                                         ),
                                         TextButton(
                                           onPressed: () {

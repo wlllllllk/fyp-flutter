@@ -219,6 +219,7 @@ class _SearchPageState extends State<SearchPage> {
         ),
       ),
       body: Container(
+        color: Colors.white,
         child: const Align(
           alignment: Alignment.center,
           child: Text(
