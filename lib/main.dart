@@ -6,9 +6,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:fyp_seal/pages/history.dart';
-import 'package:fyp_seal/pages/search.dart';
-import 'package:fyp_seal/pages/settings.dart';
+import 'package:fyp_searchub/pages/history.dart';
+import 'package:fyp_searchub/pages/search.dart';
+import 'package:fyp_searchub/pages/settings.dart';
 
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
@@ -26,6 +26,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -45,6 +46,8 @@ import 'components/custom_text_selection_file.dart';
 part 'main.g.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     MaterialApp(
       theme: ThemeData(
@@ -89,6 +92,10 @@ const SEARCH_ENGINE_ID_INSTAGRAM = "a74dea74df886441a";
 const SEARCH_ENGINE_ID_LINKEDIN = "c1f02371fcab94ca7";
 
 int page = 1;
+
+// /// A builder that includes an Offset to draw the context menu at.
+// typedef ContextMenuBuilder = Widget Function(
+//     BuildContext context, Offset offset);
 
 class WebViewContainer extends StatefulWidget {
   const WebViewContainer({super.key});
@@ -209,7 +216,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   double _hoverX = 0.0, _hoverY = 0.0;
   int _prevPos = 0;
   var _currentWebViewKey = null;
-  var _currentWebViewController = null;
+  InAppWebViewController? _currentWebViewController;
   Map _webViewControllers = {};
   int _focusedIndex = 0;
   double _scrollX = 0.0, _scrollY = 0.0;
@@ -285,10 +292,11 @@ class _WebViewContainerState extends State<WebViewContainer>
     String query = "";
     switch (_searchAlgorithm) {
       case "TEST HIGHLIGHT":
-        await _currentWebViewController!.runJavascript("""
+        await _currentWebViewController!.evaluateJavascript(source: """
                         var element = document.elementFromPoint($_hoverX, $_hoverY);
                         element.style.border = "2px solid red";
-                        Drill.postMessage(element.innerText);
+                        // Drill.postMessage(element.innerText);
+                        window.flutter_inappwebview.callHandler('getDrillText', element.innerText);
                       """);
         print("TEST HIGHLIGHT: $_webpageContent");
         break;
@@ -296,11 +304,12 @@ class _WebViewContainerState extends State<WebViewContainer>
         query = (await _currentWebViewController!.getTitle())!;
         break;
       case "Webpage Content":
-        await _currentWebViewController!.runJavascript("""
+        await _currentWebViewController!.evaluateJavascript(source: """
                         var x = window.innerWidth/2;
                         var y = window.innerHeight/2;
                         var centre = document.elementFromPoint(x, y);
-                        Drill.postMessage(centre.innerText);
+                        // Drill.postMessage(centre.innerText);
+                        window.flutter_inappwebview.callHandler('getDrillText', centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
           query = (await _currentWebViewController!.getTitle())!;
@@ -309,11 +318,12 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case "Title With Webpage Content":
-        await _currentWebViewController!.runJavascript("""
+        await _currentWebViewController!.evaluateJavascript(source: """
                         var x = window.innerWidth/2;
                         var y = window.innerHeight/2;
                         var centre = document.elementFromPoint(x, y);
-                        Drill.postMessage(centre.innerText);
+                        // Drill.postMessage(centre.innerText);
+                        window.flutter_inappwebview.callHandler('getDrillText', centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
           query = (await _currentWebViewController!.getTitle())!;
@@ -323,9 +333,10 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case "Hovered Webpage Content":
-        await _currentWebViewController!.runJavascript("""
+        await _currentWebViewController!.evaluateJavascript(source: """
                         var centre = document.elementFromPoint($_hoverX, $_hoverY);
-                        Drill.postMessage(centre.innerText);
+                        // Drill.postMessage(centre.innerText);
+                        window.flutter_inappwebview.callHandler('getDrillText', centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
           query = (await _currentWebViewController!.getTitle())!;
@@ -334,12 +345,13 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case "New Mode":
-        await _currentWebViewController!.runJavascript("""
+        await _currentWebViewController!.evaluateJavascript(source: """
                 var elementMouseIsOver = document.elementFromPoint($_hoverX, $_hoverY);
                 var content = elementMouseIsOver.innerText;
 
                 if (elementMouseIsOver.nodeName == "A"){
-                    Drill.postMessage(elementMouseIsOver.href);
+                    // Drill.postMessage(elementMouseIsOver.href);
+                    window.flutter_inappwebview.callHandler('getDrillText', elementMouseIsOver.href);
                 }
 
                 else if (content == "" || content == "null") {
@@ -347,9 +359,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                     if (elementMouseIsOver.nodeName == "IMG") {
 
                         if (elementMouseIsOver.alt == "" || elementMouseIsOver.alt == "null") {
-                            Drill.postMessage(elementMouseIsOver.src);
+                            // Drill.postMessage(elementMouseIsOver.src);
+                            window.flutter_inappwebview.callHandler('getDrillText', elementMouseIsOver.src);
                         } else {
-                            Drill.postMessage(elementMouseIsOver.alt);
+                            // Drill.postMessage(elementMouseIsOver.alt);
+                            window.flutter_inappwebview.callHandler('getDrillText', elementMouseIsOver.alt);
                         }
 
                     } else {
@@ -357,12 +371,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                         let bgImage = cssObj.getPropertyValue("background-image");
                         const picUrl = bgImage.slice(5,-2);
 
-                        Drill.postMessage(picUrl);
-
+                        // Drill.postMessage(picUrl);
+                        window.flutter_inappwebview.callHandler('getDrillText', picUrl);
                     }
 
                 } else {
-                    Drill.postMessage(content);
+                    // Drill.postMessage(content);
+                    window.flutter_inappwebview.callHandler('getDrillText', content);
                 }
                       """);
 
@@ -809,31 +824,31 @@ class _WebViewContainerState extends State<WebViewContainer>
     return Future.value(false);
   }
 
-  JavascriptChannel _toasterJavascriptChannel(BuildContext context) {
-    return JavascriptChannel(
-      name: 'Print',
-      onMessageReceived: (JavascriptMessage message) {
-        print("Print ${message.message}");
-        // setState(() {
-        //   _webpageContent = message.message;
-        // });
-      },
-    );
-  }
+  // JavascriptChannel _toasterJavascriptChannel(BuildContext context) {
+  //   return JavascriptChannel(
+  //     name: 'Print',
+  //     onMessageReceived: (JavascriptMessage message) {
+  //       print("Print ${message.message}");
+  //       // setState(() {
+  //       //   _webpageContent = message.message;
+  //       // });
+  //     },
+  //   );
+  // }
 
-  JavascriptChannel _getDrillTextChannel(BuildContext context) {
-    return JavascriptChannel(
-      name: 'Drill',
-      onMessageReceived: (JavascriptMessage message) {
-        print("DrillText ${message.message}");
-        setState(() {
-          _webpageContent = message.message;
-        });
-      },
-    );
-  }
+  // JavascriptChannel _getDrillTextChannel(BuildContext context) {
+  //   return JavascriptChannel(
+  //     name: 'Drill',
+  //     onMessageReceived: (JavascriptMessage message) {
+  //       print("DrillText ${message.message}");
+  //       setState(() {
+  //         _webpageContent = message.message;
+  //       });
+  //     },
+  //   );
+  // }
 
-  _performDrill() async {
+  _performDrill([selectedText = null]) async {
     print("drilling...");
     setState(() {
       if (_fabColor == Colors.amber[300]!) {
@@ -848,10 +863,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
 
     if (_searchMode == "Drill-down") {
-      print("real drilling | ${await _getSearchQuery()}");
-
-      var items =
-          await _performSearch(await _getSearchQuery(), _currentSearchPlatform);
+      // print("real drilling | ${await _getSearchQuery()}");
+      var items = await _performSearch(
+          selectedText ?? await _getSearchQuery(), _currentSearchPlatform);
 
       await _updateURLs('append', _searchText, _currentSearchPlatform, items);
       await _updateCurrentURLs();
@@ -862,7 +876,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       // await _preloadPageController
 
-      print("current 1 ${await _currentWebViewController?.currentUrl()}");
+      print("current 1 ${await _currentWebViewController?.getUrl()}");
 
       // await _currentWebViewController.loadUrl(
       //     url: _currentURLs[_currentURLIndex]);
@@ -874,9 +888,10 @@ class _WebViewContainerState extends State<WebViewContainer>
           .whenComplete(() => null);
 
       print(
-          "current 2 ${await _currentWebViewController?.currentUrl()} | ${await _currentWebViewController?.getTitle()}");
-      await _currentWebViewController
-          ?.loadUrl(_currentURLs[_currentURLIndex]['link']);
+          "current 2 ${await _currentWebViewController?.getUrl()} | ${await _currentWebViewController?.getTitle()}");
+      await _currentWebViewController?.loadUrl(
+          urlRequest:
+              URLRequest(url: WebUri(_currentURLs[_currentURLIndex]['link'])));
 
       // await _currentWebViewController?.loadUrl('https://flutter.dev');
 
@@ -1051,92 +1066,23 @@ class _WebViewContainerState extends State<WebViewContainer>
       return SizedBox(
         width: MediaQuery.of(context).size.width,
         // child: Text("test${index}"),
-        child: WebView(
-          gestureRecognizers: Set()
-            ..add(Factory<VerticalDragGestureRecognizer>(
-              () => VerticalDragGestureRecognizer(),
-            ))
-            ..add(Factory<HorizontalDragGestureRecognizer>(
-              () => HorizontalDragGestureRecognizer(),
-            ))
-            ..add(
-              (Factory<LongPressGestureRecognizer>(
-                () => LongPressGestureRecognizer(),
-              )),
-            ),
-          // ),
-          javascriptMode: JavascriptMode.unrestricted,
-          javascriptChannels: <JavascriptChannel>{
-            _toasterJavascriptChannel(context),
-            _getDrillTextChannel(context),
-          },
-          initialUrl: data['link'],
-          onWebViewCreated: (webViewController) async {
-            // for initial load only
+        child: InAppWebView(
+          initialUrlRequest: URLRequest(url: WebUri(data['link'])),
+          onWebViewCreated: (controller) {
+            controller.addJavaScriptHandler(
+                handlerName: 'getDrillText',
+                callback: (args) {
+                  print("DrillText ${args[0]}");
+                  setState(() {
+                    _webpageContent = args[0];
+                  });
+                });
             if (bingo) {
-              // setState(() {
-              _currentWebViewController = webViewController;
-              // });
-
-              print(
-                  "bingo ${await webViewController.currentUrl()} | ${data['link']}");
+              _currentWebViewController = controller;
             }
-            print(
-                "not bingo ${await webViewController.currentUrl()} | ${data['link']}");
-            _webViewControllers.addAll({position: webViewController});
-            print("webview controllers ${_webViewControllers}");
+            _webViewControllers.addAll({position: controller});
           },
-          onPageStarted: (url) async {
-            print("1 onPageStarted");
-
-            /*
-                if (!_redirectStopwatch.isRunning) {
-                  _redirectStopwatch.start();
-                  print("1 onPageStarted");
-                }
-        
-                final isar = Isar.getInstance("url") ??
-                    await Isar.open([URLSchema], name: "url");
-        
-                // check if the record exist
-                final urlRecord =
-                    await isar.uRLs.filter().urlEqualTo(_previousURL).findAll();
-        
-                // print("urlRecord: ${urlRecord}");
-                // print("_previousURL: ${_previousURL}");
-        
-                if (activityStopwatch.isRunning && _previousURL != "") {
-                  activityStopwatch.stop();
-                  // print(
-                  //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
-        
-                  // final Duration dur = parseDuration(
-                  //     '2w 5d 23h 59m 59s 999ms 999us');
-                  // print("dur $dur");
-        
-                  if (urlRecord.isNotEmpty) {
-                    await isar.writeTxn(() async {
-                      final uRL = await isar.uRLs.get(urlRecord[0].id);
-        
-                      uRL!.duration = activityStopwatch.elapsed.toString();
-        
-                      await isar.uRLs.put(uRL);
-                    });
-                  }
-                  // new record
-                  else {
-                    final newURL = URL()
-                      ..url = _previousURL
-                      ..title = await _controller[index].getTitle()
-                      ..duration = activityStopwatch.elapsed.toString();
-                    await isar.writeTxn(() async {
-                      await isar.uRLs.put(newURL);
-                    });
-                  }
-        
-                  activityStopwatch.reset();
-                }
-        */
+          onLoadStart: (controller, url) {
             if (bingo) {
               setState(() {
                 _loadingPercentage = 0;
@@ -1144,94 +1090,10 @@ class _WebViewContainerState extends State<WebViewContainer>
               });
             }
           },
-          onProgress: (progress) {
+          onLoadStop: (controller, url) async {
             if (bingo) {
-              setState(() {
-                _loadingPercentage = progress;
-              });
-            }
-          },
-          onPageFinished: (url) async {
-            print("3 onPageFinished");
-
-            /*
-        
-                _controller[index]
-                    .runJavascript("""window.addEventListener('click', (e) => {
-                                            var x = e.clientX, y = e.clientY;
-                                            var elementMouseIsOver = document.elementFromPoint(x, y);
-                                            var content = elementMouseIsOver.innerText;
-                                            if (content == undefined || content == null)
-                                              Print.postMessage("");
-                                            else
-                                              Print.postMessage(content);
-                                        });
-                                      """);
-        
-                final isar = Isar.getInstance("url") ??
-                    await Isar.open([URLSchema], name: "url");
-        
-                print("isar: $isar");
-        
-                final urlRecord =
-                    await isar.uRLs.filter().urlEqualTo(url).findAll();
-        
-                if (urlRecord.isNotEmpty) {
-                  await isar.writeTxn(() async {
-                    final uRL = await isar.uRLs.get(urlRecord[0].id);
-        
-                    uRL?.viewCount++;
-                    uRL?.lastViewed = DateTime.now();
-                    uRL?.title = await _controller[index].getTitle();
-        
-                    await isar.uRLs.put(uRL!);
-                  });
-                }
-                // new record
-                else {
-                  final newURL = URL()
-                    ..url = url
-                    ..title = await _controller[index].getTitle();
-                  await isar.writeTxn(() async {
-                    await isar.uRLs.put(newURL);
-                  });
-                }
-        
-                if (_redirectStopwatch.elapsedMilliseconds < 100) {
-                  print("1 redirect");
-        
-                  setState(() {
-                    _redirecting = true;
-                  });
-                } else {
-                  print("2 redirect");
-        
-                  _redirectStopwatch.stop();
-                  _redirectStopwatch.reset();
-                  setState(() {
-                    _redirecting = false;
-                  });
-                }
-        
-                print("swiping $_swipe");
-        
-                setState(() {
-                  _previousURL = url;
-                  if (!activityStopwatch.isRunning) {
-                    print("start activityStopwatch");
-                    activityStopwatch.start();
-                  }
-                  _loadingPercentage = 100;
-                });
-        
-                setState(() {
-                  _swipe = false;
-                });
-                */
-
-            if (bingo) {
-              String title = await _currentWebViewController.getTitle();
-              print("title: $title | data['title']: ${data['title']}");
+              // String title = await _currentWebViewController.getTitle();
+              // print("title: $title | data['title']: ${data['title']}");
               setState(() {
                 _loadingPercentage = 100;
                 _currentWebViewTitle = data["title"];
@@ -1239,7 +1101,247 @@ class _WebViewContainerState extends State<WebViewContainer>
               });
             }
           },
+          onReceivedError: (controller, request, error) {},
+          onProgressChanged: (controller, progress) {
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = progress;
+              });
+            }
+          },
+          onZoomScaleChanged: (controller, x, y) {
+            print("zoomScale: $x, $y");
+          },
+          contextMenu: ContextMenu(
+            settings: ContextMenuSettings(
+              hideDefaultSystemContextMenuItems: true,
+            ),
+            menuItems: [
+              ContextMenuItem(
+                  id: "1",
+                  title: "Drill",
+                  action: () async {
+                    String selectedText =
+                        await _currentWebViewController?.getSelectedText() ??
+                            "";
+                    print("selectedText: $selectedText");
+
+                    final snackBar = SnackBar(
+                      content: Text("Drilling ${selectedText}"),
+                      duration: const Duration(seconds: 3),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+                    _performDrill(selectedText);
+                  })
+            ],
+            // onCreateContextMenu: (hitTestResult) async {
+            //   String selectedText =
+            //       await _currentWebViewController?.getSelectedText() ?? "";
+            //   print("selectedText: $selectedText");
+            //   final snackBar = SnackBar(
+            //     content: Text(
+            //         "Selected text: '$selectedText', of type: ${hitTestResult.type.toString()}"),
+            //     duration: Duration(seconds: 1),
+            //   );
+            //   ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            // },
+            // onContextMenuActionItemClicked: (menuItem) async {
+            //   String selectedText =
+            //       await _currentWebViewController?.getSelectedText() ?? "";
+            //   print("selectedText: $selectedText");
+            // },
+          ),
         ),
+        //     WebView(
+        //   gestureRecognizers: Set()
+        //     ..add(Factory<VerticalDragGestureRecognizer>(
+        //       () => VerticalDragGestureRecognizer(),
+        //     ))
+        //     ..add(Factory<HorizontalDragGestureRecognizer>(
+        //       () => HorizontalDragGestureRecognizer(),
+        //     ))
+        //     ..add(
+        //       (Factory<LongPressGestureRecognizer>(
+        //         () => LongPressGestureRecognizer(),
+        //       )),
+        //     ),
+        //   // ),
+        //   javascriptMode: JavascriptMode.unrestricted,
+        //   javascriptChannels: <JavascriptChannel>{
+        //     _toasterJavascriptChannel(context),
+        //     _getDrillTextChannel(context),
+        //   },
+        //   initialUrl: data['link'],
+        //   onWebViewCreated: (webViewController) async {
+        //     // for initial load only
+        //     if (bingo) {
+        //       // setState(() {
+        //       _currentWebViewController = webViewController;
+        //       // });
+
+        //       print(
+        //           "bingo ${await webViewController.currentUrl()} | ${data['link']}");
+        //     }
+        //     print(
+        //         "not bingo ${await webViewController.currentUrl()} | ${data['link']}");
+        //     _webViewControllers.addAll({position: webViewController});
+        //     print("webview controllers ${_webViewControllers}");
+        //   },
+        //   onPageStarted: (url) async {
+        //     print("1 onPageStarted");
+
+        //     /*
+        //         if (!_redirectStopwatch.isRunning) {
+        //           _redirectStopwatch.start();
+        //           print("1 onPageStarted");
+        //         }
+
+        //         final isar = Isar.getInstance("url") ??
+        //             await Isar.open([URLSchema], name: "url");
+
+        //         // check if the record exist
+        //         final urlRecord =
+        //             await isar.uRLs.filter().urlEqualTo(_previousURL).findAll();
+
+        //         // print("urlRecord: ${urlRecord}");
+        //         // print("_previousURL: ${_previousURL}");
+
+        //         if (activityStopwatch.isRunning && _previousURL != "") {
+        //           activityStopwatch.stop();
+        //           // print(
+        //           //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
+
+        //           // final Duration dur = parseDuration(
+        //           //     '2w 5d 23h 59m 59s 999ms 999us');
+        //           // print("dur $dur");
+
+        //           if (urlRecord.isNotEmpty) {
+        //             await isar.writeTxn(() async {
+        //               final uRL = await isar.uRLs.get(urlRecord[0].id);
+
+        //               uRL!.duration = activityStopwatch.elapsed.toString();
+
+        //               await isar.uRLs.put(uRL);
+        //             });
+        //           }
+        //           // new record
+        //           else {
+        //             final newURL = URL()
+        //               ..url = _previousURL
+        //               ..title = await _controller[index].getTitle()
+        //               ..duration = activityStopwatch.elapsed.toString();
+        //             await isar.writeTxn(() async {
+        //               await isar.uRLs.put(newURL);
+        //             });
+        //           }
+
+        //           activityStopwatch.reset();
+        //         }
+        // */
+        //     if (bingo) {
+        //       setState(() {
+        //         _loadingPercentage = 0;
+        //         _currentWebViewTitle = "Loading...";
+        //       });
+        //     }
+        //   },
+        //   onProgress: (progress) {
+        //     if (bingo) {
+        //       setState(() {
+        //         _loadingPercentage = progress;
+        //       });
+        //     }
+        //   },
+        //   onPageFinished: (url) async {
+        //     print("3 onPageFinished");
+
+        //     /*
+
+        //         _controller[index]
+        //             .runJavascript("""window.addEventListener('click', (e) => {
+        //                                     var x = e.clientX, y = e.clientY;
+        //                                     var elementMouseIsOver = document.elementFromPoint(x, y);
+        //                                     var content = elementMouseIsOver.innerText;
+        //                                     if (content == undefined || content == null)
+        //                                       Print.postMessage("");
+        //                                     else
+        //                                       Print.postMessage(content);
+        //                                 });
+        //                               """);
+
+        //         final isar = Isar.getInstance("url") ??
+        //             await Isar.open([URLSchema], name: "url");
+
+        //         print("isar: $isar");
+
+        //         final urlRecord =
+        //             await isar.uRLs.filter().urlEqualTo(url).findAll();
+
+        //         if (urlRecord.isNotEmpty) {
+        //           await isar.writeTxn(() async {
+        //             final uRL = await isar.uRLs.get(urlRecord[0].id);
+
+        //             uRL?.viewCount++;
+        //             uRL?.lastViewed = DateTime.now();
+        //             uRL?.title = await _controller[index].getTitle();
+
+        //             await isar.uRLs.put(uRL!);
+        //           });
+        //         }
+        //         // new record
+        //         else {
+        //           final newURL = URL()
+        //             ..url = url
+        //             ..title = await _controller[index].getTitle();
+        //           await isar.writeTxn(() async {
+        //             await isar.uRLs.put(newURL);
+        //           });
+        //         }
+
+        //         if (_redirectStopwatch.elapsedMilliseconds < 100) {
+        //           print("1 redirect");
+
+        //           setState(() {
+        //             _redirecting = true;
+        //           });
+        //         } else {
+        //           print("2 redirect");
+
+        //           _redirectStopwatch.stop();
+        //           _redirectStopwatch.reset();
+        //           setState(() {
+        //             _redirecting = false;
+        //           });
+        //         }
+
+        //         print("swiping $_swipe");
+
+        //         setState(() {
+        //           _previousURL = url;
+        //           if (!activityStopwatch.isRunning) {
+        //             print("start activityStopwatch");
+        //             activityStopwatch.start();
+        //           }
+        //           _loadingPercentage = 100;
+        //         });
+
+        //         setState(() {
+        //           _swipe = false;
+        //         });
+        //         */
+
+        //     if (bingo) {
+        //       String title = await _currentWebViewController.getTitle();
+        //       print("title: $title | data['title']: ${data['title']}");
+        //       setState(() {
+        //         _loadingPercentage = 100;
+        //         _currentWebViewTitle = data["title"];
+        //         // _currentWebViewTitle = title;
+        //       });
+        //     }
+        // },
+        // ),
       );
     }
   }
@@ -1613,12 +1715,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         "_webViewControllers $_webViewControllers");
                                   });
 
-                                  print(
-                                      "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
-                                  print(
-                                      "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.currentUrl()}");
-                                  print(
-                                      "controller 3 ${await _currentWebViewController}");
+                                  // print(
+                                  //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
+                                  // print(
+                                  //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
+                                  // print(
+                                  //     "controller 3 ${await _currentWebViewController}");
 
                                   // print(
                                   //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
