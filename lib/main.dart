@@ -1067,6 +1067,10 @@ class _WebViewContainerState extends State<WebViewContainer>
         width: MediaQuery.of(context).size.width,
         // child: Text("test${index}"),
         child: InAppWebView(
+          gestureRecognizers: {
+            Factory<LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer()),
+          },
           initialUrlRequest: URLRequest(url: WebUri(data['link'])),
           onWebViewCreated: (controller) {
             controller.addJavaScriptHandler(
@@ -1113,12 +1117,12 @@ class _WebViewContainerState extends State<WebViewContainer>
             print("zoomScale: $x, $y");
           },
           contextMenu: ContextMenu(
-            settings: ContextMenuSettings(
-              hideDefaultSystemContextMenuItems: true,
-            ),
+            // settings: ContextMenuSettings(
+            //     // hideDefaultSystemContextMenuItems: true,
+            //     ),
             menuItems: [
               ContextMenuItem(
-                  id: "1",
+                  id: 1,
                   title: "Drill",
                   action: () async {
                     String selectedText =
