@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
@@ -10,7 +11,7 @@ import 'package:isar/isar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import "package:image/src/image.dart";
+
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:io' as io;
@@ -18,6 +19,9 @@ import 'package:path/path.dart' as p;
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';
+import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart' as dio;
+import 'package:stats/stats.dart';
 
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
@@ -121,8 +125,8 @@ class _SearchPageState extends State<SearchPage> {
                             EasyLoading.showToast('image $image');
                             if (image != null) {
                               EasyLoading.show(status: 'Searching...');
-                              Map results =
-                                  await _imageSearch(image, image.path);
+                              Map results = await _imageSearch(
+                                  image, image.path, image.name);
                               print("image $results");
                               await widget
                                   .updateSearchText(results["bestGuessLabel"]);
@@ -165,8 +169,8 @@ class _SearchPageState extends State<SearchPage> {
                             EasyLoading.showToast('image $image');
                             if (image != null) {
                               EasyLoading.show(status: 'Searching...');
-                              Map results =
-                                  await _imageSearch(image, image.path);
+                              Map results = await _imageSearch(
+                                  image, image.path, image.name);
                               print("image $results");
 
                               await widget
@@ -232,7 +236,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-_imageSearch(src, path) async {
+_imageSearch(src, path, name) async {
   Directory dir = (await getApplicationDocumentsDirectory());
   bool fileExists = false;
   String filename = "credential.json";
@@ -256,7 +260,7 @@ _imageSearch(src, path) async {
     final bytes = io.File(path).readAsBytesSync();
     String img64 = base64Encode(bytes);
 
-    Future<String?> TextDetection(String image) async {
+    Future TextDetection(String image) async {
       var _vision = vision.VisionApi(await _client);
       var _api = _vision.images;
       var _response =
@@ -280,14 +284,70 @@ _imageSearch(src, path) async {
       });
       if (entities == null) {
         print("No words is detected");
-        exit(1);
+        exitCode;
       }
       int len = entities!.length;
       print("Output text: ");
+      final acc = [0];
+      int count = 0;
+      List<String?> str_arr = [''];
       for (int j = 0; j < len; j++) {
-        print(entities![j].description);
+        var vertice = entities![j].boundingPoly!.vertices;
+        var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
+        for (int i = 0; i < vertice!.length; i++) {
+          if (vertice[i].x! > max_x) {
+            max_x = vertice[i].x!;
+          }
+          if (vertice[i].y! > max_y) {
+            max_y = vertice[i].y!;
+          }
+          if (vertice[i].x! < min_x!) {
+            min_x = vertice[i].x!;
+          }
+          if (vertice[i].y! < min_y!) {
+            min_y = vertice[i].y!;
+          }
+          // print(" VETICS X,Y: ${vertice[i].y}");
+        }
+        var length_x = max_x - min_x!;
+        var length_y = max_y - min_y!;
+        var area = length_x * length_y;
+        acc.insert(j, area);
+
+        //print(entities![j].boundingPoly!.normalizedVertices);
       }
-      return entities![1].description;
+
+      final stats = Stats.fromData(acc);
+      for (int j = 0; j < len; j++) {
+        var vertice = entities![j].boundingPoly!.vertices;
+        var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
+        for (int i = 0; i < vertice!.length; i++) {
+          if (vertice[i].x! > max_x) {
+            max_x = vertice[i].x!;
+          }
+          if (vertice[i].y! > max_y) {
+            max_y = vertice[i].y!;
+          }
+          if (vertice[i].x! < min_x!) {
+            min_x = vertice[i].x!;
+          }
+          if (vertice[i].y! < min_y!) {
+            min_y = vertice[i].y!;
+          }
+          // print(" VETICS X,Y: ${vertice[i].y}");
+        }
+        var length_x = max_x - min_x!;
+        var length_y = max_y - min_y!;
+        var area = length_x * length_y;
+        if (area > stats.median) {
+          str_arr.insert(count, entities![j].description);
+          count++;
+        }
+
+        //print(entities![j].boundingPoly!.normalizedVertices);
+      }
+      print("TEXT: ${str_arr}");
+      return str_arr;
     }
 
     // Future<vision.BatchAnnotateImagesResponse> search(String image) async {
@@ -310,10 +370,10 @@ _imageSearch(src, path) async {
       }));
       // print(entity.entityId);
       List<vision.WebEntity>? entities;
-      List<vision.WebImage>? full_match_image;
-      List<vision.WebImage>? partial_match_image;
-      List<vision.WebPage>? page_with_match_image;
-      List<vision.WebImage>? page_with_similar_image;
+      List<vision.WebImage>? fullMatchImage;
+      List<vision.WebImage>? partialMatchImage;
+      List<vision.WebPage>? pageWithMatchImage;
+      List<vision.WebImage>? pageWithSimilarImage;
 
       var bestguess = vision.WebLabel();
 
@@ -332,7 +392,7 @@ _imageSearch(src, path) async {
         //full_match_image =
         //  data.webDetection!.fullMatchingImages as List<vision.WebImage>;
         if (data.webDetection?.partialMatchingImages != null) {
-          partial_match_image =
+          partialMatchImage =
               data.webDetection!.partialMatchingImages as List<vision.WebImage>;
           print("not null1 | ${data.webDetection?.partialMatchingImages}");
         } else {
@@ -340,7 +400,7 @@ _imageSearch(src, path) async {
         }
 
         if (data.webDetection?.pagesWithMatchingImages != null) {
-          page_with_match_image = data.webDetection!.pagesWithMatchingImages
+          pageWithMatchImage = data.webDetection!.pagesWithMatchingImages
               as List<vision.WebPage>;
           print("not null2 | ${data.webDetection?.pagesWithMatchingImages}");
         } else {
@@ -348,7 +408,7 @@ _imageSearch(src, path) async {
         }
 
         if (data.webDetection?.visuallySimilarImages != null) {
-          page_with_similar_image =
+          pageWithSimilarImage =
               data.webDetection!.visuallySimilarImages as List<vision.WebImage>;
           print("not null3 | ${data.webDetection?.visuallySimilarImages}");
         } else {
@@ -365,23 +425,18 @@ _imageSearch(src, path) async {
 
       i = 0;
       var j = 0;
-      //for (i; i < 10; i++) {
-      // print(entities![i].description);
-      //  print("Full match url = " + full_match_image![i].url.toString());
-      // print("Partial match url = " + partial_match_image![i].url.toString());
-      // print("page with similar iamge = " +
-      //     page_with_similar_image![i].url.toString());
+
       Map results = {"bestGuessLabel": bestGuessLabel};
       List urls = [];
-      int len = page_with_similar_image?.length ?? 0;
+      int len = pageWithSimilarImage?.length ?? 0;
       for (j = 0; j < len; j++) {
         // print("page with match image title=" +
         //     page_with_match_image![j].pageTitle.toString());
         // print("page with match image =" +
         //     page_with_match_image![j].url.toString());
         urls.add({
-          'title': page_with_match_image![j].pageTitle.toString(),
-          'link': page_with_match_image![j].url.toString()
+          'title': pageWithMatchImage![j].pageTitle.toString(),
+          'link': pageWithMatchImage![j].url.toString()
         });
       }
 
@@ -391,8 +446,93 @@ _imageSearch(src, path) async {
       return results;
     }
 
+    Future BingSearch(String imgpath) async {
+      final apiKey = "49a93c21e4074e8f8765a891fc8fcaf7";
+      final imageData = base64.encode(File(imgpath).readAsBytesSync());
+      ;
+      final String url =
+          "https://api.bing.microsoft.com/v7.0/images/visualsearch";
+
+      final endpointUrl =
+          'https://api.bing.microsoft.com/bing/v7.0/images/visualsearch';
+
+      // Convert the base64 image to bytes
+
+      // Create the HTTP request with the necessary headers and parameters
+      final params = {
+        'knowledgeRequest': jsonEncode({
+          'image': {
+            'imageBytes': imageData,
+          },
+          'imageInfo': true,
+          'modulesRequested': [
+            'All',
+          ],
+        }),
+      };
+
+      final response = await http.post(
+        Uri.parse(endpointUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Ocp-Apim-Subscription-Key': apiKey,
+        },
+        body: jsonEncode(params),
+      );
+
+      final responseJson = jsonDecode(response.body);
+      final tags = responseJson['tags'];
+      final visuallySimilarImages = responseJson['visuallySimilarImages'];
+      final pages = responseJson['pages'];
+
+      print(responseJson);
+      print('Tags: $tags');
+      print('Visually similar images: $visuallySimilarImages');
+      print('Pages: $pages');
+    }
+
+    /*
+    Future<String> BingVisualSearch(
+        String img, String imagePath, String name) async {
+      var endpoint = 'https://api.bing.microsoft.com/v7.0/images/visualsearch';
+      var subscriptionKey = "3dd56c52a6a449da96270bdc7898a06a";
+      String imgPath = imagePath;
+      final headers = {
+        //'Content-Type': 'mime/images',
+        'Ocp-Apim-Subscription-Key': subscriptionKey,
+        'boundary': "\abcd1234\>",
+      };
+      final file = {
+        "ImageInfo": {name: img64},
+        "KnowledgeRequest": {
+          "InvokedSkillsRequestData": {"EnableEntityData": true}
+        }
+      };
+      //{
+
+      //   'Content-Disposition': 'form-data',
+      //   'filename': "myimagefile.jpg",
+      ///   name: img64
+      //  };
+
+      var response = await http.post(Uri.parse(endpoint),
+          headers: headers, body: json.encode(file));
+
+      var responseBody = response.body;
+      var jsonResponse = json.decode(responseBody);
+
+      print("Headers:\n");
+
+      print(response.statusCode);
+      print("JSON response:\n");
+      print(jsonResponse);
+
+      return '';
+    }*/
+    BingSearch(path);
+    //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
-    TextDetection(img64);
+    //TextDetection(img64);
 
     // print("results = ${await Future.value(results)}");
     return await Future.value(webResults);
@@ -408,6 +548,9 @@ _imageSearch(src, path) async {
     }
   }
 }
+
+
+
 /*
 _cameraSerach(image, path) async {
   final InputImage inputImage = InputImage.fromFilePath(path);

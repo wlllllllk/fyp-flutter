@@ -1401,7 +1401,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     },
                     child: FloatingActionButton.extended(
                       onPressed: () {
-                        _changeSearchPlatform();
+                        // _changeSearchPlatform();
                       },
                       label: Text(_currentSearchPlatform),
                       backgroundColor: _fabColor,
