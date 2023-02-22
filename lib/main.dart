@@ -27,6 +27,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+// import 'package:rake/rake.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -42,7 +43,6 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:googleapis/storage/v1.dart';*/
 
-import 'components/custom_text_selection_file.dart';
 part 'main.g.dart';
 
 void main() async {
@@ -223,6 +223,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   String _currentWebViewTitle = "";
   // var _next;
   bool _platformChanged = false;
+  // final rake = Rake();
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
@@ -341,6 +342,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         if (_webpageContent == null || _webpageContent == "") {
           query = (await _currentWebViewController!.getTitle())!;
         } else {
+          // print(rake.rank(_webpageContent, minChars: 5, minFrequency: 2));
           query = _webpageContent;
         }
         break;
@@ -1066,95 +1068,107 @@ class _WebViewContainerState extends State<WebViewContainer>
       return SizedBox(
         width: MediaQuery.of(context).size.width,
         // child: Text("test${index}"),
-        child: InAppWebView(
-          gestureRecognizers: {
-            Factory<LongPressGestureRecognizer>(
-                () => LongPressGestureRecognizer()),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (event) {
+            print("onEnter");
           },
-          initialUrlRequest: URLRequest(url: WebUri(data['link'])),
-          onWebViewCreated: (controller) {
-            controller.addJavaScriptHandler(
-                handlerName: 'getDrillText',
-                callback: (args) {
-                  print("DrillText ${args[0]}");
-                  setState(() {
-                    _webpageContent = args[0];
+          onExit: (event) {
+            print("onExit");
+          },
+          onHover: (event) {
+            print("onHover");
+          },
+          child: InAppWebView(
+            gestureRecognizers: {
+              Factory<LongPressGestureRecognizer>(
+                  () => LongPressGestureRecognizer()),
+            },
+            initialUrlRequest: URLRequest(url: WebUri(data['link'])),
+            onWebViewCreated: (controller) {
+              controller.addJavaScriptHandler(
+                  handlerName: 'getDrillText',
+                  callback: (args) {
+                    print("DrillText ${args[0]}");
+                    setState(() {
+                      _webpageContent = args[0];
+                    });
                   });
+              if (bingo) {
+                _currentWebViewController = controller;
+              }
+              _webViewControllers.addAll({position: controller});
+            },
+            onLoadStart: (controller, url) {
+              if (bingo) {
+                setState(() {
+                  _loadingPercentage = 0;
+                  _currentWebViewTitle = "Loading...";
                 });
-            if (bingo) {
-              _currentWebViewController = controller;
-            }
-            _webViewControllers.addAll({position: controller});
-          },
-          onLoadStart: (controller, url) {
-            if (bingo) {
-              setState(() {
-                _loadingPercentage = 0;
-                _currentWebViewTitle = "Loading...";
-              });
-            }
-          },
-          onLoadStop: (controller, url) async {
-            if (bingo) {
-              // String title = await _currentWebViewController.getTitle();
-              // print("title: $title | data['title']: ${data['title']}");
-              setState(() {
-                _loadingPercentage = 100;
-                _currentWebViewTitle = data["title"];
-                // _currentWebViewTitle = title;
-              });
-            }
-          },
-          onReceivedError: (controller, request, error) {},
-          onProgressChanged: (controller, progress) {
-            if (bingo) {
-              setState(() {
-                _loadingPercentage = progress;
-              });
-            }
-          },
-          onZoomScaleChanged: (controller, x, y) {
-            print("zoomScale: $x, $y");
-          },
-          contextMenu: ContextMenu(
-            // settings: ContextMenuSettings(
-            //     // hideDefaultSystemContextMenuItems: true,
-            //     ),
-            menuItems: [
-              ContextMenuItem(
-                  id: 1,
-                  title: "Drill",
-                  action: () async {
-                    String selectedText =
-                        await _currentWebViewController?.getSelectedText() ??
-                            "";
-                    print("selectedText: $selectedText");
+              }
+            },
+            onLoadStop: (controller, url) async {
+              if (bingo) {
+                // String title = await _currentWebViewController.getTitle();
+                // print("title: $title | data['title']: ${data['title']}");
+                setState(() {
+                  _loadingPercentage = 100;
+                  _currentWebViewTitle = data["title"];
+                  // _currentWebViewTitle = title;
+                });
+              }
+            },
+            onReceivedError: (controller, request, error) {},
+            onProgressChanged: (controller, progress) {
+              if (bingo) {
+                setState(() {
+                  _loadingPercentage = progress;
+                });
+              }
+            },
+            onZoomScaleChanged: (controller, oldScale, newScale) {
+              print("zoomScale: $oldScale, $newScale");
+            },
+            contextMenu: ContextMenu(
+              // settings: ContextMenuSettings(
+              //     // hideDefaultSystemContextMenuItems: true,
+              //     ),
+              menuItems: [
+                ContextMenuItem(
+                    id: 1,
+                    title: "Drill",
+                    action: () async {
+                      String selectedText =
+                          await _currentWebViewController?.getSelectedText() ??
+                              "";
+                      print("selectedText: $selectedText");
 
-                    final snackBar = SnackBar(
-                      content: Text("Drilling ${selectedText}"),
-                      duration: const Duration(seconds: 3),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                      final snackBar = SnackBar(
+                        content: Text("Drilling ${selectedText}"),
+                        duration: const Duration(seconds: 3),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                    _performDrill(selectedText);
-                  })
-            ],
-            // onCreateContextMenu: (hitTestResult) async {
-            //   String selectedText =
-            //       await _currentWebViewController?.getSelectedText() ?? "";
-            //   print("selectedText: $selectedText");
-            //   final snackBar = SnackBar(
-            //     content: Text(
-            //         "Selected text: '$selectedText', of type: ${hitTestResult.type.toString()}"),
-            //     duration: Duration(seconds: 1),
-            //   );
-            //   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-            // },
-            // onContextMenuActionItemClicked: (menuItem) async {
-            //   String selectedText =
-            //       await _currentWebViewController?.getSelectedText() ?? "";
-            //   print("selectedText: $selectedText");
-            // },
+                      _performDrill(selectedText);
+                    })
+              ],
+              // onCreateContextMenu: (hitTestResult) async {
+              //   String selectedText =
+              //       await _currentWebViewController?.getSelectedText() ?? "";
+              //   print("selectedText: $selectedText");
+              //   final snackBar = SnackBar(
+              //     content: Text(
+              //         "Selected text: '$selectedText', of type: ${hitTestResult.type.toString()}"),
+              //     duration: Duration(seconds: 1),
+              //   );
+              //   ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              // },
+              // onContextMenuActionItemClicked: (menuItem) async {
+              //   String selectedText =
+              //       await _currentWebViewController?.getSelectedText() ?? "";
+              //   print("selectedText: $selectedText");
+              // },
+            ),
           ),
         ),
         //     WebView(
@@ -1526,6 +1540,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                       setState(() {
                         _appBarColor = Colors.red[400]!;
                       });
+                    },
+                    onDragUpdate: (details) async {
+                      print(
+                          "onDragUpdate ${details.delta} | ${details.globalPosition}");
                     },
                     onDragEnd: (details) async {
                       setState(() {
