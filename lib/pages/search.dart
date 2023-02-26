@@ -284,14 +284,18 @@ _imageSearch(src, path, name) async {
       });
       if (entities == null) {
         print("No words is detected");
-        exitCode;
+        exit(1);
       }
-      int len = entities!.length;
-      print("Output text: ");
+
       final acc = [0];
       int count = 0;
       List<String?> str_arr = [''];
-      for (int j = 0; j < len; j++) {
+      String? string_ent = entities![0].description;
+
+      final separated = string_ent?.split('\n');
+      //print(separated);
+      //  List<String> arr = print("arr 1: ${arr[0]}");
+      for (int j = 0; j < separated!.length; j++) {
         var vertice = entities![j].boundingPoly!.vertices;
         var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
         for (int i = 0; i < vertice!.length; i++) {
@@ -318,35 +322,24 @@ _imageSearch(src, path, name) async {
       }
 
       final stats = Stats.fromData(acc);
-      for (int j = 0; j < len; j++) {
-        var vertice = entities![j].boundingPoly!.vertices;
-        var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
-        for (int i = 0; i < vertice!.length; i++) {
-          if (vertice[i].x! > max_x) {
-            max_x = vertice[i].x!;
+      for (int j = 0; j < separated.length; j++) {
+        final area = acc[j];
+
+        if (separated.length > 10) {
+          if (area > (stats.median)) {
+            if (count < 10) {
+              str_arr.insert(count, separated[j]);
+            }
           }
-          if (vertice[i].y! > max_y) {
-            max_y = vertice[i].y!;
-          }
-          if (vertice[i].x! < min_x!) {
-            min_x = vertice[i].x!;
-          }
-          if (vertice[i].y! < min_y!) {
-            min_y = vertice[i].y!;
-          }
-          // print(" VETICS X,Y: ${vertice[i].y}");
+        } else {
+          str_arr.insert(count, separated[j]);
         }
-        var length_x = max_x - min_x!;
-        var length_y = max_y - min_y!;
-        var area = length_x * length_y;
-        if (area > stats.median) {
-          str_arr.insert(count, entities![j].description);
-          count++;
-        }
+        count++;
+        //print("J: ${j} : AREA: ${area} | DESC: $arr");
 
         //print(entities![j].boundingPoly!.normalizedVertices);
       }
-      print("TEXT: ${str_arr}");
+      print("TEXT: $str_arr");
       return str_arr;
     }
 
@@ -449,32 +442,29 @@ _imageSearch(src, path, name) async {
     Future BingSearch(String imgpath) async {
       final apiKey = "49a93c21e4074e8f8765a891fc8fcaf7";
       final imageData = base64.encode(File(imgpath).readAsBytesSync());
-      ;
+
       final String url =
           "https://api.bing.microsoft.com/v7.0/images/visualsearch";
 
       final endpointUrl =
-          'https://api.bing.microsoft.com/bing/v7.0/images/visualsearch';
+          ' https://api.cognitive.microsoft.com/bing/v7.0/images/visualsearch';
 
       // Convert the base64 image to bytes
 
       // Create the HTTP request with the necessary headers and parameters
       final params = {
-        'knowledgeRequest': jsonEncode({
-          'image': {
-            'imageBytes': imageData,
-          },
-          'imageInfo': true,
-          'modulesRequested': [
-            'All',
-          ],
-        }),
+        'Content-Type': 'application/json',
+        'image': {
+          'file': imageData,
+        },
       };
 
       final response = await http.post(
-        Uri.parse(endpointUrl),
+        Uri.parse(url),
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data; boundary=',
+          'X-BingApis-SDK': 'true',
+          'Accept': 'application/ld+json',
           'Ocp-Apim-Subscription-Key': apiKey,
         },
         body: jsonEncode(params),
@@ -491,48 +481,10 @@ _imageSearch(src, path, name) async {
       print('Pages: $pages');
     }
 
-    /*
-    Future<String> BingVisualSearch(
-        String img, String imagePath, String name) async {
-      var endpoint = 'https://api.bing.microsoft.com/v7.0/images/visualsearch';
-      var subscriptionKey = "3dd56c52a6a449da96270bdc7898a06a";
-      String imgPath = imagePath;
-      final headers = {
-        //'Content-Type': 'mime/images',
-        'Ocp-Apim-Subscription-Key': subscriptionKey,
-        'boundary': "\abcd1234\>",
-      };
-      final file = {
-        "ImageInfo": {name: img64},
-        "KnowledgeRequest": {
-          "InvokedSkillsRequestData": {"EnableEntityData": true}
-        }
-      };
-      //{
-
-      //   'Content-Disposition': 'form-data',
-      //   'filename': "myimagefile.jpg",
-      ///   name: img64
-      //  };
-
-      var response = await http.post(Uri.parse(endpoint),
-          headers: headers, body: json.encode(file));
-
-      var responseBody = response.body;
-      var jsonResponse = json.decode(responseBody);
-
-      print("Headers:\n");
-
-      print(response.statusCode);
-      print("JSON response:\n");
-      print(jsonResponse);
-
-      return '';
-    }*/
     BingSearch(path);
     //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
-    //TextDetection(img64);
+    // TextDetection(img64);
 
     // print("results = ${await Future.value(results)}");
     return await Future.value(webResults);
