@@ -53,9 +53,9 @@ part 'main.g.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    await InAppWebViewController.setWebContentsDebuggingEnabled(true);
-  }
+  // if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+  //   await InAppWebViewController.setWebContentsDebuggingEnabled(true);
+  // }
 
   runApp(
     MaterialApp(
@@ -90,8 +90,8 @@ List<String> SearchPlatformList = [
 
 enum Theme { Light, Dark, Auto }
 
-// const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
 // const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
@@ -236,6 +236,10 @@ class _WebViewContainerState extends State<WebViewContainer>
   List _activatedSearchPlatforms = ["Google"];
   // final rake = Rake();
   PullToRefreshController? _refreshController;
+  bool _menuShown = false;
+  Map _searchHistory = {};
+  bool _isFetching = false;
+
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
   int _start = (page - 1) * 10 + 1;
@@ -685,13 +689,39 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  Map test = {
+    "keyword1": {
+      // "links": ["link1", "link2"],
+      "prev": "",
+    },
+    "keyword2": {
+      // "links": ["link1", "link2"],
+      "prev": "keyword1",
+    },
+    "2": {
+      // "links": ["link1", "link2"],
+      "prev": "keyword1",
+    },
+    "0": {
+      // "links": ["link1", "link2"],
+      "prev": "keyword1",
+    },
+    "1": {
+      // "links": ["link1", "link2"],
+      "prev": "keyword1",
+    }
+  };
+
   _handleSearch(value) async {
     setState(() {
+      _isFetching = true;
       _searchMode = "Default";
       _appBarColor = _defaultAppBarColor;
       _fabColor = Colors.blue[100]!;
+      _searchHistory.addAll({value.toString(): false});
     });
 
+    print("_searchHistory $_searchHistory");
     print("search $value");
     String realSearchText = "";
     Map results = {};
@@ -706,12 +736,16 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     // the search results
     var items = await _performSearch(realSearchText, _currentSearchPlatform);
-    // print("items $items");
+    print("items $items");
     // update the URLs
     await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
     // update the current URLs
     await _updateCurrentURLs();
+
+    setState(() {
+      _isFetching = false;
+    });
 
     // move the swiper
     await _moveSwiper();
@@ -906,8 +940,13 @@ class _WebViewContainerState extends State<WebViewContainer>
   // }
 
   _performDrill([selectedText = null]) async {
-    print("drilling...");
+    print("drilling... | $selectedText");
+    String keyword = selectedText ?? await _getSearchQuery();
     setState(() {
+      if (_searchHistory[_realSearchText.toString()] == false) {
+        _searchHistory.update(_realSearchText.toString(), (value) => true);
+      }
+      _searchHistory.addAll({keyword.toString(): _realSearchText.toString()});
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
         _appBarColor = _defaultAppBarColor;
@@ -919,10 +958,11 @@ class _WebViewContainerState extends State<WebViewContainer>
       }
     });
 
+    print("_searchHistory ${_searchHistory.toString()}");
+
     if (_searchMode == "Drill-down") {
       // print("real drilling | ${await _getSearchQuery()}");
-      var items = await _performSearch(
-          selectedText ?? await _getSearchQuery(), _currentSearchPlatform);
+      var items = await _performSearch(keyword, _currentSearchPlatform);
 
       await _updateURLs('append', _searchText, _currentSearchPlatform, items);
       await _updateCurrentURLs();
@@ -1096,7 +1136,13 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   _showSelectMenu(BuildContext context) {
+    // setState(() {
+    //   _menuShown = true;
+    // });
+    print("show menu");
+    // if (!_menuShown) {
     return showModalBottomSheet(
+      isDismissible: false,
       barrierColor: Colors.transparent,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -1106,7 +1152,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       ),
       context: context,
       builder: (context) {
-        return Container(
+        return SizedBox(
           height: Platform.isIOS
               ? (_loadingPercentage < 100 ? 65 : 60)
               : (_loadingPercentage < 100 ? 55 : 50),
@@ -1118,9 +1164,25 @@ class _WebViewContainerState extends State<WebViewContainer>
                 children: [
                   IconButton(
                     onPressed: () async {
+                      print("close menu");
+
+                      Navigator.pop(context);
+
+                      setState(() {
+                        _menuShown = false;
+                      });
+                    },
+                    icon: const FaIcon(FontAwesomeIcons.xmark, size: 20),
+                  ),
+                  IconButton(
+                    onPressed: () async {
                       print("select all");
 
                       Navigator.pop(context);
+
+                      setState(() {
+                        _menuShown = false;
+                      });
                     },
                     icon: const FaIcon(FontAwesomeIcons.borderAll, size: 20),
                   ),
@@ -1134,6 +1196,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                       print("selectedText: $selectedText");
 
                       Navigator.pop(context);
+
+                      setState(() {
+                        _menuShown = false;
+                      });
 
                       final snackBar = SnackBar(
                         content: Text("Copied ${selectedText}"),
@@ -1152,8 +1218,12 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                       Navigator.pop(context);
 
+                      setState(() {
+                        _menuShown = false;
+                      });
+
                       final snackBar = SnackBar(
-                        content: Text("Copied ${selectedText}"),
+                        content: Text("Drilling ${selectedText}"),
                         duration: const Duration(seconds: 3),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -1169,6 +1239,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         );
       },
     );
+    // }
   }
 
   Widget _buildWebView(BuildContext context, var data, int position) {
@@ -1263,46 +1334,56 @@ class _WebViewContainerState extends State<WebViewContainer>
               print("zoomScale: $oldScale, $newScale");
             },
             contextMenu: ContextMenu(
-                // settings: ContextMenuSettings(
-                //   hideDefaultSystemContextMenuItems: true,
-                // ),
-                // onCreateContextMenu: (hitTestResult) async {
-                //   print("hitTestResult");
-                //   var result = await _showSelectMenu(context);
-                //   print("result ${await result}");
-                // },
-                // onContextMenuActionItemClicked: (contextMenuItemClicked) => {
-                //   print("contextMenuItemClicked: ${contextMenuItemClicked.id}"),
-                // },
-                // onHideContextMenu: () {
-                //   print("onHideContextMenu");
-                //   final snackBar = SnackBar(
-                //     content: Text("onHideContextMenu"),
-                //     duration: const Duration(seconds: 3),
-                //   );
-                //   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                // },
-                // menuItems: [
-                //   ContextMenuItem(
-                //     id: 1,
-                //     title: "Drill",
-                //     action: () async {
-                //       String selectedText =
-                //           await _currentWebViewController?.getSelectedText() ??
-                //               "";
-                //       print("selectedText: $selectedText");
+              // settings: ContextMenuSettings(
+              //   hideDefaultSystemContextMenuItems: true,
+              // ),
+              onCreateContextMenu: (hitTestResult) async {
+                print("hitTestResult");
+                if (!_menuShown) {
+                  print("show menu");
+                  _showSelectMenu(context);
+                  setState(() {
+                    _menuShown = true;
+                  });
+                } else {
+                  print("menu already shown");
+                }
+              },
+              onContextMenuActionItemClicked: (contextMenuItemClicked) => {
+                print("contextMenuItemClicked: ${contextMenuItemClicked.id}"),
+              },
+              onHideContextMenu: () {
+                print("onHideContextMenu");
+                // setState(() {
+                //   _menuShown = false;
+                // });
+                // final snackBar = SnackBar(
+                //   content: Text("onHideContextMenu"),
+                //   duration: const Duration(seconds: 3),
+                // );
+                // ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              },
+              menuItems: [
+                ContextMenuItem(
+                  id: 1,
+                  title: "Drill",
+                  action: () async {
+                    String selectedText =
+                        await _currentWebViewController?.getSelectedText() ??
+                            "";
+                    print("selectedText: $selectedText");
 
-                //       final snackBar = SnackBar(
-                //         content: Text("Drilling ${selectedText}"),
-                //         duration: const Duration(seconds: 3),
-                //       );
-                //       ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    final snackBar = SnackBar(
+                      content: Text("Drilling ${selectedText}"),
+                      duration: const Duration(seconds: 3),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                //       _performDrill(selectedText);
-                //     },
-                //   )
-                // ],
-                ),
+                    _performDrill(selectedText);
+                  },
+                )
+              ],
+            ),
           ),
         ),
         //     WebView(
@@ -1527,6 +1608,39 @@ class _WebViewContainerState extends State<WebViewContainer>
   //     print("3 seconds passed | platform switched");
   //   },
   // );
+
+  _buildSearchHistoryList() {
+    var result = [];
+    String previousKey = "";
+    bool child = false;
+    _searchHistory.forEach((key, value) {
+      // initial keyword
+      if (value.runtimeType == bool) {
+        result.add(ListTile(
+          contentPadding: const EdgeInsets.only(top: 15, left: 20),
+          title: Text(key),
+          visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+        ));
+      }
+
+      // following drill
+      else {
+        result.add(ListTile(
+          visualDensity: VisualDensity(horizontal: 0, vertical: -4),
+          // dense: true,
+          horizontalTitleGap: 0,
+          leading: const FaIcon(
+            FontAwesomeIcons.arrowTrendDown,
+            size: 18,
+            color: Colors.black87,
+          ),
+          title: Text(key.toString()),
+        ));
+      }
+    });
+
+    return result.toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1857,409 +1971,423 @@ class _WebViewContainerState extends State<WebViewContainer>
         body: Column(
           children: <Widget>[
             Container(
-              child: _searchResult.isNotEmpty
-                  ? Flexible(
-                      child: Column(
-                        children: <Widget>[
-                          // WebView
-                          // Expanded(
-                          // child:
-                          // GestureDetector(
-                          //   onTap: () {
-                          //     print("webview tapped");
-                          //   },
-                          //   onLongPress: () {
-                          //     print("webview long pressed");
-                          //   },
-                          // Title Bar
-                          ColoredBox(
-                            color: Colors.white,
-                            child: SizedBox(
-                              // height: autoSize(50, context),
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 10.0,
-                                      right: 10.0,
-                                      top: 5.0,
-                                      bottom: 5.0),
-                                  child: Text(
-                                    _currentWebViewTitle,
-                                    style: const TextStyle(
-                                      fontSize: 16,
+              child: !_isFetching
+                  ? _searchResult.isNotEmpty
+                      ? Flexible(
+                          child: Column(
+                            children: <Widget>[
+                              // WebView
+                              // Expanded(
+                              // child:
+                              // GestureDetector(
+                              //   onTap: () {
+                              //     print("webview tapped");
+                              //   },
+                              //   onLongPress: () {
+                              //     print("webview long pressed");
+                              //   },
+                              // Title Bar
+                              ColoredBox(
+                                color: Colors.white,
+                                child: SizedBox(
+                                  // height: autoSize(50, context),
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 10.0,
+                                          right: 10.0,
+                                          top: 5.0,
+                                          bottom: 5.0),
+                                      child: Text(
+                                        _currentWebViewTitle,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                        ),
+                                        overflow: TextOverflow.visible,
+                                        textAlign: TextAlign.center,
+                                      ),
                                     ),
-                                    overflow: TextOverflow.visible,
-                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                print("webview tapped");
-                              },
-                              onDoubleTap: () {
-                                print("webview double tapped");
-                              },
-                              // onPanStart: (details) {
-                              //   print(
-                              //       "webview pan start ${details.globalPosition}");
-                              //   _scrollX = details.globalPosition.dx;
-                              //   _scrollY = details.globalPosition.dy;
-                              // },
-                              // onPanDown: (details) {
-                              //   print(
-                              //       "webview pan end ${details.globalPosition}");
-                              // },
-                              child: PreloadPageView.builder(
-                                onPageChanged: (value) {
-                                  print("platform changed: $value");
-                                  print(
-                                      "${URLs[_searchText][SearchPlatformList[value]]}");
-                                },
-                                scrollDirection: Axis.vertical,
-                                physics: const NeverScrollableScrollPhysics(),
-                                key: _pageKey,
-                                preloadPagesCount: 0,
-                                controller: _preloadPlatformController,
-                                itemCount: _activatedSearchPlatforms.length,
-                                itemBuilder: (BuildContext context,
-                                        int platformPosition) =>
-                                    PreloadPageView.builder(
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  preloadPagesCount: _preloadNumber,
-                                  controller: _preloadPageController,
-                                  itemCount: URLs[_searchText][
-                                                  _activatedSearchPlatforms[
-                                                      platformPosition]]
-                                              ?.length ==
-                                          null
-                                      ? 0
-                                      : URLs[_searchText][
-                                              _activatedSearchPlatforms[
-                                                  platformPosition]]
-                                          .length,
-                                  itemBuilder: (BuildContext context,
-                                          int urlPosition) =>
-                                      _buildWebView(
-                                          context,
-                                          urlPosition >=
-                                                  URLs[_searchText][
-                                                          _activatedSearchPlatforms[
-                                                              platformPosition]]
-                                                      .length
-                                              ? ""
-                                              : URLs[_searchText][
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    print("webview tapped");
+                                  },
+                                  onDoubleTap: () {
+                                    print("webview double tapped");
+                                  },
+                                  // onPanStart: (details) {
+                                  //   print(
+                                  //       "webview pan start ${details.globalPosition}");
+                                  //   _scrollX = details.globalPosition.dx;
+                                  //   _scrollY = details.globalPosition.dy;
+                                  // },
+                                  // onPanDown: (details) {
+                                  //   print(
+                                  //       "webview pan end ${details.globalPosition}");
+                                  // },
+                                  child: PreloadPageView.builder(
+                                    onPageChanged: (value) {
+                                      print("platform changed: $value");
+                                      print(
+                                          "${URLs[_searchText][SearchPlatformList[value]]}");
+                                    },
+                                    scrollDirection: Axis.vertical,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    key: _pageKey,
+                                    preloadPagesCount: 0,
+                                    controller: _preloadPlatformController,
+                                    itemCount: _activatedSearchPlatforms.length,
+                                    itemBuilder: (BuildContext context,
+                                            int platformPosition) =>
+                                        PreloadPageView.builder(
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      preloadPagesCount: _preloadNumber,
+                                      controller: _preloadPageController,
+                                      itemCount: URLs[_searchText][
                                                       _activatedSearchPlatforms[
                                                           platformPosition]]
-                                                  [urlPosition]!,
-                                          urlPosition),
-                                  onPageChanged: (int position) async {
-                                    print('page changed. current: $position');
-                                    // print(
-                                    //     "${_currentURLs[position]!['title']} | $_next");
+                                                  ?.length ==
+                                              null
+                                          ? 0
+                                          : URLs[_searchText][
+                                                  _activatedSearchPlatforms[
+                                                      platformPosition]]
+                                              .length,
+                                      itemBuilder: (BuildContext context,
+                                              int urlPosition) =>
+                                          _buildWebView(
+                                              context,
+                                              urlPosition >=
+                                                      URLs[_searchText][
+                                                              _activatedSearchPlatforms[
+                                                                  platformPosition]]
+                                                          .length
+                                                  ? ""
+                                                  : URLs[_searchText][
+                                                          _activatedSearchPlatforms[
+                                                              platformPosition]]
+                                                      [urlPosition]!,
+                                              urlPosition),
+                                      onPageChanged: (int position) async {
+                                        print(
+                                            'page changed. current: $position');
+                                        // print(
+                                        //     "${_currentURLs[position]!['title']} | $_next");
 
-                                    // var temp = _webViewControllers[_next];
+                                        // var temp = _webViewControllers[_next];
 
-                                    // var temp = _
+                                        // var temp = _
 
-                                    // print("temp 1 $temp");
-                                    // print("temp 2 ${_webViewControllers[temp]}");
+                                        // print("temp 1 $temp");
+                                        // print("temp 2 ${_webViewControllers[temp]}");
 
-                                    setState(() {
-                                      _currentURLIndex = position;
-                                      _currentWebViewTitle =
-                                          _currentURLs[position]!['title'];
-                                      _loadingPercentage = 100;
+                                        setState(() {
+                                          _currentURLIndex = position;
+                                          _currentWebViewTitle =
+                                              _currentURLs[position]!['title'];
+                                          _loadingPercentage = 100;
 
-                                      // if (_webViewControllers[
-                                      //         _currentURLs[position]!['link']] ==
-                                      //     null) {
-                                      //   print("add 1");
-                                      //   _webViewControllers.addAll({
-                                      //     _currentURLs[position]!['link']:
-                                      //         _webViewControllers[_next]
-                                      //   });
-                                      // }
+                                          // if (_webViewControllers[
+                                          //         _currentURLs[position]!['link']] ==
+                                          //     null) {
+                                          //   print("add 1");
+                                          //   _webViewControllers.addAll({
+                                          //     _currentURLs[position]!['link']:
+                                          //         _webViewControllers[_next]
+                                          //   });
+                                          // }
 
-                                      _currentWebViewController =
-                                          _webViewControllers[position];
+                                          _currentWebViewController =
+                                              _webViewControllers[position];
 
-                                      print(
-                                          "_webViewControllers $_webViewControllers");
-                                    });
+                                          print(
+                                              "_webViewControllers $_webViewControllers");
+                                        });
 
-                                    // print(
-                                    //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
-                                    // print(
-                                    //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
-                                    // print(
-                                    //     "controller 3 ${await _currentWebViewController}");
+                                        // print(
+                                        //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
+                                        // print(
+                                        //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
+                                        // print(
+                                        //     "controller 3 ${await _currentWebViewController}");
 
-                                    // print(
-                                    //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
+                                        // print(
+                                        //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
 
-                                    // fetch more results if we are almost at the end of the list
-                                    if (position + 1 >= _currentURLs.length) {
-                                      print("reached end of list");
+                                        // fetch more results if we are almost at the end of the list
+                                        if (position + 1 >=
+                                            _currentURLs.length) {
+                                          print("reached end of list");
 
-                                      setState(() {
-                                        page++;
-                                        _start = (page - 1) * 10 + 1;
-                                      });
+                                          setState(() {
+                                            page++;
+                                            _start = (page - 1) * 10 + 1;
+                                          });
 
-                                      var items = await _performSearch(
-                                          _searchText, _currentSearchPlatform);
-                                      print("items $items");
-                                      // update the URLs
-                                      await _updateURLs('extend', _searchText,
-                                          _currentSearchPlatform, items);
+                                          var items = await _performSearch(
+                                              _searchText,
+                                              _currentSearchPlatform);
+                                          print("items $items");
+                                          // update the URLs
+                                          await _updateURLs(
+                                              'extend',
+                                              _searchText,
+                                              _currentSearchPlatform,
+                                              items);
 
-                                      // update the current URLs
-                                      await _updateCurrentURLs();
-                                    }
+                                          // update the current URLs
+                                          await _updateCurrentURLs();
+                                        }
 
-                                    // print(
-                                    //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
+                                        // print(
+                                        //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
 
-                                    // if (position > _prevPos) {
-                                    //   print("next");
-                                    //   // setState(() {
-                                    //   //   _webViewKeyList.removeAt(0);
-                                    //   // });
-                                    // } else if (position < _prevPos) {
-                                    //   print("prev");
-                                    //   // setState(() {
-                                    //   //   _webViewKeyList.removeLast();
-                                    //   // });
-                                    // }
+                                        // if (position > _prevPos) {
+                                        //   print("next");
+                                        //   // setState(() {
+                                        //   //   _webViewKeyList.removeAt(0);
+                                        //   // });
+                                        // } else if (position < _prevPos) {
+                                        //   print("prev");
+                                        //   // setState(() {
+                                        //   //   _webViewKeyList.removeLast();
+                                        //   // });
+                                        // }
 
-                                    // setState(() {
-                                    //   _webViewKeyList.clear();
-                                    // });
+                                        // setState(() {
+                                        //   _webViewKeyList.clear();
+                                        // });
 
-                                    // print("length ${_webViewKeyList.length}");
+                                        // print("length ${_webViewKeyList.length}");
 
-                                    // setState(() {
-                                    //   _prevPos = position;
-                                    // });
-                                  },
+                                        // setState(() {
+                                        //   _prevPos = position;
+                                        // });
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
 
-                          // Bottom Bar
+                              // Bottom Bar
 
-                          ColoredBox(
-                            color: _appBarColor,
-                            child: SizedBox(
-                              height: Platform.isIOS
-                                  ? (_loadingPercentage < 100 ? 65 : 60)
-                                  : (_loadingPercentage < 100 ? 55 : 50),
-                              child: GestureDetector(
-                                onTap: () {
-                                  print("swiper tapped");
-                                },
-                                child: Column(
-                                  children: [
-                                    if (_loadingPercentage < 100)
-                                      LinearProgressIndicator(
-                                        value: _loadingPercentage / 100.0,
-                                        minHeight: 5,
-                                        color: Colors.yellow,
-                                      ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                              ColoredBox(
+                                color: _appBarColor,
+                                child: SizedBox(
+                                  height: Platform.isIOS
+                                      ? (_loadingPercentage < 100 ? 65 : 60)
+                                      : (_loadingPercentage < 100 ? 55 : 50),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      print("swiper tapped");
+                                    },
+                                    child: Column(
                                       children: [
-                                        IconButton(
-                                          onPressed: () async {
-                                            print("stairs of drill");
-                                            showModalBottomSheet(
-                                              transitionAnimationController:
-                                                  AnimationController(
-                                                vsync: this,
-                                                duration: const Duration(
-                                                    milliseconds: 300),
-                                              ),
-                                              context: context,
-                                              builder: (BuildContext context) =>
-                                                  Container(
-                                                height: MediaQuery.of(context)
-                                                        .size
-                                                        .height *
-                                                    0.5,
-                                                child: Stack(
-                                                  children: [
-                                                    ListView(
+                                        if (_loadingPercentage < 100)
+                                          LinearProgressIndicator(
+                                            value: _loadingPercentage / 100.0,
+                                            minHeight: 5,
+                                            color: Colors.yellow,
+                                          ),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            IconButton(
+                                              onPressed: () async {
+                                                print("stairs of drill");
+                                                showModalBottomSheet(
+                                                  transitionAnimationController:
+                                                      AnimationController(
+                                                    vsync: this,
+                                                    duration: const Duration(
+                                                        milliseconds: 300),
+                                                  ),
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) =>
+                                                          Container(
+                                                    height:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height *
+                                                            0.5,
+                                                    child: Stack(
                                                       children: [
-                                                        const ListTile(
-                                                          title: Text(
-                                                            "Drill Histories",
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 20,
+                                                        ListView(
+                                                          children: [
+                                                            const ListTile(
+                                                              title: Text(
+                                                                "Drill Histories",
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontSize: 20,
+                                                                ),
+                                                              ),
                                                             ),
-                                                          ),
+                                                            ..._buildSearchHistoryList(),
+                                                          ],
                                                         ),
-                                                        ListTile(
-                                                          title: Text(
-                                                              _currentSearchPlatform),
-                                                        )
                                                       ],
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                );
+                                              },
+                                              icon: const FaIcon(
+                                                FontAwesomeIcons.stairs,
+                                                size: 20,
                                               ),
-                                            );
-                                          },
-                                          icon: const FaIcon(
-                                            FontAwesomeIcons.stairs,
-                                            size: 20,
-                                          ),
-                                        ),
-                                        // IconButton(
-                                        //   onPressed: () async {
-                                        //     print("up platform");
+                                            ),
+                                            // IconButton(
+                                            //   onPressed: () async {
+                                            //     print("up platform");
 
-                                        //     await _preloadPlatformController
-                                        //         .previousPage(
-                                        //             duration: const Duration(
-                                        //                 milliseconds: 300),
-                                        //             curve: Curves.easeIn);
-                                        //   },
-                                        //   icon: const Icon(
-                                        //       Icons.keyboard_arrow_up_rounded,
-                                        //       size: 35),
-                                        // ),
-                                        // IconButton(
-                                        //   onPressed: () async {
-                                        //     print("down platform");
-                                        //     await _preloadPlatformController
-                                        //         .nextPage(
-                                        //             duration: const Duration(
-                                        //                 milliseconds: 300),
-                                        //             curve: Curves.easeIn);
-                                        //   },
-                                        //   icon: const Icon(
-                                        //       Icons.keyboard_arrow_down_rounded,
-                                        //       size: 35),
-                                        // ),
-                                        IconButton(
-                                          onPressed: () async {
-                                            if (_currentURLIndex > 0) {
-                                              print("jump to first page");
-                                              setState(() {
-                                                _swipe = true;
-                                              });
+                                            //     await _preloadPlatformController
+                                            //         .previousPage(
+                                            //             duration: const Duration(
+                                            //                 milliseconds: 300),
+                                            //             curve: Curves.easeIn);
+                                            //   },
+                                            //   icon: const Icon(
+                                            //       Icons.keyboard_arrow_up_rounded,
+                                            //       size: 35),
+                                            // ),
+                                            // IconButton(
+                                            //   onPressed: () async {
+                                            //     print("down platform");
+                                            //     await _preloadPlatformController
+                                            //         .nextPage(
+                                            //             duration: const Duration(
+                                            //                 milliseconds: 300),
+                                            //             curve: Curves.easeIn);
+                                            //   },
+                                            //   icon: const Icon(
+                                            //       Icons.keyboard_arrow_down_rounded,
+                                            //       size: 35),
+                                            // ),
+                                            IconButton(
+                                              onPressed: () async {
+                                                if (_currentURLIndex > 0) {
+                                                  print("jump to first page");
+                                                  setState(() {
+                                                    _swipe = true;
+                                                  });
 
-                                              _preloadPageController
-                                                  .jumpToPage(0);
-                                            }
-                                          },
-                                          icon: const FaIcon(
-                                            FontAwesomeIcons.backwardFast,
-                                            size: 20,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: () async {
-                                            if (_currentURLIndex > 0) {
-                                              print("decrease");
-                                              setState(() {
-                                                // _currentURLIndex--;
-                                                _swipe = true;
-                                              });
+                                                  _preloadPageController
+                                                      .jumpToPage(0);
+                                                }
+                                              },
+                                              icon: const FaIcon(
+                                                FontAwesomeIcons.backwardFast,
+                                                size: 20,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () async {
+                                                if (_currentURLIndex > 0) {
+                                                  print("decrease");
+                                                  setState(() {
+                                                    // _currentURLIndex--;
+                                                    _swipe = true;
+                                                  });
 
-                                              await _preloadPageController
-                                                  .previousPage(
-                                                      duration: const Duration(
-                                                          milliseconds: 300),
-                                                      curve: Curves.easeIn);
-                                            }
-                                          },
-                                          icon: const FaIcon(
-                                              FontAwesomeIcons.angleLeft,
-                                              size: 20),
-                                        ),
-                                        IconButton(
-                                          onPressed: () async {
-                                            if (_currentURLIndex <
-                                                _currentURLs.length - 1) {
-                                              setState(() {
-                                                // _currentURLIndex++;
-                                                _swipe = true;
-                                              });
+                                                  await _preloadPageController
+                                                      .previousPage(
+                                                          duration:
+                                                              const Duration(
+                                                                  milliseconds:
+                                                                      300),
+                                                          curve: Curves.easeIn);
+                                                }
+                                              },
+                                              icon: const FaIcon(
+                                                  FontAwesomeIcons.angleLeft,
+                                                  size: 20),
+                                            ),
+                                            IconButton(
+                                              onPressed: () async {
+                                                if (_currentURLIndex <
+                                                    _currentURLs.length - 1) {
+                                                  setState(() {
+                                                    // _currentURLIndex++;
+                                                    _swipe = true;
+                                                  });
 
-                                              await _preloadPageController
-                                                  .nextPage(
-                                                      duration: const Duration(
-                                                          milliseconds: 300),
-                                                      curve: Curves.easeIn);
-                                            }
-                                          },
-                                          icon: const FaIcon(
-                                              FontAwesomeIcons.angleRight,
-                                              size: 20),
-                                        ),
+                                                  await _preloadPageController
+                                                      .nextPage(
+                                                          duration:
+                                                              const Duration(
+                                                                  milliseconds:
+                                                                      300),
+                                                          curve: Curves.easeIn);
+                                                }
+                                              },
+                                              icon: const FaIcon(
+                                                  FontAwesomeIcons.angleRight,
+                                                  size: 20),
+                                            ),
 
-                                        IconButton(
-                                          onPressed: () async {
-                                            await _currentWebViewController!
-                                                .goBack();
-                                          },
-                                          icon: const FaIcon(
-                                              FontAwesomeIcons.rotateLeft,
-                                              size: 20),
-                                        ),
-                                        IconButton(
-                                          onPressed: () async {
-                                            print("share");
-                                            String? title =
+                                            IconButton(
+                                              onPressed: () async {
                                                 await _currentWebViewController!
-                                                    .getTitle();
-                                            WebUri? url =
-                                                (await _currentWebViewController!
-                                                    .getUrl());
-                                            await Share.share(
-                                                '${title!}\n${url!}');
-                                          },
-                                          icon: const FaIcon(
-                                              FontAwesomeIcons.shareNodes,
-                                              size: 20),
+                                                    .goBack();
+                                              },
+                                              icon: const FaIcon(
+                                                  FontAwesomeIcons.rotateLeft,
+                                                  size: 20),
+                                            ),
+                                            IconButton(
+                                              onPressed: () async {
+                                                print("share");
+                                                String? title =
+                                                    await _currentWebViewController!
+                                                        .getTitle();
+                                                WebUri? url =
+                                                    (await _currentWebViewController!
+                                                        .getUrl());
+                                                await Share.share(
+                                                    '${title!}\n${url!}');
+                                              },
+                                              icon: const FaIcon(
+                                                  FontAwesomeIcons.shareNodes,
+                                                  size: 20),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )
-                  : Flexible(
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: _searchText == ""
-                            ? const Text(
-                                "Try to search for something :)",
-                                style: TextStyle(fontSize: 22),
-                              )
-                            : const Text(
-                                "No result found",
-                                style: TextStyle(fontSize: 22),
-                              ),
-                      ),
-                    ),
+                        )
+                      : Flexible(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: _searchText == ""
+                                ? const Text(
+                                    "Try to search for something :)",
+                                    style: TextStyle(fontSize: 22),
+                                  )
+                                : const Text(
+                                    "No result found",
+                                    style: TextStyle(fontSize: 22),
+                                  ),
+                          ),
+                        )
+                  : Text("Loading"),
             ),
           ],
         ),
