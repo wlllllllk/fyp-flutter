@@ -28,7 +28,8 @@ import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 // import 'package:rake/rake.dart';
-import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -83,8 +84,8 @@ List<String> SearchPlatformList = [
 enum Theme { Light, Dark, Auto }
 
 // const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
-const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
+const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+// const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
@@ -1099,6 +1100,19 @@ class _WebViewContainerState extends State<WebViewContainer>
             print("onHover");
           },
           child: InAppWebView(
+            // pullToRefreshController: PullToRefreshController(
+            //   settings: PullToRefreshSettings(
+            //     color: Colors.blue,
+            //   ),
+            //   onRefresh: () async {
+            //     print("onRefresh");
+            //     // await Future.delayed(Duration(seconds: 2));
+            //     _currentWebViewController!.stopLoading();
+            //     _currentWebViewController!.reload();
+            //     // _webViewControllers[position]!.stopLoading();
+            //     // _webViewControllers[position]!.reload();
+            //   },
+            // ),
             gestureRecognizers: {
               Factory<LongPressGestureRecognizer>(
                   () => LongPressGestureRecognizer()),
@@ -1777,6 +1791,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       "${URLs[_searchText][SearchPlatformList[value]]}");
                                 },
                                 scrollDirection: Axis.vertical,
+                                physics: const NeverScrollableScrollPhysics(),
                                 key: _pageKey,
                                 preloadPagesCount: 0,
                                 controller: _preloadPlatformController,
@@ -1929,37 +1944,46 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       ),
                                     Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                          MainAxisAlignment.spaceEvenly,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         IconButton(
                                           onPressed: () async {
-                                            print("up platform");
+                                            print("stairs of drill");
+                                          },
+                                          icon: const FaIcon(
+                                            FontAwesomeIcons.stairs,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        // IconButton(
+                                        //   onPressed: () async {
+                                        //     print("up platform");
 
-                                            await _preloadPlatformController
-                                                .previousPage(
-                                                    duration: const Duration(
-                                                        milliseconds: 300),
-                                                    curve: Curves.easeIn);
-                                          },
-                                          icon: const Icon(
-                                              Icons.keyboard_arrow_up_rounded,
-                                              size: 35),
-                                        ),
-                                        IconButton(
-                                          onPressed: () async {
-                                            print("down platform");
-                                            await _preloadPlatformController
-                                                .nextPage(
-                                                    duration: const Duration(
-                                                        milliseconds: 300),
-                                                    curve: Curves.easeIn);
-                                          },
-                                          icon: const Icon(
-                                              Icons.keyboard_arrow_down_rounded,
-                                              size: 35),
-                                        ),
+                                        //     await _preloadPlatformController
+                                        //         .previousPage(
+                                        //             duration: const Duration(
+                                        //                 milliseconds: 300),
+                                        //             curve: Curves.easeIn);
+                                        //   },
+                                        //   icon: const Icon(
+                                        //       Icons.keyboard_arrow_up_rounded,
+                                        //       size: 35),
+                                        // ),
+                                        // IconButton(
+                                        //   onPressed: () async {
+                                        //     print("down platform");
+                                        //     await _preloadPlatformController
+                                        //         .nextPage(
+                                        //             duration: const Duration(
+                                        //                 milliseconds: 300),
+                                        //             curve: Curves.easeIn);
+                                        //   },
+                                        //   icon: const Icon(
+                                        //       Icons.keyboard_arrow_down_rounded,
+                                        //       size: 35),
+                                        // ),
                                         IconButton(
                                           onPressed: () async {
                                             if (_currentURLIndex > 0) {
@@ -1972,8 +1996,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                   .jumpToPage(0);
                                             }
                                           },
-                                          icon: const Icon(Icons.first_page,
-                                              size: 30),
+                                          icon: const FaIcon(
+                                            FontAwesomeIcons.backwardFast,
+                                            size: 20,
+                                          ),
                                         ),
                                         IconButton(
                                           onPressed: () async {
@@ -1991,7 +2017,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       curve: Curves.easeIn);
                                             }
                                           },
-                                          icon: const Icon(Icons.arrow_back_ios,
+                                          icon: const FaIcon(
+                                              FontAwesomeIcons.angleLeft,
                                               size: 20),
                                         ),
                                         IconButton(
@@ -2010,8 +2037,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       curve: Curves.easeIn);
                                             }
                                           },
-                                          icon: const Icon(
-                                              Icons.arrow_forward_ios,
+                                          icon: const FaIcon(
+                                              FontAwesomeIcons.angleRight,
                                               size: 20),
                                         ),
                                         // DropdownButton<String>(
@@ -2046,8 +2073,25 @@ class _WebViewContainerState extends State<WebViewContainer>
                                             await _currentWebViewController!
                                                 .goBack();
                                           },
-                                          icon:
-                                              const Icon(Icons.undo, size: 30),
+                                          icon: const FaIcon(
+                                              FontAwesomeIcons.arrowsRotate,
+                                              size: 20),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            print("share");
+                                            String? title =
+                                                await _currentWebViewController!
+                                                    .getTitle();
+                                            WebUri? url =
+                                                (await _currentWebViewController!
+                                                    .getUrl());
+                                            await Share.share(
+                                                '${title!}\n${url!}');
+                                          },
+                                          icon: const FaIcon(
+                                              FontAwesomeIcons.shareNodes,
+                                              size: 20),
                                         ),
                                         // TextButton(
                                         //   onPressed: () {
