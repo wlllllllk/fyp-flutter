@@ -12,6 +12,8 @@ class SettingsPage extends StatefulWidget {
     required this.SearchAlgorithmList,
     required this.updatePreloading,
     required this.preloadNumber,
+    required this.updateAutoSwitchPlatform,
+    required this.autoSwitchPlatform,
     required this.prefs,
   }) : super(key: key);
 
@@ -20,6 +22,8 @@ class SettingsPage extends StatefulWidget {
   final searchAlgorithm;
   final updatePreloading;
   final int preloadNumber;
+  final updateAutoSwitchPlatform;
+  final int autoSwitchPlatform;
   final List<String> SearchAlgorithmList;
   final SharedPreferences prefs;
 
@@ -31,12 +35,14 @@ class _SettingsPageState extends State<SettingsPage> {
   // int _selectedPageIndex = selectedPageIndex;
   var _searchAlgorithm;
   var _preloadNumber;
+  var _autoSwitchPlatform;
 
   @override
   void initState() {
     super.initState();
     _searchAlgorithm = widget.searchAlgorithm;
     _preloadNumber = widget.preloadNumber;
+    _autoSwitchPlatform = widget.autoSwitchPlatform;
   }
 
   @override
@@ -131,6 +137,43 @@ class _SettingsPageState extends State<SettingsPage> {
 
                       await widget.prefs.setInt(
                         "preloadNumber",
+                        value!,
+                      );
+                    },
+                    items: [0, 1].asMap().entries.map(
+                      (entry) {
+                        return DropdownMenuItem<int>(
+                          value: entry.value,
+                          child: Text(entry.value.toString()),
+                        );
+                      },
+                    ).toList(),
+                  ),
+                ),
+                ListTile(
+                  title: const Text("Auto Switch Platform"),
+                  subtitle: const Text(
+                      "Switch platform automatically when a new onw is selected."),
+                  trailing: DropdownButton<int>(
+                    value: _autoSwitchPlatform,
+                    icon: const Icon(Icons.arrow_downward),
+                    elevation: 16,
+                    // style: const TextStyle(color: Colors.deepPurple),
+                    underline: Container(
+                      height: 2,
+                      // color: _appBarColor,
+                    ),
+                    onChanged: (int? value) async {
+                      print("autoSwitchPlatform $value");
+
+                      widget.updateAutoSwitchPlatform(value);
+
+                      setState(() {
+                        _autoSwitchPlatform = value;
+                      });
+
+                      await widget.prefs.setInt(
+                        "autoSwitchPlatform",
                         value!,
                       );
                     },

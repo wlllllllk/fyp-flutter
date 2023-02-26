@@ -27,9 +27,12 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:context_menus/context_menus.dart';
+
 // import 'package:rake/rake.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -49,6 +52,10 @@ part 'main.g.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    await InAppWebViewController.setWebContentsDebuggingEnabled(true);
+  }
 
   runApp(
     MaterialApp(
@@ -114,6 +121,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   var _searchAlgorithm;
   var _preloadNumber;
+  var _autoSwitchPlatform;
   var _theme;
 
   // GlobalKey _webViewKey = GlobalKey();
@@ -227,7 +235,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   bool _platformChanged = false;
   List _activatedSearchPlatforms = ["Google"];
   // final rake = Rake();
-
+  PullToRefreshController? _refreshController;
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
   int _start = (page - 1) * 10 + 1;
@@ -238,15 +246,34 @@ class _WebViewContainerState extends State<WebViewContainer>
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
     final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
+    final autoSwitchPlatform = await prefs.getInt("autoSwitchPlatform") ?? 0;
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
     setState(() {
       _currentSearchPlatform = "Google";
       _searchAlgorithm = algorithm;
       _preloadNumber = preloadNumber;
+      _autoSwitchPlatform = autoSwitchPlatform;
       _theme = theme;
     });
     print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
     // print(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
+
+    _refreshController = kIsWeb
+        ? null
+        : PullToRefreshController(
+            settings: PullToRefreshSettings(
+              color: Colors.blue,
+            ),
+            onRefresh: () async {
+              if (defaultTargetPlatform == TargetPlatform.android) {
+                _currentWebViewController?.reload();
+              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+                _currentWebViewController?.loadUrl(
+                    urlRequest: URLRequest(
+                        url: await _currentWebViewController?.getUrl()));
+              }
+            },
+          );
   }
 
   @override
@@ -772,6 +799,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  void _updateAutoSwitchPlatform(value) {
+    setState(() {
+      _autoSwitchPlatform = value;
+    });
+  }
+
   void _pushSettingsPage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -786,6 +819,8 @@ class _WebViewContainerState extends State<WebViewContainer>
             SearchAlgorithmList: SearchAlgorithmList,
             updatePreloading: _updatePreloading,
             preloadNumber: _preloadNumber,
+            updateAutoSwitchPlatform: _updateAutoSwitchPlatform,
+            autoSwitchPlatform: _autoSwitchPlatform,
             prefs: prefs,
           );
         },
@@ -1060,6 +1095,82 @@ class _WebViewContainerState extends State<WebViewContainer>
     // });
   }
 
+  _showSelectMenu(BuildContext context) {
+    return showModalBottomSheet(
+      barrierColor: Colors.transparent,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(
+          Radius.circular(0),
+        ),
+      ),
+      context: context,
+      builder: (context) {
+        return Container(
+          height: Platform.isIOS
+              ? (_loadingPercentage < 100 ? 65 : 60)
+              : (_loadingPercentage < 100 ? 55 : 50),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      print("select all");
+
+                      Navigator.pop(context);
+                    },
+                    icon: const FaIcon(FontAwesomeIcons.borderAll, size: 20),
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      print("copy");
+                      String? selectedText =
+                          await _currentWebViewController?.getSelectedText();
+                      await Clipboard.setData(
+                          ClipboardData(text: selectedText));
+                      print("selectedText: $selectedText");
+
+                      Navigator.pop(context);
+
+                      final snackBar = SnackBar(
+                        content: Text("Copied ${selectedText}"),
+                        duration: const Duration(seconds: 3),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    },
+                    icon: const FaIcon(FontAwesomeIcons.copy, size: 20),
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      print("drill");
+                      String? selectedText =
+                          await _currentWebViewController?.getSelectedText();
+                      print("selectedText: $selectedText");
+
+                      Navigator.pop(context);
+
+                      final snackBar = SnackBar(
+                        content: Text("Copied ${selectedText}"),
+                        duration: const Duration(seconds: 3),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+                      _performDrill(selectedText);
+                    },
+                    icon: const Icon(MyFlutterApp.drill, size: 20),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildWebView(BuildContext context, var data, int position) {
     // print("data $data");
     print("building...");
@@ -1100,19 +1211,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             print("onHover");
           },
           child: InAppWebView(
-            // pullToRefreshController: PullToRefreshController(
-            //   settings: PullToRefreshSettings(
-            //     color: Colors.blue,
-            //   ),
-            //   onRefresh: () async {
-            //     print("onRefresh");
-            //     // await Future.delayed(Duration(seconds: 2));
-            //     _currentWebViewController!.stopLoading();
-            //     _currentWebViewController!.reload();
-            //     // _webViewControllers[position]!.stopLoading();
-            //     // _webViewControllers[position]!.reload();
-            //   },
-            // ),
+            pullToRefreshController: _refreshController,
             gestureRecognizers: {
               Factory<LongPressGestureRecognizer>(
                   () => LongPressGestureRecognizer()),
@@ -1149,6 +1248,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                   _currentWebViewTitle = data["title"];
                   // _currentWebViewTitle = title;
                 });
+                _refreshController?.endRefreshing();
               }
             },
             onReceivedError: (controller, request, error) {},
@@ -1163,45 +1263,46 @@ class _WebViewContainerState extends State<WebViewContainer>
               print("zoomScale: $oldScale, $newScale");
             },
             contextMenu: ContextMenu(
-              // settings: ContextMenuSettings(
-              //     // hideDefaultSystemContextMenuItems: true,
-              //     ),
-              menuItems: [
-                ContextMenuItem(
-                    id: 1,
-                    title: "Drill",
-                    action: () async {
-                      String selectedText =
-                          await _currentWebViewController?.getSelectedText() ??
-                              "";
-                      print("selectedText: $selectedText");
+                // settings: ContextMenuSettings(
+                //   hideDefaultSystemContextMenuItems: true,
+                // ),
+                // onCreateContextMenu: (hitTestResult) async {
+                //   print("hitTestResult");
+                //   var result = await _showSelectMenu(context);
+                //   print("result ${await result}");
+                // },
+                // onContextMenuActionItemClicked: (contextMenuItemClicked) => {
+                //   print("contextMenuItemClicked: ${contextMenuItemClicked.id}"),
+                // },
+                // onHideContextMenu: () {
+                //   print("onHideContextMenu");
+                //   final snackBar = SnackBar(
+                //     content: Text("onHideContextMenu"),
+                //     duration: const Duration(seconds: 3),
+                //   );
+                //   ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                // },
+                // menuItems: [
+                //   ContextMenuItem(
+                //     id: 1,
+                //     title: "Drill",
+                //     action: () async {
+                //       String selectedText =
+                //           await _currentWebViewController?.getSelectedText() ??
+                //               "";
+                //       print("selectedText: $selectedText");
 
-                      final snackBar = SnackBar(
-                        content: Text("Drilling ${selectedText}"),
-                        duration: const Duration(seconds: 3),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                //       final snackBar = SnackBar(
+                //         content: Text("Drilling ${selectedText}"),
+                //         duration: const Duration(seconds: 3),
+                //       );
+                //       ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                      _performDrill(selectedText);
-                    })
-              ],
-              // onCreateContextMenu: (hitTestResult) async {
-              //   String selectedText =
-              //       await _currentWebViewController?.getSelectedText() ?? "";
-              //   print("selectedText: $selectedText");
-              //   final snackBar = SnackBar(
-              //     content: Text(
-              //         "Selected text: '$selectedText', of type: ${hitTestResult.type.toString()}"),
-              //     duration: Duration(seconds: 1),
-              //   );
-              //   ScaffoldMessenger.of(context).showSnackBar(snackBar);
-              // },
-              // onContextMenuActionItemClicked: (menuItem) async {
-              //   String selectedText =
-              //       await _currentWebViewController?.getSelectedText() ?? "";
-              //   print("selectedText: $selectedText");
-              // },
-            ),
+                //       _performDrill(selectedText);
+                //     },
+                //   )
+                // ],
+                ),
           ),
         ),
         //     WebView(
@@ -1529,13 +1630,40 @@ class _WebViewContainerState extends State<WebViewContainer>
                 child: GestureDetector(
                   onLongPress: () async {
                     // _performDrill();
-                    await _handleSearch(_realSearchText);
-                    print(
-                        "_currentDomainIndex $_currentDomainIndex | ${SearchPlatformList[_currentDomainIndex]}");
+                    // await _handleSearch(_realSearchText);
+                    // print(
+                    //     "_currentDomainIndex $_currentDomainIndex | ${SearchPlatformList[_currentDomainIndex]}");
                     // await _preloadPlatformController.animateToPage(
                     //     _currentDomainIndex,
                     //     duration: const Duration(milliseconds: 300),
                     //     curve: Curves.easeIn);
+                    if (!_activatedSearchPlatforms
+                        .contains(_currentSearchPlatform)) {
+                      setState(() {
+                        _activatedSearchPlatforms.add(_currentSearchPlatform);
+                      });
+                    }
+
+                    _platformChanged = true;
+
+                    if (URLs[_searchText][_currentSearchPlatform] == null) {
+                      // do search only if it has not been done before
+                      var items = await _performSearch(
+                          _realSearchText, _currentSearchPlatform);
+                      await _updateURLs('replace', _searchText,
+                          _currentSearchPlatform, items);
+                    }
+
+                    await _updateCurrentURLs();
+                    await _moveSwiper();
+
+                    print(
+                        "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+                    await _preloadPlatformController.animateToPage(
+                        _activatedSearchPlatforms
+                            .indexOf(_currentSearchPlatform),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeIn);
                   },
                   child: Draggable(
                     feedback: Container(
@@ -1664,41 +1792,43 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                         // count down 5 seconds
                         print(_platformActivationTimer == null);
-                        if (_platformActivationTimer == null) {
-                          _platformActivationTimer = RestartableTimer(
-                              const Duration(seconds: 2), () async {
-                            if (!_activatedSearchPlatforms
-                                .contains(_currentSearchPlatform)) {
-                              setState(() {
-                                _activatedSearchPlatforms
-                                    .add(_currentSearchPlatform);
-                              });
-                            }
+                        if (_autoSwitchPlatform == 1) {
+                          if (_platformActivationTimer == null) {
+                            _platformActivationTimer = RestartableTimer(
+                                const Duration(seconds: 2), () async {
+                              if (!_activatedSearchPlatforms
+                                  .contains(_currentSearchPlatform)) {
+                                setState(() {
+                                  _activatedSearchPlatforms
+                                      .add(_currentSearchPlatform);
+                                });
+                              }
 
-                            _platformChanged = true;
+                              _platformChanged = true;
 
-                            if (URLs[_searchText][_currentSearchPlatform] ==
-                                null) {
-                              // do search only if it has not been done before
-                              var items = await _performSearch(
-                                  _realSearchText, _currentSearchPlatform);
-                              await _updateURLs('replace', _searchText,
-                                  _currentSearchPlatform, items);
-                            }
+                              if (URLs[_searchText][_currentSearchPlatform] ==
+                                  null) {
+                                // do search only if it has not been done before
+                                var items = await _performSearch(
+                                    _realSearchText, _currentSearchPlatform);
+                                await _updateURLs('replace', _searchText,
+                                    _currentSearchPlatform, items);
+                              }
 
-                            await _updateCurrentURLs();
-                            await _moveSwiper();
+                              await _updateCurrentURLs();
+                              await _moveSwiper();
 
-                            print(
-                                "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
-                            await _preloadPlatformController.animateToPage(
-                                _activatedSearchPlatforms
-                                    .indexOf(_currentSearchPlatform),
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeIn);
-                          });
-                        } else {
-                          _platformActivationTimer!.reset();
+                              print(
+                                  "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+                              await _preloadPlatformController.animateToPage(
+                                  _activatedSearchPlatforms
+                                      .indexOf(_currentSearchPlatform),
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeIn);
+                            });
+                          } else {
+                            _platformActivationTimer!.reset();
+                          }
                         }
                       },
                       label: Text(_currentSearchPlatform),
@@ -1951,6 +2081,45 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         IconButton(
                                           onPressed: () async {
                                             print("stairs of drill");
+                                            showModalBottomSheet(
+                                              transitionAnimationController:
+                                                  AnimationController(
+                                                vsync: this,
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                              ),
+                                              context: context,
+                                              builder: (BuildContext context) =>
+                                                  Container(
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height *
+                                                    0.5,
+                                                child: Stack(
+                                                  children: [
+                                                    ListView(
+                                                      children: [
+                                                        const ListTile(
+                                                          title: Text(
+                                                            "Drill Histories",
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 20,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        ListTile(
+                                                          title: Text(
+                                                              _currentSearchPlatform),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
                                           },
                                           icon: const FaIcon(
                                             FontAwesomeIcons.stairs,
@@ -2041,40 +2210,14 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               FontAwesomeIcons.angleRight,
                                               size: 20),
                                         ),
-                                        // DropdownButton<String>(
-                                        //   value: _currentSearchPlatform,
-                                        //   icon: const Icon(Icons.arrow_drop_up),
-                                        //   elevation: 16,
-                                        //   // style: const TextStyle(color: Colors.deepPurple),
-                                        //   underline: Container(
-                                        //     height: 2,
-                                        //     // color: _appBarColor,
-                                        //   ),
-                                        //   onChanged: (String? value) async {
-                                        //     print("value $value");
 
-                                        //     setState(() {
-                                        //       _currentSearchPlatform = value!;
-                                        //     });
-
-                                        //     _handleSearch(_realSearchText);
-                                        //   },
-                                        //   items: SearchPlatformList.map<
-                                        //           DropdownMenuItem<String>>(
-                                        //       (String value) {
-                                        //     return DropdownMenuItem<String>(
-                                        //       value: value,
-                                        //       child: Text(value),
-                                        //     );
-                                        //   }).toList(),
-                                        // ),
                                         IconButton(
                                           onPressed: () async {
                                             await _currentWebViewController!
                                                 .goBack();
                                           },
                                           icon: const FaIcon(
-                                              FontAwesomeIcons.arrowsRotate,
+                                              FontAwesomeIcons.rotateLeft,
                                               size: 20),
                                         ),
                                         IconButton(
@@ -2093,17 +2236,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                               FontAwesomeIcons.shareNodes,
                                               size: 20),
                                         ),
-                                        // TextButton(
-                                        //   onPressed: () {
-                                        //     _currentWebViewController!.goBack();
-                                        //   },
-                                        //   style: TextButton.styleFrom(
-                                        //     foregroundColor: Colors.black87,
-                                        //   ),
-                                        //   child: const Text("Back"),
-                                        //   // icon: const Icon(Icons
-                                        //   //     .settings_backup_restore_rounded),
-                                        // ),
                                       ],
                                     ),
                                   ],
