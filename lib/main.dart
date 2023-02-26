@@ -28,6 +28,7 @@ import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 // import 'package:rake/rake.dart';
+import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
 
 import 'my_flutter_app_icons.dart';
 /*
@@ -223,6 +224,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   String _currentWebViewTitle = "";
   // var _next;
   bool _platformChanged = false;
+  List _activatedSearchPlatforms = ["Google"];
   // final rake = Rake();
 
   // include only first page
@@ -261,6 +263,21 @@ class _WebViewContainerState extends State<WebViewContainer>
   SwiperController _swiperControllerHorizontal = new SwiperController();
 
   PreloadPageController _preloadPageController = PreloadPageController(
+    initialPage: 0,
+    // loop: true,
+    // preloadPagesCount: 3,
+    // autoPlay: true,
+    // autoPlayInterval: Duration(seconds: 3),
+    // autoPlayAnimationDuration: Duration(milliseconds: 800),
+    // autoPlayCurve: Curves.fastOutSlowIn,
+    // enlargeCenterPage: true,
+    // scrollDirection: Axis.vertical,
+    // onPageChanged: (index, reason) {
+    //   print("index: $index, reason: $reason");
+    // },
+  );
+
+  PreloadPageController _preloadPlatformController = PreloadPageController(
     initialPage: 0,
     // loop: true,
     // preloadPagesCount: 3,
@@ -536,6 +553,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         {
           // only set the URL list if there are results
           if (list.length > 0) {
+            print("platform: $platform");
             setState(() {
               URLs[keyword][platform] = [];
 
@@ -582,6 +600,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         _searchResult = URLs[_searchText];
         // print("_searchResult $_searchResult");
         // _currentURLs = URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
+        print("_currentSearchPlatform $_currentSearchPlatform");
         _currentURLs = URLs[_searchText][_currentSearchPlatform];
         // print("_currentURLs $_currentURLs");
         _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
@@ -610,22 +629,22 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       // if (_controller_test?.runtimeType != null) {
       // if (_controller_test?.runtimeType != null && !switchMode && !drilling) {
-      print("MOVE");
+      // print("MOVE");
       // _swiperControllerVertical.move(0, animation: false);
-      _swiperControllerVertical
-          .move(0); // kinda buggy with animation set to false
-      _swiperControllerHorizontal
-          .move(0); // kinda buggy with animation set to false
+      // _swiperControllerVertical
+      //     .move(0); // kinda buggy with animation set to false
+      // _swiperControllerHorizontal
+      //     .move(0); // kinda buggy with animation set to false
 
-      _currentDomainIndex = 0;
+      // _currentDomainIndex = 0;
       _currentURLIndex = 0;
 
       // print("_preloadPageController.page ${_preloadPageController.page}");
-      print(
-          "_preloadPageController.positions ${_preloadPageController.positions}");
-      if (_preloadPageController.positions.isNotEmpty) {
-        _preloadPageController.jumpToPage(0);
-      }
+      // print(
+      //     "_preloadPageController.positions ${_preloadPageController.positions}");
+      // if (_preloadPageController.positions.isNotEmpty) {
+      //   _preloadPageController.jumpToPage(0);
+      // }
       // _preloadPageController.jumpToPage(0);
 
       // if (_searchMode != "Drill-down") _loadNewPage();
@@ -634,11 +653,11 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       // if (!switchMode && _searchMode != "Drill-down") {
 
-      _pageKey = GlobalKey();
+      // _pageKey = GlobalKey();
     });
   }
 
-  void _handleSearch(value) async {
+  _handleSearch(value) async {
     setState(() {
       _searchMode = "Default";
       _appBarColor = _defaultAppBarColor;
@@ -1371,10 +1390,28 @@ class _WebViewContainerState extends State<WebViewContainer>
       newIndex = 0;
     }
     setState(() {
+      _currentDomainIndex = newIndex;
       _currentSearchPlatform = SearchPlatformList[newIndex];
+    });
+    print("new _currentDomainIndex: $_currentDomainIndex");
+  }
+
+  switchPlatform() {
+    print("new platform: ${_currentSearchPlatform}");
+    setState(() {
+      // _currentDomainIndex = 0;
+      // _currentSearchPlatform = SearchPlatformList[0];
       _platformChanged = true;
     });
   }
+
+  var _platformActivationTimer = null;
+  // = RestartableTimer(
+  //   const Duration(seconds: 3),
+  //   () {
+  //     print("3 seconds passed | platform switched");
+  //   },
+  // );
 
   @override
   Widget build(BuildContext context) {
@@ -1476,9 +1513,15 @@ class _WebViewContainerState extends State<WebViewContainer>
                     ? const Alignment(1, 0.95)
                     : const Alignment(1, 0.88),
                 child: GestureDetector(
-                  onLongPress: () {
+                  onLongPress: () async {
                     // _performDrill();
-                    _handleSearch(_realSearchText);
+                    await _handleSearch(_realSearchText);
+                    print(
+                        "_currentDomainIndex $_currentDomainIndex | ${SearchPlatformList[_currentDomainIndex]}");
+                    // await _preloadPlatformController.animateToPage(
+                    //     _currentDomainIndex,
+                    //     duration: const Duration(milliseconds: 300),
+                    //     curve: Curves.easeIn);
                   },
                   child: Draggable(
                     feedback: Container(
@@ -1604,6 +1647,45 @@ class _WebViewContainerState extends State<WebViewContainer>
                     child: FloatingActionButton.extended(
                       onPressed: () {
                         _changeSearchPlatform();
+
+                        // count down 5 seconds
+                        print(_platformActivationTimer == null);
+                        if (_platformActivationTimer == null) {
+                          _platformActivationTimer = RestartableTimer(
+                              const Duration(seconds: 2), () async {
+                            if (!_activatedSearchPlatforms
+                                .contains(_currentSearchPlatform)) {
+                              setState(() {
+                                _activatedSearchPlatforms
+                                    .add(_currentSearchPlatform);
+                              });
+                            }
+
+                            _platformChanged = true;
+
+                            if (URLs[_searchText][_currentSearchPlatform] ==
+                                null) {
+                              // do search only if it has not been done before
+                              var items = await _performSearch(
+                                  _realSearchText, _currentSearchPlatform);
+                              await _updateURLs('replace', _searchText,
+                                  _currentSearchPlatform, items);
+                            }
+
+                            await _updateCurrentURLs();
+                            await _moveSwiper();
+
+                            print(
+                                "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+                            await _preloadPlatformController.animateToPage(
+                                _activatedSearchPlatforms
+                                    .indexOf(_currentSearchPlatform),
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeIn);
+                          });
+                        } else {
+                          _platformActivationTimer!.reset();
+                        }
                       },
                       label: Text(_currentSearchPlatform),
                       backgroundColor: _fabColor,
@@ -1689,109 +1771,138 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //       "webview pan end ${details.globalPosition}");
                               // },
                               child: PreloadPageView.builder(
-                                physics: const NeverScrollableScrollPhysics(),
+                                onPageChanged: (value) {
+                                  print("platform changed: $value");
+                                  print(
+                                      "${URLs[_searchText][SearchPlatformList[value]]}");
+                                },
+                                scrollDirection: Axis.vertical,
                                 key: _pageKey,
-                                preloadPagesCount: _preloadNumber,
-                                itemBuilder:
-                                    (BuildContext context, int position) =>
-                                        _buildWebView(
-                                            context,
-                                            position >= _currentURLs.length
-                                                ? ""
-                                                : _currentURLs[position]!,
-                                            position),
-                                itemCount: _currentURLs.length,
-                                controller: _preloadPageController,
-                                onPageChanged: (int position) async {
-                                  print('page changed. current: $position');
-                                  // print(
-                                  //     "${_currentURLs[position]!['title']} | $_next");
+                                preloadPagesCount: 0,
+                                controller: _preloadPlatformController,
+                                itemCount: _activatedSearchPlatforms.length,
+                                itemBuilder: (BuildContext context,
+                                        int platformPosition) =>
+                                    PreloadPageView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  preloadPagesCount: _preloadNumber,
+                                  controller: _preloadPageController,
+                                  itemCount: URLs[_searchText][
+                                                  _activatedSearchPlatforms[
+                                                      platformPosition]]
+                                              ?.length ==
+                                          null
+                                      ? 0
+                                      : URLs[_searchText][
+                                              _activatedSearchPlatforms[
+                                                  platformPosition]]
+                                          .length,
+                                  itemBuilder: (BuildContext context,
+                                          int urlPosition) =>
+                                      _buildWebView(
+                                          context,
+                                          urlPosition >=
+                                                  URLs[_searchText][
+                                                          _activatedSearchPlatforms[
+                                                              platformPosition]]
+                                                      .length
+                                              ? ""
+                                              : URLs[_searchText][
+                                                      _activatedSearchPlatforms[
+                                                          platformPosition]]
+                                                  [urlPosition]!,
+                                          urlPosition),
+                                  onPageChanged: (int position) async {
+                                    print('page changed. current: $position');
+                                    // print(
+                                    //     "${_currentURLs[position]!['title']} | $_next");
 
-                                  // var temp = _webViewControllers[_next];
+                                    // var temp = _webViewControllers[_next];
 
-                                  // var temp = _
+                                    // var temp = _
 
-                                  // print("temp 1 $temp");
-                                  // print("temp 2 ${_webViewControllers[temp]}");
-
-                                  setState(() {
-                                    _currentURLIndex = position;
-                                    _currentWebViewTitle =
-                                        _currentURLs[position]!['title'];
-                                    _loadingPercentage = 100;
-
-                                    // if (_webViewControllers[
-                                    //         _currentURLs[position]!['link']] ==
-                                    //     null) {
-                                    //   print("add 1");
-                                    //   _webViewControllers.addAll({
-                                    //     _currentURLs[position]!['link']:
-                                    //         _webViewControllers[_next]
-                                    //   });
-                                    // }
-
-                                    _currentWebViewController =
-                                        _webViewControllers[position];
-
-                                    print(
-                                        "_webViewControllers $_webViewControllers");
-                                  });
-
-                                  // print(
-                                  //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
-                                  // print(
-                                  //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
-                                  // print(
-                                  //     "controller 3 ${await _currentWebViewController}");
-
-                                  // print(
-                                  //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
-
-                                  // fetch more results if we are almost at the end of the list
-                                  if (position + 1 >= _currentURLs.length) {
-                                    print("reached end of list");
+                                    // print("temp 1 $temp");
+                                    // print("temp 2 ${_webViewControllers[temp]}");
 
                                     setState(() {
-                                      page++;
-                                      _start = (page - 1) * 10 + 1;
+                                      _currentURLIndex = position;
+                                      _currentWebViewTitle =
+                                          _currentURLs[position]!['title'];
+                                      _loadingPercentage = 100;
+
+                                      // if (_webViewControllers[
+                                      //         _currentURLs[position]!['link']] ==
+                                      //     null) {
+                                      //   print("add 1");
+                                      //   _webViewControllers.addAll({
+                                      //     _currentURLs[position]!['link']:
+                                      //         _webViewControllers[_next]
+                                      //   });
+                                      // }
+
+                                      _currentWebViewController =
+                                          _webViewControllers[position];
+
+                                      print(
+                                          "_webViewControllers $_webViewControllers");
                                     });
 
-                                    var items = await _performSearch(
-                                        _searchText, _currentSearchPlatform);
-                                    print("items $items");
-                                    // update the URLs
-                                    await _updateURLs('extend', _searchText,
-                                        _currentSearchPlatform, items);
+                                    // print(
+                                    //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
+                                    // print(
+                                    //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
+                                    // print(
+                                    //     "controller 3 ${await _currentWebViewController}");
 
-                                    // update the current URLs
-                                    await _updateCurrentURLs();
-                                  }
+                                    // print(
+                                    //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
 
-                                  // print(
-                                  //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
+                                    // fetch more results if we are almost at the end of the list
+                                    if (position + 1 >= _currentURLs.length) {
+                                      print("reached end of list");
 
-                                  // if (position > _prevPos) {
-                                  //   print("next");
-                                  //   // setState(() {
-                                  //   //   _webViewKeyList.removeAt(0);
-                                  //   // });
-                                  // } else if (position < _prevPos) {
-                                  //   print("prev");
-                                  //   // setState(() {
-                                  //   //   _webViewKeyList.removeLast();
-                                  //   // });
-                                  // }
+                                      setState(() {
+                                        page++;
+                                        _start = (page - 1) * 10 + 1;
+                                      });
 
-                                  // setState(() {
-                                  //   _webViewKeyList.clear();
-                                  // });
+                                      var items = await _performSearch(
+                                          _searchText, _currentSearchPlatform);
+                                      print("items $items");
+                                      // update the URLs
+                                      await _updateURLs('extend', _searchText,
+                                          _currentSearchPlatform, items);
 
-                                  // print("length ${_webViewKeyList.length}");
+                                      // update the current URLs
+                                      await _updateCurrentURLs();
+                                    }
 
-                                  // setState(() {
-                                  //   _prevPos = position;
-                                  // });
-                                },
+                                    // print(
+                                    //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
+
+                                    // if (position > _prevPos) {
+                                    //   print("next");
+                                    //   // setState(() {
+                                    //   //   _webViewKeyList.removeAt(0);
+                                    //   // });
+                                    // } else if (position < _prevPos) {
+                                    //   print("prev");
+                                    //   // setState(() {
+                                    //   //   _webViewKeyList.removeLast();
+                                    //   // });
+                                    // }
+
+                                    // setState(() {
+                                    //   _webViewKeyList.clear();
+                                    // });
+
+                                    // print("length ${_webViewKeyList.length}");
+
+                                    // setState(() {
+                                    //   _prevPos = position;
+                                    // });
+                                  },
+                                ),
                               ),
                             ),
                           ),
@@ -1824,16 +1935,41 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       children: [
                                         IconButton(
                                           onPressed: () async {
+                                            print("up platform");
+
+                                            await _preloadPlatformController
+                                                .previousPage(
+                                                    duration: const Duration(
+                                                        milliseconds: 300),
+                                                    curve: Curves.easeIn);
+                                          },
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_up_rounded,
+                                              size: 35),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
+                                            print("down platform");
+                                            await _preloadPlatformController
+                                                .nextPage(
+                                                    duration: const Duration(
+                                                        milliseconds: 300),
+                                                    curve: Curves.easeIn);
+                                          },
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_down_rounded,
+                                              size: 35),
+                                        ),
+                                        IconButton(
+                                          onPressed: () async {
                                             if (_currentURLIndex > 0) {
                                               print("jump to first page");
                                               setState(() {
-                                                // _currentURLIndex--;
                                                 _swipe = true;
                                               });
 
                                               _preloadPageController
                                                   .jumpToPage(0);
-                                              // _loadNewPage();
                                             }
                                           },
                                           icon: const Icon(Icons.first_page,
@@ -1848,19 +1984,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                 _swipe = true;
                                               });
 
-                                              // _preloadPageController
-                                              //     .animateToPage(
-                                              //         _currentURLIndex++,
-                                              //         duration: const Duration(
-                                              //             milliseconds: 300),
-                                              //         curve: Curves.easeIn);
-
                                               await _preloadPageController
                                                   .previousPage(
                                                       duration: const Duration(
                                                           milliseconds: 300),
                                                       curve: Curves.easeIn);
-                                              // _loadNewPage();
                                             }
                                           },
                                           icon: const Icon(Icons.arrow_back_ios,
@@ -1870,9 +1998,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           onPressed: () async {
                                             if (_currentURLIndex <
                                                 _currentURLs.length - 1) {
-                                              print(
-                                                  "increase | ${_preloadPageController.page}");
-
                                               setState(() {
                                                 // _currentURLIndex++;
                                                 _swipe = true;
@@ -1883,7 +2008,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       duration: const Duration(
                                                           milliseconds: 300),
                                                       curve: Curves.easeIn);
-                                              // _loadNewPage();
                                             }
                                           },
                                           icon: const Icon(
