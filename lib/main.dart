@@ -1925,7 +1925,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 // do search only if it has not been done before
                                 var items = await _performSearch(
                                     _realSearchText, _currentSearchPlatform);
-                                await _updateURLs('replace', _searchText,
+                                await _updateURLs('replace', _realSearchText,
                                     _currentSearchPlatform, items);
                               }
 
