@@ -28,6 +28,8 @@ import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:context_menus/context_menus.dart';
+import 'package:icons_plus/icons_plus.dart';
+import 'package:flutter_joystick/flutter_joystick.dart';
 
 // import 'package:rake/rake.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -35,18 +37,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 
 import 'my_flutter_app_icons.dart';
-/*
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import "package:image/src/image.dart";
-import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'dart:io' as io;
-import 'package:path/path.dart' as p;
-import 'package:googleapis_auth/auth_io.dart';
-import 'package:googleapis/vision/v1.dart' as vision;
-import 'package:googleapis/storage/v1.dart';*/
 
 part 'main.g.dart';
 
@@ -133,69 +123,6 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _pageKey = GlobalKey();
 
   Map URLs = {};
-  // Map _drillURLs = {};
-  // final Map URL_list = {
-  //   'doge': {
-  //     'google': [
-  //       "https://coinmarketcap.com/currencies/dogecoin/",
-  //       "https://finance.yahoo.com/quote/DOGE-USD/",
-  //       "https://www.coindesk.com/price/dogecoin/",
-  //       "https://dogecoin.com/",
-  //       "https://en.wikipedia.org/wiki/Doge_(meme)"
-  //     ],
-  //     "facebook": [
-  //       "https://www.cuhk.edu.hk/",
-  //       "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-  //       "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-  //       "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-  //     ],
-  //     "youtube": [
-  //       "https://www.makeuseof.com/tag/3-google-tricks-search/",
-  //       "https://www.youtube.com/watch?v=erZ3IyBCXdY",
-  //       "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-  //       "https://tenor.com/search/idk-what-to-search-gifs",
-  //       "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
-  //       "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
-  //     ],
-  //     "idk": ["https://wlsk.design"]
-  //   },
-  //   'cuhk': {
-  //     'google': [
-  //       "https://coinmarketcap.com/currencies/dogecoin/",
-  //       "https://finance.yahoo.com/quote/DOGE-USD/",
-  //       "https://www.coindesk.com/price/dogecoin/",
-  //       "https://dogecoin.com/",
-  //       "https://en.wikipedia.org/wiki/Doge_(meme)"
-  //     ],
-  //     "facebook": [
-  //       "https://www.cuhk.edu.hk/",
-  //       "https://twitter.com/CUHKofficial?ref_src=twsrc%5Egoogle%7Ctwcamp%5Eserp%7Ctwgr%5Eauthor",
-  //       "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-  //       "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk"
-  //     ],
-  //     "youtube": [
-  //       "https://www.makeuseof.com/tag/3-google-tricks-search/",
-  //       "https://www.youtube.com/watch?v=erZ3IyBCXdY",
-  //       "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-  //       "https://tenor.com/search/idk-what-to-search-gifs",
-  //       "https://cafemom.com/parenting/150248-don't_google_these_freaky_things",
-  //       "https://www.indy100.com/viral/never-search-on-google-reddit-2657792751"
-  //     ],
-  //     "idk": ["https://wlsk.design"]
-  //   },
-  //   'idk': {
-  //     'google': [
-  //       "https://coinmarketcap.com/currencies/dogecoin/",
-  //     ],
-  //     "facebook": [
-  //       "https://www.cuhk.edu.hk/",
-  //     ],
-  //     "youtube": [
-  //       "https://www.blog.google/products/search/20-things-you-didnt-know-you-could-do-search/",
-  //     ],
-  //     "idk": ["https://wlsk.design"]
-  //   }
-  // };
 
   String _searchText = "";
   String _realSearchText = "";
@@ -262,22 +189,22 @@ class _WebViewContainerState extends State<WebViewContainer>
     print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
     // print(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
 
-    _refreshController = kIsWeb
-        ? null
-        : PullToRefreshController(
-            settings: PullToRefreshSettings(
-              color: Colors.blue,
-            ),
-            onRefresh: () async {
-              if (defaultTargetPlatform == TargetPlatform.android) {
-                _currentWebViewController?.reload();
-              } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-                _currentWebViewController?.loadUrl(
-                    urlRequest: URLRequest(
-                        url: await _currentWebViewController?.getUrl()));
-              }
-            },
-          );
+    // _refreshController = kIsWeb
+    //     ? null
+    //     : PullToRefreshController(
+    //         settings: PullToRefreshSettings(
+    //           color: Colors.blue,
+    //         ),
+    //         onRefresh: () async {
+    //           if (defaultTargetPlatform == TargetPlatform.android) {
+    //             _currentWebViewController?.reload();
+    //           } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+    //             _currentWebViewController?.loadUrl(
+    //                 urlRequest: URLRequest(
+    //                     url: await _currentWebViewController?.getUrl()));
+    //           }
+    //         },
+    //       );
   }
 
   @override
@@ -448,7 +375,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     setState(() {
       _drilling = true;
-      _realSearchText = value.toString().trim();
+      // _searchText = value.toString().trim();
     });
 
     print("_searchTimer.tick ${_searchTimer.tick}");
@@ -551,48 +478,52 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       if (list.length > 0) {
         if (URLs[keyword] == null) {
-          URLs[keyword] = {};
+          URLs[keyword] = {"lastViewedPlatform": platform};
+        } else {
+          URLs[keyword]["lastViewedPlatform"] = platform;
         }
 
-        if (URLs[keyword][platform] == null) {
-          URLs[keyword][platform] = [];
-        }
+        // if (URLs[keyword][platform] == null) {
+        //   URLs[keyword][platform] = [];
+        // }
       }
     });
 
     switch (mode) {
-      case "append":
-        {
-          int length = URLs[keyword][platform].length;
+      // case "append":
+      //   {
+      //     int length = URLs[keyword][platform].length;
 
-          setState(() {
-            if (_currentURLIndex < length - 1) {
-              URLs[keyword][platform].removeRange(_currentURLIndex + 1, length);
-            }
+      //     setState(() {
+      //       if (_currentURLIndex < length - 1) {
+      //         URLs[keyword][platform].removeRange(_currentURLIndex + 1, length);
+      //       }
 
-            for (var item in list) {
-              print("added");
-              URLs[keyword][platform]
-                  .add({'title': item['title'], 'link': item['link']});
-            }
+      //       for (var item in list) {
+      //         print("added");
+      //         URLs[keyword][platform]
+      //             .add({'title': item['title'], 'link': item['link']});
+      //       }
 
-            // URLs[keyword][platform]
-            //     .add({'title': 'manual', 'link': 'https://www.google.com'});
-          });
-          break;
-        }
+      //       // URLs[keyword][platform]
+      //       //     .add({'title': 'manual', 'link': 'https://www.google.com'});
+      //     });
+      //     break;
+      //   }
       case "replace":
         {
           // only set the URL list if there are results
           if (list.length > 0) {
             print("platform: $platform");
             setState(() {
-              URLs[keyword][platform] = [];
+              URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
 
               for (var item in list) {
-                URLs[keyword][platform]
+                URLs[keyword][platform]["list"]
                     .add({'title': item['title'], 'link': item['link']});
               }
+
+              // print("URLs[keyword] ${URLs[keyword]}");
 
               // URLs[keyword][platform]
               //     .add({'title': 'manual', 'link': 'https://www.google.com'});
@@ -608,7 +539,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               // URLs[keyword][platform] = [];
 
               for (var item in list) {
-                URLs[keyword][platform]
+                URLs[keyword][platform]["list"]
                     .add({'title': item['title'], 'link': item['link']});
               }
 
@@ -633,19 +564,14 @@ class _WebViewContainerState extends State<WebViewContainer>
         // print("_searchResult $_searchResult");
         // _currentURLs = URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
         print("_currentSearchPlatform $_currentSearchPlatform");
-        _currentURLs = URLs[_searchText][_currentSearchPlatform];
+        _currentURLs = URLs[_searchText][_currentSearchPlatform]["list"];
         // print("_currentURLs $_currentURLs");
         _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
       }
     });
 
-    print("_currentURLs ${_currentURLs}");
+    // print("_currentURLs ${_currentURLs}");
   }
-
-  // void _loadNewPage() {
-  //   print("loading ${_currentURLs[_currentURLIndex]['link']}");
-  //   _currentWebViewController?.loadUrl(_currentURLs[_currentURLIndex]['link']);
-  // }
 
   _moveSwiper() async {
     setState(() {
@@ -714,6 +640,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   _handleSearch(value) async {
     setState(() {
+      _searchText = value;
       _isFetching = true;
       _searchMode = "Default";
       _appBarColor = _defaultAppBarColor;
@@ -721,22 +648,21 @@ class _WebViewContainerState extends State<WebViewContainer>
       _searchHistory.addAll({value.toString(): false});
     });
 
-    print("_searchHistory $_searchHistory");
-    print("search $value");
-    String realSearchText = "";
+    // print("_searchHistory $_searchHistory");
+    // print("search $value");
+    // String realSearchText = "";
     Map results = {};
     value = value.toString();
 
-    print("_searchMode $_searchMode");
+    // print("_searchMode $_searchMode");
 
-    _searchText = value;
-    realSearchText = value;
+    // realSearchText = value;
 
-    print("realSearchText $realSearchText");
+    // print("realSearchText $realSearchText");
 
     // the search results
-    var items = await _performSearch(realSearchText, _currentSearchPlatform);
-    print("items $items");
+    var items = await _performSearch(_searchText, _currentSearchPlatform);
+    // print("items $items");
     // update the URLs
     await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
@@ -753,7 +679,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   void _updateSearchText(searchText) {
     setState(() {
-      _realSearchText = searchText;
+      // _realSearchText = searchText;
       _searchText = searchText;
       _currentSearchPlatform = "Google";
     });
@@ -766,14 +692,14 @@ class _WebViewContainerState extends State<WebViewContainer>
       _isSearching = true;
     });
 
-    _searchFieldController.text = _realSearchText;
+    _searchFieldController.text = _searchText;
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) {
           return SearchPage(
-              realSearchText: _realSearchText,
+              realSearchText: _searchText,
               handleSearch: _handleSearch,
               performSearch: _performSearch,
               updateURLs: _updateURLs,
@@ -940,60 +866,61 @@ class _WebViewContainerState extends State<WebViewContainer>
   // }
 
   _performDrill([selectedText = null]) async {
-    print("drilling... | $selectedText");
     String keyword = selectedText ?? await _getSearchQuery();
+    print("drilling... | $keyword");
+
     setState(() {
-      if (_searchHistory[_realSearchText.toString()] == false) {
-        _searchHistory.update(_realSearchText.toString(), (value) => true);
+      _searchText = keyword;
+
+      if (_searchHistory[_searchText.toString()] == false) {
+        _searchHistory.update(_searchText.toString(), (value) => true);
       }
-      _searchHistory.addAll({keyword.toString(): _realSearchText.toString()});
+
+      _searchHistory.addAll({keyword.toString(): _searchText.toString()});
+
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
         _appBarColor = _defaultAppBarColor;
-        _searchMode = "Default";
+        // _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
         _appBarColor = Colors.amber[300]!;
-        _searchMode = "Drill-down";
+        // _searchMode = "Drill-down";
       }
     });
 
     print("_searchHistory ${_searchHistory.toString()}");
 
-    if (_searchMode == "Drill-down") {
-      // print("real drilling | ${await _getSearchQuery()}");
-      var items = await _performSearch(keyword, _currentSearchPlatform);
-
-      await _updateURLs('append', _searchText, _currentSearchPlatform, items);
-      await _updateCurrentURLs();
+    if (!_activatedSearchPlatforms.contains(_currentSearchPlatform)) {
       setState(() {
-        // _currentURLIndex++;
-        _swipe = true;
+        _activatedSearchPlatforms.add(_currentSearchPlatform);
       });
-
-      // await _preloadPageController
-
-      print("current 1 ${await _currentWebViewController?.getUrl()}");
-
-      // await _currentWebViewController.loadUrl(
-      //     url: _currentURLs[_currentURLIndex]);
-
-      await _preloadPageController
-          .nextPage(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOut)
-          .whenComplete(() => null);
-
-      print(
-          "current 2 ${await _currentWebViewController?.getUrl()} | ${await _currentWebViewController?.getTitle()}");
-      await _currentWebViewController?.loadUrl(
-          urlRequest:
-              URLRequest(url: WebUri(_currentURLs[_currentURLIndex]['link'])));
-
-      // await _currentWebViewController?.loadUrl('https://flutter.dev');
-
-      // _loadNewPage();
     }
+
+    _platformChanged = true;
+
+    if (URLs[_searchText] == null) {
+      URLs[_searchText] = {};
+    }
+
+    if (URLs[_searchText][_currentSearchPlatform] == null) {
+      // do search only if it has not been done before
+      var items = await _performSearch(_searchText, _currentSearchPlatform);
+      await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
+    }
+
+    await _updateCurrentURLs();
+    await _moveSwiper();
+
+    print(
+        "_currentURLs[_currentURLIndex]['link'] ${_currentURLs[_currentURLIndex]['link']}");
+
+    print(
+        "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+    await _preloadPlatformController.animateToPage(
+        _activatedSearchPlatforms.indexOf(_currentSearchPlatform),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeIn);
 
     setState(() {
       // _pageKey = GlobalKey();
@@ -1001,11 +928,11 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
         _appBarColor = _defaultAppBarColor;
-        _searchMode = "Default";
+        // _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
         _appBarColor = Colors.amber[300]!;
-        _searchMode = "Drill-down";
+        // _searchMode = "Drill-down";
       }
     });
   }
@@ -1282,7 +1209,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             print("onHover");
           },
           child: InAppWebView(
-            pullToRefreshController: _refreshController,
+            // pullToRefreshController: _refreshController,
             gestureRecognizers: {
               Factory<LongPressGestureRecognizer>(
                   () => LongPressGestureRecognizer()),
@@ -1617,8 +1544,32 @@ class _WebViewContainerState extends State<WebViewContainer>
       // initial keyword
       if (value.runtimeType == bool) {
         result.add(ListTile(
+          onTap: () async {
+            String lastViewedPlatform =
+                URLs[key.toString()]["lastViewedPlatform"];
+            print("lastPlatform: $lastViewedPlatform");
+            int lastViewedIndex =
+                URLs[key.toString()][lastViewedPlatform]["lastViewedIndex"];
+            print("lastViewedIndex: $lastViewedIndex");
+
+            setState(() {
+              _searchText = key.toString();
+              _currentSearchPlatform = lastViewedPlatform;
+            });
+
+            _updateCurrentURLs();
+
+            await _preloadPlatformController.animateToPage(
+                _activatedSearchPlatforms.indexOf(_currentSearchPlatform),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeIn);
+
+            _preloadPageController.jumpToPage(lastViewedIndex);
+            await _currentWebViewController!
+                .loadUrl(urlRequest: URLRequest(url: WebUri("www.google.com")));
+          },
           contentPadding: const EdgeInsets.only(top: 15, left: 20),
-          title: Text(key),
+          title: Text(key.toString()),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
         ));
       }
@@ -1626,6 +1577,27 @@ class _WebViewContainerState extends State<WebViewContainer>
       // following drill
       else {
         result.add(ListTile(
+          onTap: () async {
+            String lastViewedPlatform = URLs[key]["lastViewedPlatform"];
+            print("lastPlatform: $lastViewedPlatform");
+            int lastViewedIndex =
+                URLs[key][lastViewedPlatform]["lastViewedIndex"];
+            print("lastViewedIndex: $lastViewedIndex");
+
+            setState(() {
+              _searchText = key.toString();
+              _currentSearchPlatform = lastViewedPlatform;
+            });
+
+            _updateCurrentURLs();
+
+            await _preloadPlatformController.animateToPage(
+                _activatedSearchPlatforms.indexOf(_currentSearchPlatform),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeIn);
+
+            _preloadPageController.jumpToPage(lastViewedIndex);
+          },
           visualDensity: VisualDensity(horizontal: 0, vertical: -4),
           // dense: true,
           horizontalTitleGap: 0,
@@ -1716,7 +1688,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     text:
                         // '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
                         _searchResult.isNotEmpty
-                            ? '$_realSearchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
+                            ? '$_searchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
                             : 'Results for $_searchText',
                     style: const TextStyle(fontSize: 18),
                     scrollAxis: Axis.horizontal, //scroll direction
@@ -1743,14 +1715,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                     : const Alignment(1, 0.88),
                 child: GestureDetector(
                   onLongPress: () async {
-                    // _performDrill();
-                    // await _handleSearch(_realSearchText);
-                    // print(
-                    //     "_currentDomainIndex $_currentDomainIndex | ${SearchPlatformList[_currentDomainIndex]}");
-                    // await _preloadPlatformController.animateToPage(
-                    //     _currentDomainIndex,
-                    //     duration: const Duration(milliseconds: 300),
-                    //     curve: Curves.easeIn);
                     if (!_activatedSearchPlatforms
                         .contains(_currentSearchPlatform)) {
                       setState(() {
@@ -1763,7 +1727,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     if (URLs[_searchText][_currentSearchPlatform] == null) {
                       // do search only if it has not been done before
                       var items = await _performSearch(
-                          _realSearchText, _currentSearchPlatform);
+                          _searchText, _currentSearchPlatform);
                       await _updateURLs('replace', _searchText,
                           _currentSearchPlatform, items);
                     }
@@ -1905,7 +1869,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         _changeSearchPlatform();
 
                         // count down 5 seconds
-                        print(_platformActivationTimer == null);
                         if (_autoSwitchPlatform == 1) {
                           if (_platformActivationTimer == null) {
                             _platformActivationTimer = RestartableTimer(
@@ -1924,8 +1887,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   null) {
                                 // do search only if it has not been done before
                                 var items = await _performSearch(
-                                    _realSearchText, _currentSearchPlatform);
-                                await _updateURLs('replace', _realSearchText,
+                                    _searchText, _currentSearchPlatform);
+                                await _updateURLs('replace', _searchText,
                                     _currentSearchPlatform, items);
                               }
 
@@ -2049,66 +2012,65 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           const NeverScrollableScrollPhysics(),
                                       preloadPagesCount: _preloadNumber,
                                       controller: _preloadPageController,
-                                      itemCount: URLs[_searchText][
+                                      itemCount: URLs[_searchText] == null ||
+                                              URLs[_searchText][
                                                       _activatedSearchPlatforms[
-                                                          platformPosition]]
-                                                  ?.length ==
-                                              null
+                                                          platformPosition]] ==
+                                                  null
                                           ? 0
                                           : URLs[_searchText][
                                                   _activatedSearchPlatforms[
-                                                      platformPosition]]
+                                                      platformPosition]]["list"]
                                               .length,
+
+                                      // URLs[_searchText][
+                                      //                 _activatedSearchPlatforms[
+                                      //                     platformPosition]]
+                                      //             ?.length ==
+                                      //         null
+                                      //     ? 0
+                                      //     : URLs[_searchText][
+                                      //             _activatedSearchPlatforms[
+                                      //                 platformPosition]]
+                                      //         .length,
                                       itemBuilder: (BuildContext context,
                                               int urlPosition) =>
                                           _buildWebView(
                                               context,
                                               urlPosition >=
                                                       URLs[_searchText][
-                                                              _activatedSearchPlatforms[
-                                                                  platformPosition]]
+                                                                  _activatedSearchPlatforms[
+                                                                      platformPosition]]
+                                                              ["list"]
                                                           .length
                                                   ? ""
                                                   : URLs[_searchText][
                                                           _activatedSearchPlatforms[
                                                               platformPosition]]
-                                                      [urlPosition]!,
+                                                      ["list"][urlPosition]!,
                                               urlPosition),
                                       onPageChanged: (int position) async {
                                         print(
                                             'page changed. current: $position');
-                                        // print(
-                                        //     "${_currentURLs[position]!['title']} | $_next");
-
-                                        // var temp = _webViewControllers[_next];
-
-                                        // var temp = _
-
-                                        // print("temp 1 $temp");
-                                        // print("temp 2 ${_webViewControllers[temp]}");
 
                                         setState(() {
                                           _currentURLIndex = position;
+                                          URLs[_searchText][
+                                                  _activatedSearchPlatforms[
+                                                      platformPosition]]
+                                              ["lastViewedIndex"] = position;
                                           _currentWebViewTitle =
                                               _currentURLs[position]!['title'];
                                           _loadingPercentage = 100;
-
-                                          // if (_webViewControllers[
-                                          //         _currentURLs[position]!['link']] ==
-                                          //     null) {
-                                          //   print("add 1");
-                                          //   _webViewControllers.addAll({
-                                          //     _currentURLs[position]!['link']:
-                                          //         _webViewControllers[_next]
-                                          //   });
-                                          // }
-
                                           _currentWebViewController =
                                               _webViewControllers[position];
 
-                                          print(
-                                              "_webViewControllers $_webViewControllers");
+                                          // print(
+                                          //     "_webViewControllers $_webViewControllers");
                                         });
+
+                                        // print(
+                                        //     "URLs[_searchText][_activatedSearchPlatforms[platformPosition]] ${URLs[_searchText][_activatedSearchPlatforms[platformPosition]]}");
 
                                         // print(
                                         //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
@@ -2144,31 +2106,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           // update the current URLs
                                           await _updateCurrentURLs();
                                         }
-
-                                        // print(
-                                        //     "prevPos $_prevPos | position $position | length ${_webViewKeyList.length}");
-
-                                        // if (position > _prevPos) {
-                                        //   print("next");
-                                        //   // setState(() {
-                                        //   //   _webViewKeyList.removeAt(0);
-                                        //   // });
-                                        // } else if (position < _prevPos) {
-                                        //   print("prev");
-                                        //   // setState(() {
-                                        //   //   _webViewKeyList.removeLast();
-                                        //   // });
-                                        // }
-
-                                        // setState(() {
-                                        //   _webViewKeyList.clear();
-                                        // });
-
-                                        // print("length ${_webViewKeyList.length}");
-
-                                        // setState(() {
-                                        //   _prevPos = position;
-                                        // });
                                       },
                                     ),
                                   ),
@@ -2176,7 +2113,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                               ),
 
                               // Bottom Bar
-
                               ColoredBox(
                                 color: _appBarColor,
                                 child: SizedBox(
@@ -2226,7 +2162,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                           children: [
                                                             const ListTile(
                                                               title: Text(
-                                                                "Drill Histories",
+                                                                "Drill Histories (click to go back)",
                                                                 style:
                                                                     TextStyle(
                                                                   fontWeight:
