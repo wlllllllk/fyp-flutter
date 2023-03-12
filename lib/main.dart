@@ -75,13 +75,13 @@ List<String> SearchPlatformList = [
   "Twitter",
   "Facebook",
   "Instagram",
-  "Linkedin"
+  "LinkedIn"
 ];
 
 enum Theme { Light, Dark, Auto }
 
-const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+// const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
 // const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
@@ -120,7 +120,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   var _marqueeKey = UniqueKey();
   var _settingsPageKey = UniqueKey();
-  var _pageKey = GlobalKey();
+  // var _pageKey = GlobalKey();
 
   Map URLs = {};
 
@@ -154,22 +154,61 @@ class _WebViewContainerState extends State<WebViewContainer>
   int _prevPos = 0;
   var _currentWebViewKey = null;
   InAppWebViewController? _currentWebViewController;
+  InAppWebViewController? _testWebViewController;
+
   Map _webViewControllers = {};
   int _focusedIndex = 0;
   double _scrollX = 0.0, _scrollY = 0.0;
   String _currentWebViewTitle = "";
   // var _next;
   bool _platformChanged = false;
-  List _activatedSearchPlatforms = ["Google"];
+  Map _activatedSearchPlatforms = {"Google": GlobalKey()};
+  // List _activatedSearchPlatformKeys = [GlobalKey()];
   // final rake = Rake();
   PullToRefreshController? _refreshController;
   bool _menuShown = false;
   Map _searchHistory = {};
   bool _isFetching = false;
+  double _joystickX = 0, _joystickY = 0;
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
   int _start = (page - 1) * 10 + 1;
+
+  // TextEditingController _handleSearch = TextEditingController();
+  // final PreloadPageController _currentPreloadPageController =
+  //     PreloadPageController(
+  //   initialPage: 0,
+  //   // loop: true,
+  //   // preloadPagesCount: 3,
+  //   // autoPlay: true,
+  //   // autoPlayInterval: Duration(seconds: 3),
+  //   // autoPlayAnimationDuration: Duration(milliseconds: 800),
+  //   // autoPlayCurve: Curves.fastOutSlowIn,
+  //   // enlargeCenterPage: true,
+  //   // scrollDirection: Axis.vertical,
+  //   // onPageChanged: (index, reason) {
+  //   //   print("index: $index, reason: $reason");
+  //   // },
+  // );
+
+  final _preloadPageControllers = [];
+  final _preloadPageKeys = [];
+  var _currentPreloadPageController;
+  var _currentPreloadPageKey;
+
+  final PreloadPageController _preloadPlatformController =
+      PreloadPageController(
+    initialPage: 0,
+  );
+
+  PreloadPageController _testPreloadPageController = PreloadPageController(
+    initialPage: 0,
+  );
+
+  final _preloadPlatformKey = GlobalKey();
+  // var _testPreloadPageKey = GlobalKey();
+  var _on9Key = GlobalKey();
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -189,6 +228,18 @@ class _WebViewContainerState extends State<WebViewContainer>
     print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
     // print(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
 
+    // for (var i = 0; i < SearchPlatformList.length; i++) {
+    //   _preloadPageControllers.add(PreloadPageController(
+    //     initialPage: 0,
+    //   ));
+    //   _preloadPageKeys.add(GlobalKey());
+    // }
+
+    // setState(() {
+    //   _currentPreloadPageController = _preloadPageControllers[0];
+    //   _currentPreloadPageKey = _preloadPageKeys[0];
+    // });
+
     // _refreshController = kIsWeb
     //     ? null
     //     : PullToRefreshController(
@@ -196,13 +247,11 @@ class _WebViewContainerState extends State<WebViewContainer>
     //           color: Colors.blue,
     //         ),
     //         onRefresh: () async {
-    //           if (defaultTargetPlatform == TargetPlatform.android) {
-    //             _currentWebViewController?.reload();
-    //           } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-    //             _currentWebViewController?.loadUrl(
-    //                 urlRequest: URLRequest(
-    //                     url: await _currentWebViewController?.getUrl()));
-    //           }
+    //           print("refreshing...");
+    //           // await _refreshController!.beginRefreshing();
+    //           print("refreshing ${await _currentWebViewController!.getUrl()}");
+    //           await _currentWebViewController!.reload();
+    //           await _refreshController!.endRefreshing();
     //         },
     //       );
   }
@@ -214,42 +263,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     _init();
   }
 
-  // TextEditingController _handleSearch = TextEditingController();
-  List<WebViewController> _webViewController = [];
-  // WebViewController? _controller_test;
-
-  SwiperController _swiperControllerVertical = new SwiperController();
-  SwiperController _swiperControllerHorizontal = new SwiperController();
-
-  PreloadPageController _preloadPageController = PreloadPageController(
-    initialPage: 0,
-    // loop: true,
-    // preloadPagesCount: 3,
-    // autoPlay: true,
-    // autoPlayInterval: Duration(seconds: 3),
-    // autoPlayAnimationDuration: Duration(milliseconds: 800),
-    // autoPlayCurve: Curves.fastOutSlowIn,
-    // enlargeCenterPage: true,
-    // scrollDirection: Axis.vertical,
-    // onPageChanged: (index, reason) {
-    //   print("index: $index, reason: $reason");
-    // },
-  );
-
-  PreloadPageController _preloadPlatformController = PreloadPageController(
-    initialPage: 0,
-    // loop: true,
-    // preloadPagesCount: 3,
-    // autoPlay: true,
-    // autoPlayInterval: Duration(seconds: 3),
-    // autoPlayAnimationDuration: Duration(milliseconds: 800),
-    // autoPlayCurve: Curves.fastOutSlowIn,
-    // enlargeCenterPage: true,
-    // scrollDirection: Axis.vertical,
-    // onPageChanged: (index, reason) {
-    //   print("index: $index, reason: $reason");
-    // },
-  );
   // @override
   // void dispose() {
   //   // Clean up the controller when the widget is removed from the
@@ -420,7 +433,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       case 'Instagram':
         ENGINE_ID = SEARCH_ENGINE_ID_INSTAGRAM;
         break;
-      case 'Linkedin':
+      case 'LinkedIn':
         ENGINE_ID = SEARCH_ENGINE_ID_LINKEDIN;
         break;
     }
@@ -466,6 +479,22 @@ class _WebViewContainerState extends State<WebViewContainer>
     return null;
   }
 
+  _updateLastViewedPlatform(keyword, platform) async {
+    if (URLs[keyword] == null) {
+      URLs[keyword] = {"lastViewedPlatform": platform};
+    } else {
+      URLs[keyword]["lastViewedPlatform"] = platform;
+    }
+  }
+
+  _resetLastViewedIndex(keyword, platform) async {
+    if (URLs[keyword][platform] == null) {
+      URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
+    } else {
+      URLs[keyword][platform]["lastViewedIndex"] = 0;
+    }
+  }
+
   _updateURLs(mode, keyword, platform, list) async {
     print("updating...");
 
@@ -477,11 +506,12 @@ class _WebViewContainerState extends State<WebViewContainer>
       _marqueeKey = UniqueKey();
 
       if (list.length > 0) {
-        if (URLs[keyword] == null) {
-          URLs[keyword] = {"lastViewedPlatform": platform};
-        } else {
-          URLs[keyword]["lastViewedPlatform"] = platform;
-        }
+        _updateLastViewedPlatform(keyword, platform);
+        // if (URLs[keyword] == null) {
+        //   URLs[keyword] = {"lastViewedPlatform": platform};
+        // } else {
+        //   URLs[keyword]["lastViewedPlatform"] = platform;
+        // }
 
         // if (URLs[keyword][platform] == null) {
         //   URLs[keyword][platform] = [];
@@ -516,7 +546,8 @@ class _WebViewContainerState extends State<WebViewContainer>
           if (list.length > 0) {
             print("platform: $platform");
             setState(() {
-              URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
+              // URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
+              _resetLastViewedIndex(keyword, platform);
 
               for (var item in list) {
                 URLs[keyword][platform]["list"]
@@ -585,33 +616,12 @@ class _WebViewContainerState extends State<WebViewContainer>
       print(
           "_currentWebViewController?.runtimeType ${_currentWebViewController?.runtimeType}");
 
-      // if (_controller_test?.runtimeType != null) {
-      // if (_controller_test?.runtimeType != null && !switchMode && !drilling) {
-      // print("MOVE");
-      // _swiperControllerVertical.move(0, animation: false);
-      // _swiperControllerVertical
-      //     .move(0); // kinda buggy with animation set to false
-      // _swiperControllerHorizontal
-      //     .move(0); // kinda buggy with animation set to false
-
       // _currentDomainIndex = 0;
       _currentURLIndex = 0;
 
-      // print("_preloadPageController.page ${_preloadPageController.page}");
-      // print(
-      //     "_preloadPageController.positions ${_preloadPageController.positions}");
-      // if (_preloadPageController.positions.isNotEmpty) {
-      //   _preloadPageController.jumpToPage(0);
-      // }
-      // _preloadPageController.jumpToPage(0);
-
-      // if (_searchMode != "Drill-down") _loadNewPage();
-      // _loadNewPage();
-      // }
-
-      // if (!switchMode && _searchMode != "Drill-down") {
-
+      // new key to refresh the preloaded webview
       // _pageKey = GlobalKey();
+      _activatedSearchPlatforms[_currentSearchPlatform] = GlobalKey();
     });
   }
 
@@ -638,7 +648,14 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   };
 
-  _handleSearch(value) async {
+  _handleSearch(value, [selectedPlatform = null]) async {
+    print("selectedPlatform $selectedPlatform");
+    if (selectedPlatform != null) {
+      setState(() {
+        _currentSearchPlatform = selectedPlatform;
+      });
+    }
+
     setState(() {
       _searchText = value;
       _isFetching = true;
@@ -699,13 +716,16 @@ class _WebViewContainerState extends State<WebViewContainer>
       MaterialPageRoute(
         builder: (context) {
           return SearchPage(
-              realSearchText: _searchText,
-              handleSearch: _handleSearch,
-              performSearch: _performSearch,
-              updateURLs: _updateURLs,
-              updateCurrentURLs: _updateCurrentURLs,
-              moveSwiper: _moveSwiper,
-              updateSearchText: _updateSearchText);
+            realSearchText: _searchText,
+            handleSearch: _handleSearch,
+            performSearch: _performSearch,
+            updateURLs: _updateURLs,
+            updateCurrentURLs: _updateCurrentURLs,
+            moveSwiper: _moveSwiper,
+            updateSearchText: _updateSearchText,
+            searchPlatformList: SearchPlatformList,
+            currentPlatform: _currentSearchPlatform,
+          );
         },
       ),
     );
@@ -891,11 +911,19 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     print("_searchHistory ${_searchHistory.toString()}");
 
-    if (!_activatedSearchPlatforms.contains(_currentSearchPlatform)) {
+    if (!_activatedSearchPlatforms.containsKey(_currentSearchPlatform)) {
       setState(() {
-        _activatedSearchPlatforms.add(_currentSearchPlatform);
+        _activatedSearchPlatforms.addAll({_currentSearchPlatform: GlobalKey()});
+        // _activatedSearchPlatformKeys.add(GlobalKey());
       });
     }
+
+    // if (!_activatedSearchPlatforms.contains(_currentSearchPlatform)) {
+    //   setState(() {
+    //     _activatedSearchPlatforms.add(_currentSearchPlatform);
+    //     _activatedSearchPlatformKeys.add(GlobalKey());
+    //   });
+    // }
 
     _platformChanged = true;
 
@@ -910,17 +938,21 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     await _updateCurrentURLs();
-    await _moveSwiper();
 
     print(
         "_currentURLs[_currentURLIndex]['link'] ${_currentURLs[_currentURLIndex]['link']}");
 
-    print(
-        "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+    // print(
+    //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
     await _preloadPlatformController.animateToPage(
-        _activatedSearchPlatforms.indexOf(_currentSearchPlatform),
+        // find the index of the current platform
+        _activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform),
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeIn);
+
+    await _moveSwiper();
+
+    // _currentPreloadPageController.jumpToPage(0);
 
     setState(() {
       // _pageKey = GlobalKey();
@@ -1169,6 +1201,15 @@ class _WebViewContainerState extends State<WebViewContainer>
     // }
   }
 
+  _handlePageRefresh(position) async {
+    // print("position: $position | _currentURLIndex: ${_currentURLIndex}");
+    // // if (position == _currentURLIndex) {
+    // print("ending... | ${await _refreshController!.isRefreshing()}");
+    // await _refreshController!.endRefreshing();
+    // print("ended... | ${await _refreshController!.isRefreshing()}");
+    // }
+  }
+
   Widget _buildWebView(BuildContext context, var data, int position) {
     // print("data $data");
     print("building...");
@@ -1181,10 +1222,11 @@ class _WebViewContainerState extends State<WebViewContainer>
       );
     } else {
       bool bingo = false;
-      if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
+      // if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
+      if (position == _currentURLIndex) {
         bingo = true;
         // if (position == 0) _next = _currentURLs[_currentURLIndex + 1]['link'];
-        print("bingo $bingo");
+        print("bingo $bingo | $position");
         // if (!activityStopwatch.isRunning) {
         //   print("start activityStopwatch");
         //   activityStopwatch.start();
@@ -1238,7 +1280,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               }
             },
             onLoadStop: (controller, url) async {
-              if (bingo) {
+              if (position == _currentURLIndex) {
                 // String title = await _currentWebViewController.getTitle();
                 // print("title: $title | data['title']: ${data['title']}");
                 setState(() {
@@ -1246,8 +1288,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                   _currentWebViewTitle = data["title"];
                   // _currentWebViewTitle = title;
                 });
-                _refreshController?.endRefreshing();
+                // _refreshController?.endRefreshing();
               }
+              // _handlePageRefresh(position);
             },
             onReceivedError: (controller, request, error) {},
             onProgressChanged: (controller, progress) {
@@ -1513,19 +1556,11 @@ class _WebViewContainerState extends State<WebViewContainer>
       newIndex = 0;
     }
     setState(() {
-      _currentDomainIndex = newIndex;
+      // _currentDomainIndex = newIndex;
       _currentSearchPlatform = SearchPlatformList[newIndex];
+      _marqueeKey = UniqueKey();
     });
-    print("new _currentDomainIndex: $_currentDomainIndex");
-  }
-
-  switchPlatform() {
-    print("new platform: ${_currentSearchPlatform}");
-    setState(() {
-      // _currentDomainIndex = 0;
-      // _currentSearchPlatform = SearchPlatformList[0];
-      _platformChanged = true;
-    });
+    print("new _currentSearchPlatform: $_currentSearchPlatform");
   }
 
   var _platformActivationTimer = null;
@@ -1538,38 +1573,90 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   _buildSearchHistoryList() {
     var result = [];
-    String previousKey = "";
-    bool child = false;
+
+    backTo(String key, String lastViewedPlatform, int lastViewedIndex) async {
+      if (kDebugMode) {
+        print(
+            "lastPlatform: $lastViewedPlatform | lastViewedIndex: $lastViewedIndex");
+      }
+
+      // current result
+      if (lastViewedPlatform == _currentSearchPlatform &&
+          lastViewedIndex == _currentURLIndex &&
+          key == _searchText) {
+        return;
+      }
+
+      setState(() {
+        _searchText = key.toString();
+        _currentSearchPlatform = lastViewedPlatform;
+        // _activatedSearchPlatforms[lastViewedPlatform] = GlobalKey();
+        // _activatedSearchPlatforms.
+      });
+
+      _updateCurrentURLs();
+
+      // await _preloadPlatformController.animateToPage(
+      //     // _activatedSearchPlatforms.indexOf(lastViewedPlatform),
+      //     _activatedSearchPlatforms.keys.toList().indexOf(lastViewedPlatform),
+      //     duration: const Duration(milliseconds: 300),
+      //     curve: Curves.easeIn);
+      _preloadPlatformController.jumpToPage(
+          _activatedSearchPlatforms.keys.toList().indexOf(lastViewedPlatform));
+
+      print(
+          "before ${lastViewedPlatform} | ${_activatedSearchPlatforms[lastViewedPlatform]}");
+      setState(() {
+        // _currentPreloadPageKey = GlobalKey();
+        // _testPreloadPageKey = GlobalKey();
+        _activatedSearchPlatforms[lastViewedPlatform] = GlobalKey();
+      });
+      print(
+          "after ${lastViewedPlatform} | ${_activatedSearchPlatforms[lastViewedPlatform]}");
+
+      // print("page before: ${_currentPreloadPageController.page}");
+
+      // need 2 times
+      // if (_loadingPercentage != 100){
+
+      // }
+
+      await _testPreloadPageController.animateToPage(lastViewedIndex,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+
+      // _testPreloadPageController.jumpToPage(lastViewedIndex);
+
+      await _testPreloadPageController.animateToPage(lastViewedIndex,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
+
+      setState(() {
+        // _currentURLIndex = lastViewedIndex;
+        // _currentWebViewTitle = _currentURLs[lastViewedIndex]!['title'];
+        // _currentWebViewController = _webViewControllers[lastViewedIndex];
+        _marqueeKey = UniqueKey();
+      });
+
+      // print("page after: ${_currentPreloadPageController.page}");
+      print("page after: ${_testPreloadPageController.page}");
+    }
+
+    double position = 0;
     _searchHistory.forEach((key, value) {
+      String lastViewedPlatform = URLs[key.toString()]["lastViewedPlatform"];
+      int lastViewedIndex =
+          URLs[key.toString()][lastViewedPlatform]["lastViewedIndex"];
+
       // initial keyword
       if (value.runtimeType == bool) {
         result.add(ListTile(
-          onTap: () async {
-            String lastViewedPlatform =
-                URLs[key.toString()]["lastViewedPlatform"];
-            print("lastPlatform: $lastViewedPlatform");
-            int lastViewedIndex =
-                URLs[key.toString()][lastViewedPlatform]["lastViewedIndex"];
-            print("lastViewedIndex: $lastViewedIndex");
-
-            setState(() {
-              _searchText = key.toString();
-              _currentSearchPlatform = lastViewedPlatform;
-            });
-
-            _updateCurrentURLs();
-
-            await _preloadPlatformController.animateToPage(
-                _activatedSearchPlatforms.indexOf(_currentSearchPlatform),
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeIn);
-
-            _preloadPageController.jumpToPage(lastViewedIndex);
-            await _currentWebViewController!
-                .loadUrl(urlRequest: URLRequest(url: WebUri("www.google.com")));
+          onTap: () {
+            backTo(key, lastViewedPlatform, lastViewedIndex);
+            Navigator.pop(context);
           },
-          contentPadding: const EdgeInsets.only(top: 15, left: 20),
-          title: Text(key.toString()),
+          contentPadding:
+              EdgeInsets.only(top: position == 0 ? 0 : 15, left: 20),
+          title: Text(
+              "${key.toString()}, ${lastViewedPlatform}, ${lastViewedIndex}"),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
         ));
       }
@@ -1577,26 +1664,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       // following drill
       else {
         result.add(ListTile(
-          onTap: () async {
-            String lastViewedPlatform = URLs[key]["lastViewedPlatform"];
-            print("lastPlatform: $lastViewedPlatform");
-            int lastViewedIndex =
-                URLs[key][lastViewedPlatform]["lastViewedIndex"];
-            print("lastViewedIndex: $lastViewedIndex");
-
-            setState(() {
-              _searchText = key.toString();
-              _currentSearchPlatform = lastViewedPlatform;
-            });
-
-            _updateCurrentURLs();
-
-            await _preloadPlatformController.animateToPage(
-                _activatedSearchPlatforms.indexOf(_currentSearchPlatform),
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeIn);
-
-            _preloadPageController.jumpToPage(lastViewedIndex);
+          onTap: () {
+            backTo(key, lastViewedPlatform, lastViewedIndex);
+            Navigator.pop(context);
           },
           visualDensity: VisualDensity(horizontal: 0, vertical: -4),
           // dense: true,
@@ -1606,9 +1676,12 @@ class _WebViewContainerState extends State<WebViewContainer>
             size: 18,
             color: Colors.black87,
           ),
-          title: Text(key.toString()),
+          title: Text(
+              "${key.toString()}, ${lastViewedPlatform}, ${lastViewedIndex}"),
         ));
       }
+
+      position++;
     });
 
     return result.toList();
@@ -1716,9 +1789,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                 child: GestureDetector(
                   onLongPress: () async {
                     if (!_activatedSearchPlatforms
-                        .contains(_currentSearchPlatform)) {
+                        .containsKey(_currentSearchPlatform)) {
                       setState(() {
-                        _activatedSearchPlatforms.add(_currentSearchPlatform);
+                        // _activatedSearchPlatforms.add(_currentSearchPlatform);
+                        _activatedSearchPlatforms
+                            .addAll({_currentSearchPlatform: GlobalKey()});
                       });
                     }
 
@@ -1735,10 +1810,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                     await _updateCurrentURLs();
                     await _moveSwiper();
 
-                    print(
-                        "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+                    // print(
+                    //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
                     await _preloadPlatformController.animateToPage(
-                        _activatedSearchPlatforms
+                        // _activatedSearchPlatforms
+                        //     .indexOf(_currentSearchPlatform),
+                        _activatedSearchPlatforms.keys
+                            .toList()
                             .indexOf(_currentSearchPlatform),
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeIn);
@@ -1813,7 +1891,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                         _appBarColor = _defaultAppBarColor;
                       });
 
-                      RenderBox webViewBox = _pageKey.currentContext
+                      RenderBox webViewBox = _preloadPlatformKey.currentContext
                           ?.findRenderObject() as RenderBox;
                       Offset webViewPosition =
                           webViewBox.localToGlobal(Offset.zero);
@@ -1874,10 +1952,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                             _platformActivationTimer = RestartableTimer(
                                 const Duration(seconds: 2), () async {
                               if (!_activatedSearchPlatforms
-                                  .contains(_currentSearchPlatform)) {
+                                  .containsKey(_currentSearchPlatform)) {
                                 setState(() {
-                                  _activatedSearchPlatforms
-                                      .add(_currentSearchPlatform);
+                                  // _activatedSearchPlatforms
+                                  //     .add(_currentSearchPlatform);
+                                  _activatedSearchPlatforms.addAll(
+                                      {_currentSearchPlatform: GlobalKey()});
                                 });
                               }
 
@@ -1890,15 +1970,23 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     _searchText, _currentSearchPlatform);
                                 await _updateURLs('replace', _searchText,
                                     _currentSearchPlatform, items);
+                              } else {
+                                _updateLastViewedPlatform(
+                                    _searchText, _currentSearchPlatform);
+                                _resetLastViewedIndex(
+                                    _searchText, _currentSearchPlatform);
                               }
 
                               await _updateCurrentURLs();
                               await _moveSwiper();
 
-                              print(
-                                  "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+                              // print(
+                              //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
                               await _preloadPlatformController.animateToPage(
-                                  _activatedSearchPlatforms
+                                  // _activatedSearchPlatforms
+                                  //     .indexOf(_currentSearchPlatform),
+                                  _activatedSearchPlatforms.keys
+                                      .toList()
                                       .indexOf(_currentSearchPlatform),
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeIn);
@@ -1937,7 +2025,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               child: !_isFetching
                   ? _searchResult.isNotEmpty
                       ? Flexible(
-                          child: Column(
+                          child: Stack(
                             children: <Widget>[
                               // WebView
                               // Expanded(
@@ -1949,6 +2037,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //   onLongPress: () {
                               //     print("webview long pressed");
                               //   },
+
                               // Title Bar
                               ColoredBox(
                                 color: Colors.white,
@@ -1975,335 +2064,434 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 ),
                               ),
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    print("webview tapped");
-                                  },
-                                  onDoubleTap: () {
-                                    print("webview double tapped");
-                                  },
-                                  // onPanStart: (details) {
-                                  //   print(
-                                  //       "webview pan start ${details.globalPosition}");
-                                  //   _scrollX = details.globalPosition.dx;
-                                  //   _scrollY = details.globalPosition.dy;
-                                  // },
-                                  // onPanDown: (details) {
-                                  //   print(
-                                  //       "webview pan end ${details.globalPosition}");
-                                  // },
-                                  child: PreloadPageView.builder(
-                                    onPageChanged: (value) {
-                                      print("platform changed: $value");
-                                      print(
-                                          "${URLs[_searchText][SearchPlatformList[value]]}");
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: Platform.isIOS
+                                        ? (_loadingPercentage < 100 ? 65 : 60)
+                                        : (_loadingPercentage < 100 ? 55 : 50),
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      print("webview tapped");
                                     },
-                                    scrollDirection: Axis.vertical,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    key: _pageKey,
-                                    preloadPagesCount: 0,
-                                    controller: _preloadPlatformController,
-                                    itemCount: _activatedSearchPlatforms.length,
-                                    itemBuilder: (BuildContext context,
-                                            int platformPosition) =>
-                                        PreloadPageView.builder(
+                                    onDoubleTap: () {
+                                      print("webview double tapped");
+                                    },
+                                    // onPanStart: (details) {
+                                    //   print(
+                                    //       "webview pan start ${details.globalPosition}");
+                                    //   _scrollX = details.globalPosition.dx;
+                                    //   _scrollY = details.globalPosition.dy;
+                                    // },
+                                    // onPanDown: (details) {
+                                    //   print(
+                                    //       "webview pan end ${details.globalPosition}");
+                                    // },
+                                    child: PreloadPageView.builder(
+                                      onPageChanged: (value) {
+                                        print("platform changed: $value");
+                                        print(
+                                            "${URLs[_searchText][SearchPlatformList[value]]}");
+                                        // setState(() {
+                                        //   _currentPreloadPageController =
+                                        //       _preloadPageControllers[value];
+                                        //   _currentPreloadPageKey =
+                                        //       _preloadPageKeys[value];
+                                        // });
+                                      },
+                                      scrollDirection: Axis.vertical,
                                       physics:
                                           const NeverScrollableScrollPhysics(),
-                                      preloadPagesCount: _preloadNumber,
-                                      controller: _preloadPageController,
-                                      itemCount: URLs[_searchText] == null ||
-                                              URLs[_searchText][
-                                                      _activatedSearchPlatforms[
-                                                          platformPosition]] ==
-                                                  null
-                                          ? 0
-                                          : URLs[_searchText][
-                                                  _activatedSearchPlatforms[
-                                                      platformPosition]]["list"]
-                                              .length,
-
-                                      // URLs[_searchText][
-                                      //                 _activatedSearchPlatforms[
-                                      //                     platformPosition]]
-                                      //             ?.length ==
-                                      //         null
-                                      //     ? 0
-                                      //     : URLs[_searchText][
-                                      //             _activatedSearchPlatforms[
-                                      //                 platformPosition]]
-                                      //         .length,
+                                      key: _preloadPlatformKey,
+                                      preloadPagesCount: 0,
+                                      controller: _preloadPlatformController,
+                                      itemCount:
+                                          _activatedSearchPlatforms.length,
                                       itemBuilder: (BuildContext context,
-                                              int urlPosition) =>
-                                          _buildWebView(
-                                              context,
-                                              urlPosition >=
-                                                      URLs[_searchText][
-                                                                  _activatedSearchPlatforms[
-                                                                      platformPosition]]
-                                                              ["list"]
-                                                          .length
-                                                  ? ""
-                                                  : URLs[_searchText][
-                                                          _activatedSearchPlatforms[
-                                                              platformPosition]]
-                                                      ["list"][urlPosition]!,
-                                              urlPosition),
-                                      onPageChanged: (int position) async {
-                                        print(
-                                            'page changed. current: $position');
-
-                                        setState(() {
-                                          _currentURLIndex = position;
-                                          URLs[_searchText][
-                                                  _activatedSearchPlatforms[
-                                                      platformPosition]]
-                                              ["lastViewedIndex"] = position;
-                                          _currentWebViewTitle =
-                                              _currentURLs[position]!['title'];
-                                          _loadingPercentage = 100;
-                                          _currentWebViewController =
-                                              _webViewControllers[position];
-
-                                          // print(
-                                          //     "_webViewControllers $_webViewControllers");
-                                        });
-
-                                        // print(
-                                        //     "URLs[_searchText][_activatedSearchPlatforms[platformPosition]] ${URLs[_searchText][_activatedSearchPlatforms[platformPosition]]}");
-
-                                        // print(
-                                        //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
-                                        // print(
-                                        //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
-                                        // print(
-                                        //     "controller 3 ${await _currentWebViewController}");
-
-                                        // print(
-                                        //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
-
-                                        // fetch more results if we are almost at the end of the list
-                                        if (position + 1 >=
-                                            _currentURLs.length) {
-                                          print("reached end of list");
+                                              int platformPosition) =>
+                                          PreloadPageView.builder(
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        preloadPagesCount: _preloadNumber,
+                                        // controller: _currentPreloadPageController,
+                                        controller: platformPosition ==
+                                                // _activatedSearchPlatforms.indexOf(
+                                                //     _currentSearchPlatform)
+                                                _activatedSearchPlatforms.keys
+                                                    .toList()
+                                                    .indexOf(
+                                                        _currentSearchPlatform)
+                                            ? _testPreloadPageController
+                                            : null,
+                                        // _preloadPageControllers[
+                                        //     platformPosition],
+                                        // key: platformPosition ==
+                                        //         _activatedSearchPlatforms.indexOf(
+                                        //             _currentSearchPlatform)
+                                        //     ? _testPreloadPageKey
+                                        //     : null,
+                                        key: _activatedSearchPlatforms.values
+                                            .toList()[platformPosition],
+                                        // _activatedSearchPlatformKeys[
+                                        //     platformPosition],
+                                        itemCount: _currentURLs.length,
+                                        // URLs[_searchText] == null ||
+                                        //         URLs[_searchText][
+                                        //                 _activatedSearchPlatforms[
+                                        //                     platformPosition]] ==
+                                        //             null
+                                        //     ? 0
+                                        //     : URLs[_searchText][
+                                        //             _activatedSearchPlatforms[
+                                        //                 platformPosition]]["list"]
+                                        //         .length,
+                                        itemBuilder: (BuildContext context,
+                                                int urlPosition) =>
+                                            _buildWebView(
+                                                context,
+                                                // urlPosition >=
+                                                //         URLs[_searchText][
+                                                //                     _activatedSearchPlatforms[
+                                                //                         platformPosition]]
+                                                //                 ["list"]
+                                                //             .length
+                                                //     ? ""
+                                                //     : URLs[_searchText][
+                                                //             _activatedSearchPlatforms[
+                                                //                 platformPosition]]
+                                                //         ["list"][urlPosition]!,
+                                                // urlPosition
+                                                urlPosition >=
+                                                        _currentURLs.length
+                                                    ? ""
+                                                    : _currentURLs[
+                                                        urlPosition]!,
+                                                urlPosition),
+                                        onPageChanged: (int position) async {
+                                          print(
+                                              'page changed. current: $position');
 
                                           setState(() {
-                                            page++;
-                                            _start = (page - 1) * 10 + 1;
+                                            _currentURLIndex = position;
+                                            URLs[_searchText][
+                                                    _activatedSearchPlatforms
+                                                            .keys
+                                                            .toList()[
+                                                        platformPosition]]
+                                                ["lastViewedIndex"] = position;
+                                            _currentWebViewTitle = _currentURLs[
+                                                position]!['title'];
+                                            _loadingPercentage = 100;
+                                            _currentWebViewController =
+                                                _webViewControllers[position];
+
+                                            // print(
+                                            //     "_webViewControllers $_webViewControllers");
                                           });
 
-                                          var items = await _performSearch(
-                                              _searchText,
-                                              _currentSearchPlatform);
-                                          print("items $items");
-                                          // update the URLs
-                                          await _updateURLs(
-                                              'extend',
-                                              _searchText,
-                                              _currentSearchPlatform,
-                                              items);
+                                          // print(
+                                          //     "URLs[_searchText][_activatedSearchPlatforms[platformPosition]] ${URLs[_searchText][_activatedSearchPlatforms[platformPosition]]}");
 
-                                          // update the current URLs
-                                          await _updateCurrentURLs();
-                                        }
-                                      },
+                                          // print(
+                                          //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
+                                          // print(
+                                          //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
+                                          // print(
+                                          //     "controller 3 ${await _currentWebViewController}");
+
+                                          // print(
+                                          //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
+
+                                          // fetch more results if we are almost at the end of the list
+                                          if (position + 1 >=
+                                              _currentURLs.length) {
+                                            print("reached end of list");
+
+                                            setState(() {
+                                              page++;
+                                              _start = (page - 1) * 10 + 1;
+                                            });
+
+                                            var items = await _performSearch(
+                                                _searchText,
+                                                _currentSearchPlatform);
+                                            print("items $items");
+                                            // update the URLs
+                                            await _updateURLs(
+                                                'extend',
+                                                _searchText,
+                                                _currentSearchPlatform,
+                                                items);
+
+                                            // update the current URLs
+                                            await _updateCurrentURLs();
+                                          }
+                                        },
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
 
                               // Bottom Bar
-                              ColoredBox(
-                                color: _appBarColor,
-                                child: SizedBox(
-                                  height: Platform.isIOS
-                                      ? (_loadingPercentage < 100 ? 65 : 60)
-                                      : (_loadingPercentage < 100 ? 55 : 50),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      print("swiper tapped");
-                                    },
-                                    child: Column(
-                                      children: [
-                                        if (_loadingPercentage < 100)
-                                          LinearProgressIndicator(
-                                            value: _loadingPercentage / 100.0,
-                                            minHeight: 5,
-                                            color: Colors.yellow,
-                                          ),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            IconButton(
-                                              onPressed: () async {
-                                                print("stairs of drill");
-                                                showModalBottomSheet(
-                                                  transitionAnimationController:
-                                                      AnimationController(
-                                                    vsync: this,
-                                                    duration: const Duration(
-                                                        milliseconds: 300),
-                                                  ),
-                                                  context: context,
-                                                  builder:
-                                                      (BuildContext context) =>
-                                                          Container(
-                                                    height:
-                                                        MediaQuery.of(context)
-                                                                .size
-                                                                .height *
-                                                            0.5,
-                                                    child: Stack(
-                                                      children: [
-                                                        ListView(
-                                                          children: [
-                                                            const ListTile(
-                                                              title: Text(
-                                                                "Drill Histories (click to go back)",
-                                                                style:
-                                                                    TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize: 20,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            ..._buildSearchHistoryList(),
-                                                          ],
+                              Positioned(
+                                width: MediaQuery.of(context).size.width,
+                                bottom: 0,
+                                child: ColoredBox(
+                                  color: _appBarColor,
+                                  child: SizedBox(
+                                    height: Platform.isIOS
+                                        ? (_loadingPercentage < 100 ? 65 : 60)
+                                        : (_loadingPercentage < 100 ? 55 : 50),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        print("swiper tapped");
+                                      },
+                                      child: Column(
+                                        children: [
+                                          if (_loadingPercentage < 100)
+                                            LinearProgressIndicator(
+                                              value: _loadingPercentage / 100.0,
+                                              minHeight: 5,
+                                              color: Colors.yellow,
+                                            ),
+                                          Stack(
+                                            // alignment: AlignmentGeometry.,
+                                            // position element evenly
+                                            // clipBehavior: Clip.hardEdge,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      print("stairs of drill");
+                                                      showModalBottomSheet(
+                                                        transitionAnimationController:
+                                                            AnimationController(
+                                                          vsync: this,
+                                                          duration:
+                                                              const Duration(
+                                                                  milliseconds:
+                                                                      300),
                                                         ),
-                                                      ],
+                                                        context: context,
+                                                        builder: (BuildContext
+                                                                context) =>
+                                                            Container(
+                                                          height: MediaQuery.of(
+                                                                      context)
+                                                                  .size
+                                                                  .height *
+                                                              0.5,
+                                                          child: Stack(
+                                                            children: [
+                                                              ListView(
+                                                                children: [
+                                                                  const ListTile(
+                                                                    title: Text(
+                                                                      "Drill Histories (click to go back)",
+                                                                      style:
+                                                                          TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        fontSize:
+                                                                            20,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  ..._buildSearchHistoryList(),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    icon: const FaIcon(
+                                                      FontAwesomeIcons.stairs,
+                                                      size: 20,
                                                     ),
                                                   ),
-                                                );
-                                              },
-                                              icon: const FaIcon(
-                                                FontAwesomeIcons.stairs,
-                                                size: 20,
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     print("up platform");
+
+                                                  //     await _preloadPlatformController
+                                                  //         .previousPage(
+                                                  //             duration: const Duration(
+                                                  //                 milliseconds: 300),
+                                                  //             curve: Curves.easeIn);
+                                                  //   },
+                                                  //   icon: const Icon(
+                                                  //       Icons.keyboard_arrow_up_rounded,
+                                                  //       size: 35),
+                                                  // ),
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     print("down platform");
+                                                  //     await _preloadPlatformController
+                                                  //         .nextPage(
+                                                  //             duration: const Duration(
+                                                  //                 milliseconds: 300),
+                                                  //             curve: Curves.easeIn);
+                                                  //   },
+                                                  //   icon: const Icon(
+                                                  //       Icons.keyboard_arrow_down_rounded,
+                                                  //       size: 35),
+                                                  // ),
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      if (_currentURLIndex >
+                                                          0) {
+                                                        print(
+                                                            "jump to first page");
+                                                        setState(() {
+                                                          _swipe = true;
+                                                        });
+
+                                                        _testPreloadPageController
+                                                            .jumpToPage(0);
+                                                        // _currentPreloadPageController
+                                                        //     .jumpToPage(0);
+                                                      }
+                                                    },
+                                                    icon: const FaIcon(
+                                                      FontAwesomeIcons
+                                                          .backwardFast,
+                                                      size: 20,
+                                                    ),
+                                                  ),
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     if (_currentURLIndex > 0) {
+                                                  //       print("decrease");
+                                                  //       setState(() {
+                                                  //         // _currentURLIndex--;
+                                                  //         _swipe = true;
+                                                  //       });
+
+                                                  //       // await _currentPreloadPageController
+                                                  //       await _testPreloadPageController
+                                                  //           .previousPage(
+                                                  //               duration:
+                                                  //                   const Duration(
+                                                  //                       milliseconds:
+                                                  //                           300),
+                                                  //               curve: Curves.easeIn);
+                                                  //     }
+                                                  //   },
+                                                  //   icon: const FaIcon(
+                                                  //       FontAwesomeIcons.angleLeft,
+                                                  //       size: 20),
+                                                  // ),
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     if (_currentURLIndex <
+                                                  //         _currentURLs.length - 1) {
+                                                  //       setState(() {
+                                                  //         // _currentURLIndex++;
+                                                  //         _swipe = true;
+                                                  //       });
+
+                                                  //       // await _currentPreloadPageController
+                                                  //       await _testPreloadPageController
+                                                  //           .nextPage(
+                                                  //               duration:
+                                                  //                   const Duration(
+                                                  //                       milliseconds:
+                                                  //                           300),
+                                                  //               curve: Curves.easeIn);
+                                                  //     }
+                                                  //   },
+                                                  //   icon: const FaIcon(
+                                                  //       FontAwesomeIcons.angleRight,
+                                                  //       size: 20),
+                                                  // ),
+
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      await _currentWebViewController!
+                                                          .goBack();
+                                                    },
+                                                    icon: const FaIcon(
+                                                        FontAwesomeIcons
+                                                            .rotateLeft,
+                                                        size: 20),
+                                                  ),
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      print("share");
+                                                      String? title =
+                                                          await _currentWebViewController!
+                                                              .getTitle();
+                                                      WebUri? url =
+                                                          (await _currentWebViewController!
+                                                              .getUrl());
+                                                      await Share.share(
+                                                          '${title!}\n${url!}');
+                                                    },
+                                                    icon: const FaIcon(
+                                                        FontAwesomeIcons
+                                                            .shareNodes,
+                                                        size: 20),
+                                                  ),
+                                                ],
                                               ),
-                                            ),
-                                            // IconButton(
-                                            //   onPressed: () async {
-                                            //     print("up platform");
-
-                                            //     await _preloadPlatformController
-                                            //         .previousPage(
-                                            //             duration: const Duration(
-                                            //                 milliseconds: 300),
-                                            //             curve: Curves.easeIn);
-                                            //   },
-                                            //   icon: const Icon(
-                                            //       Icons.keyboard_arrow_up_rounded,
-                                            //       size: 35),
-                                            // ),
-                                            // IconButton(
-                                            //   onPressed: () async {
-                                            //     print("down platform");
-                                            //     await _preloadPlatformController
-                                            //         .nextPage(
-                                            //             duration: const Duration(
-                                            //                 milliseconds: 300),
-                                            //             curve: Curves.easeIn);
-                                            //   },
-                                            //   icon: const Icon(
-                                            //       Icons.keyboard_arrow_down_rounded,
-                                            //       size: 35),
-                                            // ),
-                                            IconButton(
-                                              onPressed: () async {
-                                                if (_currentURLIndex > 0) {
-                                                  print("jump to first page");
-                                                  setState(() {
-                                                    _swipe = true;
-                                                  });
-
-                                                  _preloadPageController
-                                                      .jumpToPage(0);
-                                                }
-                                              },
-                                              icon: const FaIcon(
-                                                FontAwesomeIcons.backwardFast,
-                                                size: 20,
-                                              ),
-                                            ),
-                                            IconButton(
-                                              onPressed: () async {
-                                                if (_currentURLIndex > 0) {
-                                                  print("decrease");
-                                                  setState(() {
-                                                    // _currentURLIndex--;
-                                                    _swipe = true;
-                                                  });
-
-                                                  await _preloadPageController
-                                                      .previousPage(
-                                                          duration:
-                                                              const Duration(
-                                                                  milliseconds:
-                                                                      300),
-                                                          curve: Curves.easeIn);
-                                                }
-                                              },
-                                              icon: const FaIcon(
-                                                  FontAwesomeIcons.angleLeft,
-                                                  size: 20),
-                                            ),
-                                            IconButton(
-                                              onPressed: () async {
-                                                if (_currentURLIndex <
-                                                    _currentURLs.length - 1) {
-                                                  setState(() {
-                                                    // _currentURLIndex++;
-                                                    _swipe = true;
-                                                  });
-
-                                                  await _preloadPageController
-                                                      .nextPage(
-                                                          duration:
-                                                              const Duration(
-                                                                  milliseconds:
-                                                                      300),
-                                                          curve: Curves.easeIn);
-                                                }
-                                              },
-                                              icon: const FaIcon(
-                                                  FontAwesomeIcons.angleRight,
-                                                  size: 20),
-                                            ),
-
-                                            IconButton(
-                                              onPressed: () async {
-                                                await _currentWebViewController!
-                                                    .goBack();
-                                              },
-                                              icon: const FaIcon(
-                                                  FontAwesomeIcons.rotateLeft,
-                                                  size: 20),
-                                            ),
-                                            IconButton(
-                                              onPressed: () async {
-                                                print("share");
-                                                String? title =
-                                                    await _currentWebViewController!
-                                                        .getTitle();
-                                                WebUri? url =
-                                                    (await _currentWebViewController!
-                                                        .getUrl());
-                                                await Share.share(
-                                                    '${title!}\n${url!}');
-                                              },
-                                              icon: const FaIcon(
-                                                  FontAwesomeIcons.shareNodes,
-                                                  size: 20),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
+                                ),
+                              ),
+
+                              // Joystick
+                              Positioned(
+                                bottom: 20,
+                                left:
+                                    MediaQuery.of(context).size.width / 2 - 50,
+                                child: Joystick(
+                                  base: Container(
+                                    width: 100,
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
+                                      color: const Color.fromARGB(
+                                          117, 224, 224, 224),
+                                      backgroundBlendMode: BlendMode.multiply,
+                                    ),
+                                  ),
+                                  stick: Container(
+                                    width: 45,
+                                    height: 45,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
+                                      color: Color.fromARGB(199, 224, 224, 224),
+                                      backgroundBlendMode: BlendMode.multiply,
+                                    ),
+                                  ),
+                                  period: Duration(milliseconds: 300),
+                                  listener: (details) {
+                                    print(
+                                        "joystick:  ${details.x}, ${details.y}");
+                                    _joystickX = details.x;
+                                    _joystickY = details.y;
+                                    if (details.x > 0.5) {
+                                      print("next");
+                                    } else if (details.x < -0.5) {
+                                      print("prev");
+                                    }
+
+                                    if (details.y < -0.5) {
+                                      print("select platform");
+                                    }
+                                  },
                                 ),
                               ),
                             ],
