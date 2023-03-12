@@ -565,6 +565,8 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   _handleSearch(value, [selectedPlatform = null]) async {
+    bool newSearch = false;
+
     print("selectedPlatform $selectedPlatform");
     if (selectedPlatform != null) {
       setState(() {
@@ -576,6 +578,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       _searchText = value;
       if (URLs[_searchText] == null) {
         _isFetching = true;
+        newSearch = true;
       }
 
       _appBarColor = _defaultAppBarColor;
@@ -583,7 +586,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       _searchHistory.addAll({value.toString(): false});
     });
 
-    _normalSearch();
+    print("URLs[_searchText] ${URLs[_searchText]}");
+
+    _normalSearch(newSearch);
 
     // // the search results
     // var items = await _performSearch(_searchText, _currentSearchPlatform);
@@ -1575,7 +1580,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   //   },
   // );
 
-  _normalSearch() async {
+  _normalSearch([newSearch = false]) async {
+    print("newSearch: $newSearch");
+
     if (!_activatedSearchPlatforms.containsKey(_currentSearchPlatform)) {
       setState(() {
         _activatedSearchPlatforms.addAll({_currentSearchPlatform: GlobalKey()});
@@ -1603,7 +1610,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     // print(
     //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
     print("_activatedSearchPlatforms: $_activatedSearchPlatforms");
-    if (_activatedSearchPlatforms.length > 1) {
+    if (!newSearch && _activatedSearchPlatforms.length > 1) {
+      print(
+          "animate to: ${_activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform)}");
       await _preloadPlatformController.animateToPage(
           // _activatedSearchPlatforms
           //     .indexOf(_currentSearchPlatform),
@@ -2251,51 +2260,51 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       size: 20,
                                                     ),
                                                   ),
-                                                  IconButton(
-                                                    onPressed: () async {
-                                                      if (_currentURLIndex >
-                                                          0) {
-                                                        print("decrease");
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     if (_currentURLIndex >
+                                                  //         0) {
+                                                  //       print("decrease");
 
-                                                        // await _currentPreloadPageController
-                                                        await _testPreloadPageController
-                                                            .previousPage(
-                                                                duration:
-                                                                    const Duration(
-                                                                        milliseconds:
-                                                                            300),
-                                                                curve: Curves
-                                                                    .easeIn);
-                                                      }
-                                                    },
-                                                    icon: const FaIcon(
-                                                        FontAwesomeIcons
-                                                            .angleLeft,
-                                                        size: 20),
-                                                  ),
-                                                  IconButton(
-                                                    onPressed: () async {
-                                                      if (_currentURLIndex <
-                                                          _currentURLs.length -
-                                                              1) {
-                                                        // await _currentPreloadPageController
-                                                        // await _testPreloadPageController
-                                                        //     .nextPage(
-                                                        //         duration:
-                                                        //             const Duration(
-                                                        //                 milliseconds:
-                                                        //                     300),
-                                                        //         curve: Curves
-                                                        //             .easeIn);
-                                                        print(
-                                                            "_testPreloadPageController ${_testPreloadPageController}");
-                                                      }
-                                                    },
-                                                    icon: const FaIcon(
-                                                        FontAwesomeIcons
-                                                            .angleRight,
-                                                        size: 20),
-                                                  ),
+                                                  //       // await _currentPreloadPageController
+                                                  //       await _testPreloadPageController
+                                                  //           .previousPage(
+                                                  //               duration:
+                                                  //                   const Duration(
+                                                  //                       milliseconds:
+                                                  //                           300),
+                                                  //               curve: Curves
+                                                  //                   .easeIn);
+                                                  //     }
+                                                  //   },
+                                                  //   icon: const FaIcon(
+                                                  //       FontAwesomeIcons
+                                                  //           .angleLeft,
+                                                  //       size: 20),
+                                                  // ),
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     if (_currentURLIndex <
+                                                  //         _currentURLs.length -
+                                                  //             1) {
+                                                  //       // await _currentPreloadPageController
+                                                  //       // await _testPreloadPageController
+                                                  //       //     .nextPage(
+                                                  //       //         duration:
+                                                  //       //             const Duration(
+                                                  //       //                 milliseconds:
+                                                  //       //                     300),
+                                                  //       //         curve: Curves
+                                                  //       //             .easeIn);
+                                                  //       print(
+                                                  //           "_testPreloadPageController ${_testPreloadPageController}");
+                                                  //     }
+                                                  //   },
+                                                  //   icon: const FaIcon(
+                                                  //       FontAwesomeIcons
+                                                  //           .angleRight,
+                                                  //       size: 20),
+                                                  // ),
 
                                                   IconButton(
                                                     onPressed: () async {
