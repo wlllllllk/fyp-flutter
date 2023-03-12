@@ -21,7 +21,7 @@ import 'dart:math' as math;
 // import 'package:settings_ui/settings_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
-import 'package:google_vision/google_vision.dart';
+// import 'package:google_vision/google_vision.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:scroll_snap_list/scroll_snap_list.dart';
@@ -156,9 +156,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   // final _redirectStopwatch = Stopwatch();
 
   // colours
-  final Color _defaultAppBarColor = Colors.white;
+  Color _defaultAppBarColor = Colors.white;
   Color _appBarColor = Colors.blue[100]!;
-  final Color _themedAppBarColor = Colors.blue[100]!;
+  Color _themedAppBarColor = Colors.blue[100]!;
   Color _fabColor = Colors.blue[100]!;
 
   // ?maybe useful
@@ -2358,8 +2358,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     height: 100,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(50),
-                                      color: const Color.fromARGB(
-                                          117, 224, 224, 224),
+                                      // color: Color.fromARGB(117, 224, 224, 224),
+                                      color: Colors.grey.withOpacity(0.3),
                                       backgroundBlendMode: BlendMode.multiply,
                                     ),
                                   ),
@@ -2368,7 +2368,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     height: 45,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(50),
-                                      color: Color.fromARGB(199, 224, 224, 224),
+                                      color: Colors.grey.withOpacity(0.7),
                                       backgroundBlendMode: BlendMode.multiply,
                                     ),
                                   ),
