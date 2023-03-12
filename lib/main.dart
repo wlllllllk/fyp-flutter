@@ -92,10 +92,6 @@ const SEARCH_ENGINE_ID_LINKEDIN = "c1f02371fcab94ca7";
 
 int page = 1;
 
-// /// A builder that includes an Offset to draw the context menu at.
-// typedef ContextMenuBuilder = Widget Function(
-//     BuildContext context, Offset offset);
-
 class WebViewContainer extends StatefulWidget {
   const WebViewContainer({super.key});
 
@@ -109,106 +105,84 @@ class _WebViewContainerState extends State<WebViewContainer>
       AnimationController(vsync: this, duration: const Duration(seconds: 1))
         ..repeat();
 
+  // settings
   var _searchAlgorithm;
   var _preloadNumber;
   var _autoSwitchPlatform;
   var _theme;
 
-  // GlobalKey _webViewKey = GlobalKey();
-
-  // var _webViewKeyList = [];
-
+  // key
   var _marqueeKey = UniqueKey();
   var _settingsPageKey = UniqueKey();
-  // var _pageKey = GlobalKey();
+  final _preloadPageKeys = [];
+  var _currentPreloadPageKey;
+  final _preloadPlatformKey = GlobalKey();
 
+  // controllers
+  InAppWebViewController? _currentWebViewController;
+  Map _webViewControllers = {};
+  PullToRefreshController? _refreshController;
+  final _preloadPageControllers = [];
+  var _currentPreloadPageController;
+  final PreloadPageController _preloadPlatformController =
+      PreloadPageController(
+    initialPage: 0,
+  );
+  PreloadPageController _testPreloadPageController = PreloadPageController(
+    initialPage: 0,
+  );
+
+  // search related
+  // ignore: non_constant_identifier_names
   Map URLs = {};
-
   String _searchText = "";
-  String _realSearchText = "";
   bool _isSearching = false;
   Map _searchResult = {};
   List _currentURLs = [];
-  List _currentURLsPlain = [];
-  int _currentDomainIndex = 0;
   String _currentSearchPlatform = "";
   int _currentURLIndex = 0;
   int _loadingPercentage = 0;
   String _previousURL = "";
-  final activityStopwatch = Stopwatch();
-  final _redirectStopwatch = Stopwatch();
   int _selectedPageIndex = 0;
-  Color _defaultAppBarColor = Colors.white;
-  Color _appBarColor = Colors.blue[100]!;
-  Color _themedAppBarColor = Colors.blue[100]!;
-  Color _fabColor = Colors.blue[100]!;
-  String _searchMode = "Default";
-  bool _swipe = false;
-  bool _redirecting = false;
   String _webpageContent = "";
   bool _gg = false;
   int _searchCount = 0;
-  double _turns = 0.0;
-  bool _drilling = false;
-  double _hoverX = 0.0, _hoverY = 0.0;
-  int _prevPos = 0;
-  var _currentWebViewKey = null;
-  InAppWebViewController? _currentWebViewController;
-  InAppWebViewController? _testWebViewController;
-
-  Map _webViewControllers = {};
-  int _focusedIndex = 0;
-  double _scrollX = 0.0, _scrollY = 0.0;
   String _currentWebViewTitle = "";
-  // var _next;
-  bool _platformChanged = false;
-  Map _activatedSearchPlatforms = {"Google": GlobalKey()};
+  final Map _searchHistory = {};
+  Map _activatedSearchPlatforms = {};
+
+  //stopwatch
+  final activityStopwatch = Stopwatch();
+  // final _redirectStopwatch = Stopwatch();
+
+  // colours
+  final Color _defaultAppBarColor = Colors.white;
+  Color _appBarColor = Colors.blue[100]!;
+  final Color _themedAppBarColor = Colors.blue[100]!;
+  Color _fabColor = Colors.blue[100]!;
+
+  // ?maybe useful
+  // bool _swipe = false;
+  // bool _redirecting = false;
+  // bool _drilling = false;
+
   // List _activatedSearchPlatformKeys = [GlobalKey()];
   // final rake = Rake();
-  PullToRefreshController? _refreshController;
+
+  // others
   bool _menuShown = false;
-  Map _searchHistory = {};
   bool _isFetching = false;
+
+  // positions
+  double _hoverX = 0.0, _hoverY = 0.0;
+  double _scrollX = 0.0, _scrollY = 0.0;
   double _joystickX = 0, _joystickY = 0;
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
   int _start = (page - 1) * 10 + 1;
 
-  // TextEditingController _handleSearch = TextEditingController();
-  // final PreloadPageController _currentPreloadPageController =
-  //     PreloadPageController(
-  //   initialPage: 0,
-  //   // loop: true,
-  //   // preloadPagesCount: 3,
-  //   // autoPlay: true,
-  //   // autoPlayInterval: Duration(seconds: 3),
-  //   // autoPlayAnimationDuration: Duration(milliseconds: 800),
-  //   // autoPlayCurve: Curves.fastOutSlowIn,
-  //   // enlargeCenterPage: true,
-  //   // scrollDirection: Axis.vertical,
-  //   // onPageChanged: (index, reason) {
-  //   //   print("index: $index, reason: $reason");
-  //   // },
-  // );
-
-  final _preloadPageControllers = [];
-  final _preloadPageKeys = [];
-  var _currentPreloadPageController;
-  var _currentPreloadPageKey;
-
-  final PreloadPageController _preloadPlatformController =
-      PreloadPageController(
-    initialPage: 0,
-  );
-
-  PreloadPageController _testPreloadPageController = PreloadPageController(
-    initialPage: 0,
-  );
-
-  final _preloadPlatformKey = GlobalKey();
   // var _testPreloadPageKey = GlobalKey();
-  var _on9Key = GlobalKey();
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -227,18 +201,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
     print("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
     // print(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
-
-    // for (var i = 0; i < SearchPlatformList.length; i++) {
-    //   _preloadPageControllers.add(PreloadPageController(
-    //     initialPage: 0,
-    //   ));
-    //   _preloadPageKeys.add(GlobalKey());
-    // }
-
-    // setState(() {
-    //   _currentPreloadPageController = _preloadPageControllers[0];
-    //   _currentPreloadPageKey = _preloadPageKeys[0];
-    // });
 
     // _refreshController = kIsWeb
     //     ? null
@@ -386,11 +348,6 @@ class _WebViewContainerState extends State<WebViewContainer>
   _performSearch(value, platform) async {
     print("searching...");
 
-    setState(() {
-      _drilling = true;
-      // _searchText = value.toString().trim();
-    });
-
     print("_searchTimer.tick ${_searchTimer.tick}");
     if (_searchCount == 0 || _searchTimer.tick > 0) {
       _searchTimer.reset();
@@ -450,9 +407,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     var response = !_gg ? await http.get(url) : null;
 
     print("response: $response");
-    setState(() {
-      _drilling = false;
-    });
 
     if (response != null) {
       if (response.statusCode == 200) {
@@ -507,15 +461,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       if (list.length > 0) {
         _updateLastViewedPlatform(keyword, platform);
-        // if (URLs[keyword] == null) {
-        //   URLs[keyword] = {"lastViewedPlatform": platform};
-        // } else {
-        //   URLs[keyword]["lastViewedPlatform"] = platform;
-        // }
-
-        // if (URLs[keyword][platform] == null) {
-        //   URLs[keyword][platform] = [];
-        // }
       }
     });
 
@@ -589,19 +534,13 @@ class _WebViewContainerState extends State<WebViewContainer>
         print("no results");
         _searchResult = {};
       } else {
-        // print("have results ${URLs[_searchText]}");
-
         _searchResult = URLs[_searchText];
         // print("_searchResult $_searchResult");
-        // _currentURLs = URLs[_searchText][_searchResult.keys.toList()[_currentDomainIndex]];
+
         print("_currentSearchPlatform $_currentSearchPlatform");
         _currentURLs = URLs[_searchText][_currentSearchPlatform]["list"];
-        // print("_currentURLs $_currentURLs");
-        _currentURLsPlain = _currentURLs.map((e) => e['link']).toList();
       }
     });
-
-    // print("_currentURLs ${_currentURLs}");
   }
 
   _moveSwiper() async {
@@ -616,37 +555,14 @@ class _WebViewContainerState extends State<WebViewContainer>
       print(
           "_currentWebViewController?.runtimeType ${_currentWebViewController?.runtimeType}");
 
-      // _currentDomainIndex = 0;
       _currentURLIndex = 0;
 
       // new key to refresh the preloaded webview
       // _pageKey = GlobalKey();
       _activatedSearchPlatforms[_currentSearchPlatform] = GlobalKey();
+      print("_activatedSearchPlatforms $_activatedSearchPlatforms");
     });
   }
-
-  Map test = {
-    "keyword1": {
-      // "links": ["link1", "link2"],
-      "prev": "",
-    },
-    "keyword2": {
-      // "links": ["link1", "link2"],
-      "prev": "keyword1",
-    },
-    "2": {
-      // "links": ["link1", "link2"],
-      "prev": "keyword1",
-    },
-    "0": {
-      // "links": ["link1", "link2"],
-      "prev": "keyword1",
-    },
-    "1": {
-      // "links": ["link1", "link2"],
-      "prev": "keyword1",
-    }
-  };
 
   _handleSearch(value, [selectedPlatform = null]) async {
     print("selectedPlatform $selectedPlatform");
@@ -658,45 +574,37 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     setState(() {
       _searchText = value;
-      _isFetching = true;
-      _searchMode = "Default";
+      if (URLs[_searchText] == null) {
+        _isFetching = true;
+      }
+
       _appBarColor = _defaultAppBarColor;
       _fabColor = Colors.blue[100]!;
       _searchHistory.addAll({value.toString(): false});
     });
 
-    // print("_searchHistory $_searchHistory");
-    // print("search $value");
-    // String realSearchText = "";
-    Map results = {};
-    value = value.toString();
+    _normalSearch();
 
-    // print("_searchMode $_searchMode");
+    // // the search results
+    // var items = await _performSearch(_searchText, _currentSearchPlatform);
+    // // print("items $items");
 
-    // realSearchText = value;
+    // // update the URLs
+    // await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
 
-    // print("realSearchText $realSearchText");
+    // // update the current URLs
+    // await _updateCurrentURLs();
 
-    // the search results
-    var items = await _performSearch(_searchText, _currentSearchPlatform);
-    // print("items $items");
-    // update the URLs
-    await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
+    // setState(() {
+    //   _isFetching = false;
+    // });
 
-    // update the current URLs
-    await _updateCurrentURLs();
-
-    setState(() {
-      _isFetching = false;
-    });
-
-    // move the swiper
-    await _moveSwiper();
+    // // move the swiper
+    // await _moveSwiper();
   }
 
   void _updateSearchText(searchText) {
     setState(() {
-      // _realSearchText = searchText;
       _searchText = searchText;
       _currentSearchPlatform = "Google";
     });
@@ -901,11 +809,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
         _appBarColor = _defaultAppBarColor;
-        // _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
         _appBarColor = Colors.amber[300]!;
-        // _searchMode = "Drill-down";
       }
     });
 
@@ -924,8 +830,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     //     _activatedSearchPlatformKeys.add(GlobalKey());
     //   });
     // }
-
-    _platformChanged = true;
 
     if (URLs[_searchText] == null) {
       URLs[_searchText] = {};
@@ -960,11 +864,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_fabColor == Colors.amber[300]!) {
         _fabColor = Colors.blue[100]!;
         _appBarColor = _defaultAppBarColor;
-        // _searchMode = "Default";
       } else {
         _fabColor = Colors.amber[300]!;
         _appBarColor = Colors.amber[300]!;
-        // _searchMode = "Drill-down";
       }
     });
   }
@@ -1212,7 +1114,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   Widget _buildWebView(BuildContext context, var data, int position) {
     // print("data $data");
-    print("building...");
+    print("building... | $position");
     // print("building... | ${data}");
 
     if (data == "") {
@@ -1549,6 +1451,109 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
+  _buildPlatform(context, platformPosition) {
+    print(
+        "platformPosition: $platformPosition | ${_activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform)} | ${_activatedSearchPlatforms.length}");
+    return PreloadPageView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      preloadPagesCount: _preloadNumber,
+      // controller: _currentPreloadPageController,
+      controller: platformPosition ==
+              // _activatedSearchPlatforms.indexOf(
+              //     _currentSearchPlatform)
+              _activatedSearchPlatforms.keys
+                  .toList()
+                  .indexOf(_currentSearchPlatform)
+          ? _testPreloadPageController
+          : null,
+      // _preloadPageControllers[
+      //     platformPosition],
+      // key: platformPosition ==
+      //         _activatedSearchPlatforms.indexOf(
+      //             _currentSearchPlatform)
+      //     ? _testPreloadPageKey
+      //     : null,
+      key: _activatedSearchPlatforms.values.toList()[platformPosition],
+      // _activatedSearchPlatformKeys[
+      //     platformPosition],
+      itemCount: _currentURLs.length,
+      // URLs[_searchText] == null ||
+      //         URLs[_searchText][
+      //                 _activatedSearchPlatforms[
+      //                     platformPosition]] ==
+      //             null
+      //     ? 0
+      //     : URLs[_searchText][
+      //             _activatedSearchPlatforms[
+      //                 platformPosition]]["list"]
+      //         .length,
+      itemBuilder: (BuildContext context, int urlPosition) => _buildWebView(
+          context,
+          // urlPosition >=
+          //         URLs[_searchText][
+          //                     _activatedSearchPlatforms[
+          //                         platformPosition]]
+          //                 ["list"]
+          //             .length
+          //     ? ""
+          //     : URLs[_searchText][
+          //             _activatedSearchPlatforms[
+          //                 platformPosition]]
+          //         ["list"][urlPosition]!,
+          // urlPosition
+          urlPosition >= _currentURLs.length ? "" : _currentURLs[urlPosition]!,
+          urlPosition),
+      onPageChanged: (int position) async {
+        print('page changed. current: $position');
+
+        setState(() {
+          _currentURLIndex = position;
+          URLs[_searchText]
+                  [_activatedSearchPlatforms.keys.toList()[platformPosition]]
+              ["lastViewedIndex"] = position;
+          _currentWebViewTitle = _currentURLs[position]!['title'];
+          _loadingPercentage = 100;
+          _currentWebViewController = _webViewControllers[position];
+
+          // print(
+          //     "_webViewControllers $_webViewControllers");
+        });
+
+        // print(
+        //     "URLs[_searchText][_activatedSearchPlatforms[platformPosition]] ${URLs[_searchText][_activatedSearchPlatforms[platformPosition]]}");
+
+        // print(
+        //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
+        // print(
+        //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
+        // print(
+        //     "controller 3 ${await _currentWebViewController}");
+
+        // print(
+        //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
+
+        // fetch more results if we are almost at the end of the list
+        if (position + 1 >= _currentURLs.length) {
+          print("reached end of list");
+
+          setState(() {
+            page++;
+            _start = (page - 1) * 10 + 1;
+          });
+
+          var items = await _performSearch(_searchText, _currentSearchPlatform);
+          print("items $items");
+          // update the URLs
+          await _updateURLs(
+              'extend', _searchText, _currentSearchPlatform, items);
+
+          // update the current URLs
+          await _updateCurrentURLs();
+        }
+      },
+    );
+  }
+
   _changeSearchPlatform() {
     int index = SearchPlatformList.indexOf(_currentSearchPlatform);
     int newIndex = (index + 1);
@@ -1556,7 +1561,6 @@ class _WebViewContainerState extends State<WebViewContainer>
       newIndex = 0;
     }
     setState(() {
-      // _currentDomainIndex = newIndex;
       _currentSearchPlatform = SearchPlatformList[newIndex];
       _marqueeKey = UniqueKey();
     });
@@ -1570,6 +1574,46 @@ class _WebViewContainerState extends State<WebViewContainer>
   //     print("3 seconds passed | platform switched");
   //   },
   // );
+
+  _normalSearch() async {
+    if (!_activatedSearchPlatforms.containsKey(_currentSearchPlatform)) {
+      setState(() {
+        _activatedSearchPlatforms.addAll({_currentSearchPlatform: GlobalKey()});
+      });
+    }
+
+    if (URLs[_searchText] == null ||
+        URLs[_searchText][_currentSearchPlatform] == null) {
+      // do search only if it has not been done before
+      var items = await _performSearch(_searchText, _currentSearchPlatform);
+      await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
+    } else {
+      _updateLastViewedPlatform(_searchText, _currentSearchPlatform);
+      _resetLastViewedIndex(_searchText, _currentSearchPlatform);
+    }
+
+    await _updateCurrentURLs();
+
+    setState(() {
+      _isFetching = false;
+    });
+
+    await _moveSwiper();
+
+    // print(
+    //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+    print("_activatedSearchPlatforms: $_activatedSearchPlatforms");
+    if (_activatedSearchPlatforms.length > 1) {
+      await _preloadPlatformController.animateToPage(
+          // _activatedSearchPlatforms
+          //     .indexOf(_currentSearchPlatform),
+          _activatedSearchPlatforms.keys
+              .toList()
+              .indexOf(_currentSearchPlatform),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeIn);
+    }
+  }
 
   _buildSearchHistoryList() {
     var result = [];
@@ -1637,7 +1681,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       });
 
       // print("page after: ${_currentPreloadPageController.page}");
-      print("page after: ${_testPreloadPageController.page}");
+      // print("page after: ${_testPreloadPageController.page}");
     }
 
     double position = 0;
@@ -1758,11 +1802,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                   // width: MediaQuery.of(context).size.width * 0.8,
                   child: Marquee(
                     key: _marqueeKey,
-                    text:
-                        // '$_realSearchText on ${_searchResult.keys.toList()[_currentDomainIndex]} (${_currentURLIndex + 1} of ${_currentURLs.length})',
-                        _searchResult.isNotEmpty
-                            ? '$_searchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
-                            : 'Results for $_searchText',
+                    text: _searchResult.isNotEmpty
+                        ? '$_searchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
+                        : 'Results for $_searchText',
                     style: const TextStyle(fontSize: 18),
                     scrollAxis: Axis.horizontal, //scroll direction
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1796,8 +1838,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                             .addAll({_currentSearchPlatform: GlobalKey()});
                       });
                     }
-
-                    _platformChanged = true;
 
                     if (URLs[_searchText][_currentSearchPlatform] == null) {
                       // do search only if it has not been done before
@@ -1951,45 +1991,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                           if (_platformActivationTimer == null) {
                             _platformActivationTimer = RestartableTimer(
                                 const Duration(seconds: 2), () async {
-                              if (!_activatedSearchPlatforms
-                                  .containsKey(_currentSearchPlatform)) {
-                                setState(() {
-                                  // _activatedSearchPlatforms
-                                  //     .add(_currentSearchPlatform);
-                                  _activatedSearchPlatforms.addAll(
-                                      {_currentSearchPlatform: GlobalKey()});
-                                });
-                              }
-
-                              _platformChanged = true;
-
-                              if (URLs[_searchText][_currentSearchPlatform] ==
-                                  null) {
-                                // do search only if it has not been done before
-                                var items = await _performSearch(
-                                    _searchText, _currentSearchPlatform);
-                                await _updateURLs('replace', _searchText,
-                                    _currentSearchPlatform, items);
-                              } else {
-                                _updateLastViewedPlatform(
-                                    _searchText, _currentSearchPlatform);
-                                _resetLastViewedIndex(
-                                    _searchText, _currentSearchPlatform);
-                              }
-
-                              await _updateCurrentURLs();
-                              await _moveSwiper();
-
-                              // print(
-                              //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
-                              await _preloadPlatformController.animateToPage(
-                                  // _activatedSearchPlatforms
-                                  //     .indexOf(_currentSearchPlatform),
-                                  _activatedSearchPlatforms.keys
-                                      .toList()
-                                      .indexOf(_currentSearchPlatform),
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeIn);
+                              _normalSearch();
                             });
                           } else {
                             _platformActivationTimer!.reset();
@@ -2109,125 +2111,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           _activatedSearchPlatforms.length,
                                       itemBuilder: (BuildContext context,
                                               int platformPosition) =>
-                                          PreloadPageView.builder(
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        preloadPagesCount: _preloadNumber,
-                                        // controller: _currentPreloadPageController,
-                                        controller: platformPosition ==
-                                                // _activatedSearchPlatforms.indexOf(
-                                                //     _currentSearchPlatform)
-                                                _activatedSearchPlatforms.keys
-                                                    .toList()
-                                                    .indexOf(
-                                                        _currentSearchPlatform)
-                                            ? _testPreloadPageController
-                                            : null,
-                                        // _preloadPageControllers[
-                                        //     platformPosition],
-                                        // key: platformPosition ==
-                                        //         _activatedSearchPlatforms.indexOf(
-                                        //             _currentSearchPlatform)
-                                        //     ? _testPreloadPageKey
-                                        //     : null,
-                                        key: _activatedSearchPlatforms.values
-                                            .toList()[platformPosition],
-                                        // _activatedSearchPlatformKeys[
-                                        //     platformPosition],
-                                        itemCount: _currentURLs.length,
-                                        // URLs[_searchText] == null ||
-                                        //         URLs[_searchText][
-                                        //                 _activatedSearchPlatforms[
-                                        //                     platformPosition]] ==
-                                        //             null
-                                        //     ? 0
-                                        //     : URLs[_searchText][
-                                        //             _activatedSearchPlatforms[
-                                        //                 platformPosition]]["list"]
-                                        //         .length,
-                                        itemBuilder: (BuildContext context,
-                                                int urlPosition) =>
-                                            _buildWebView(
-                                                context,
-                                                // urlPosition >=
-                                                //         URLs[_searchText][
-                                                //                     _activatedSearchPlatforms[
-                                                //                         platformPosition]]
-                                                //                 ["list"]
-                                                //             .length
-                                                //     ? ""
-                                                //     : URLs[_searchText][
-                                                //             _activatedSearchPlatforms[
-                                                //                 platformPosition]]
-                                                //         ["list"][urlPosition]!,
-                                                // urlPosition
-                                                urlPosition >=
-                                                        _currentURLs.length
-                                                    ? ""
-                                                    : _currentURLs[
-                                                        urlPosition]!,
-                                                urlPosition),
-                                        onPageChanged: (int position) async {
-                                          print(
-                                              'page changed. current: $position');
-
-                                          setState(() {
-                                            _currentURLIndex = position;
-                                            URLs[_searchText][
-                                                    _activatedSearchPlatforms
-                                                            .keys
-                                                            .toList()[
-                                                        platformPosition]]
-                                                ["lastViewedIndex"] = position;
-                                            _currentWebViewTitle = _currentURLs[
-                                                position]!['title'];
-                                            _loadingPercentage = 100;
-                                            _currentWebViewController =
-                                                _webViewControllers[position];
-
-                                            // print(
-                                            //     "_webViewControllers $_webViewControllers");
-                                          });
-
-                                          // print(
-                                          //     "URLs[_searchText][_activatedSearchPlatforms[platformPosition]] ${URLs[_searchText][_activatedSearchPlatforms[platformPosition]]}");
-
-                                          // print(
-                                          //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
-                                          // print(
-                                          //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
-                                          // print(
-                                          //     "controller 3 ${await _currentWebViewController}");
-
-                                          // print(
-                                          //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
-
-                                          // fetch more results if we are almost at the end of the list
-                                          if (position + 1 >=
-                                              _currentURLs.length) {
-                                            print("reached end of list");
-
-                                            setState(() {
-                                              page++;
-                                              _start = (page - 1) * 10 + 1;
-                                            });
-
-                                            var items = await _performSearch(
-                                                _searchText,
-                                                _currentSearchPlatform);
-                                            print("items $items");
-                                            // update the URLs
-                                            await _updateURLs(
-                                                'extend',
-                                                _searchText,
-                                                _currentSearchPlatform,
-                                                items);
-
-                                            // update the current URLs
-                                            await _updateCurrentURLs();
-                                          }
-                                        },
-                                      ),
+                                          _buildPlatform(
+                                              context, platformPosition),
                                     ),
                                   ),
                                 ),
@@ -2350,9 +2235,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                           0) {
                                                         print(
                                                             "jump to first page");
-                                                        setState(() {
-                                                          _swipe = true;
-                                                        });
+                                                        // setState(() {
+                                                        //   _swipe = true;
+                                                        // });
 
                                                         _testPreloadPageController
                                                             .jumpToPage(0);
@@ -2366,52 +2251,51 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       size: 20,
                                                     ),
                                                   ),
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     if (_currentURLIndex > 0) {
-                                                  //       print("decrease");
-                                                  //       setState(() {
-                                                  //         // _currentURLIndex--;
-                                                  //         _swipe = true;
-                                                  //       });
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      if (_currentURLIndex >
+                                                          0) {
+                                                        print("decrease");
 
-                                                  //       // await _currentPreloadPageController
-                                                  //       await _testPreloadPageController
-                                                  //           .previousPage(
-                                                  //               duration:
-                                                  //                   const Duration(
-                                                  //                       milliseconds:
-                                                  //                           300),
-                                                  //               curve: Curves.easeIn);
-                                                  //     }
-                                                  //   },
-                                                  //   icon: const FaIcon(
-                                                  //       FontAwesomeIcons.angleLeft,
-                                                  //       size: 20),
-                                                  // ),
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     if (_currentURLIndex <
-                                                  //         _currentURLs.length - 1) {
-                                                  //       setState(() {
-                                                  //         // _currentURLIndex++;
-                                                  //         _swipe = true;
-                                                  //       });
-
-                                                  //       // await _currentPreloadPageController
-                                                  //       await _testPreloadPageController
-                                                  //           .nextPage(
-                                                  //               duration:
-                                                  //                   const Duration(
-                                                  //                       milliseconds:
-                                                  //                           300),
-                                                  //               curve: Curves.easeIn);
-                                                  //     }
-                                                  //   },
-                                                  //   icon: const FaIcon(
-                                                  //       FontAwesomeIcons.angleRight,
-                                                  //       size: 20),
-                                                  // ),
+                                                        // await _currentPreloadPageController
+                                                        await _testPreloadPageController
+                                                            .previousPage(
+                                                                duration:
+                                                                    const Duration(
+                                                                        milliseconds:
+                                                                            300),
+                                                                curve: Curves
+                                                                    .easeIn);
+                                                      }
+                                                    },
+                                                    icon: const FaIcon(
+                                                        FontAwesomeIcons
+                                                            .angleLeft,
+                                                        size: 20),
+                                                  ),
+                                                  IconButton(
+                                                    onPressed: () async {
+                                                      if (_currentURLIndex <
+                                                          _currentURLs.length -
+                                                              1) {
+                                                        // await _currentPreloadPageController
+                                                        // await _testPreloadPageController
+                                                        //     .nextPage(
+                                                        //         duration:
+                                                        //             const Duration(
+                                                        //                 milliseconds:
+                                                        //                     300),
+                                                        //         curve: Curves
+                                                        //             .easeIn);
+                                                        print(
+                                                            "_testPreloadPageController ${_testPreloadPageController}");
+                                                      }
+                                                    },
+                                                    icon: const FaIcon(
+                                                        FontAwesomeIcons
+                                                            .angleRight,
+                                                        size: 20),
+                                                  ),
 
                                                   IconButton(
                                                     onPressed: () async {
@@ -2477,15 +2361,34 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     ),
                                   ),
                                   period: Duration(milliseconds: 300),
-                                  listener: (details) {
+                                  listener: (details) async {
                                     print(
                                         "joystick:  ${details.x}, ${details.y}");
                                     _joystickX = details.x;
                                     _joystickY = details.y;
                                     if (details.x > 0.5) {
                                       print("next");
+                                      if (_currentURLIndex <
+                                          _currentURLs.length - 1) {
+                                        // await _currentPreloadPageController
+                                        await _testPreloadPageController
+                                            .nextPage(
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                                curve: Curves.easeIn);
+                                      }
                                     } else if (details.x < -0.5) {
                                       print("prev");
+                                      if (_currentURLIndex > 0) {
+                                        print("decrease");
+
+                                        // await _currentPreloadPageController
+                                        await _testPreloadPageController
+                                            .previousPage(
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                                curve: Curves.easeIn);
+                                      }
                                     }
 
                                     if (details.y < -0.5) {
