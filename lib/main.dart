@@ -1142,125 +1142,126 @@ class _WebViewContainerState extends State<WebViewContainer>
       }
 
       // print("building... | bingo: ${bingo} | data: ${data}");
-
+      // return Text("123");
       return SizedBox(
         width: MediaQuery.of(context).size.width,
+
         // child: Text("test${index}"),
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (event) {
-            print("onEnter");
+        child:
+            //  MouseRegion(
+            //   cursor: SystemMouseCursors.click,
+            //   onEnter: (event) {
+            //     print("onEnter");
+            //   },
+            //   onExit: (event) {
+            //     print("onExit");
+            //   },
+            //   onHover: (event) {
+            //     print("onHover");
+            //   },
+            //   child:
+            InAppWebView(
+          // pullToRefreshController: _refreshController,
+          gestureRecognizers: {
+            Factory<LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer()),
           },
-          onExit: (event) {
-            print("onExit");
-          },
-          onHover: (event) {
-            print("onHover");
-          },
-          child: InAppWebView(
-            // pullToRefreshController: _refreshController,
-            gestureRecognizers: {
-              Factory<LongPressGestureRecognizer>(
-                  () => LongPressGestureRecognizer()),
-            },
-            initialUrlRequest: URLRequest(url: WebUri(data['link'])),
-            onWebViewCreated: (controller) {
-              controller.addJavaScriptHandler(
-                  handlerName: 'getDrillText',
-                  callback: (args) {
-                    print("DrillText ${args[0]}");
-                    setState(() {
-                      _webpageContent = args[0];
-                    });
-                  });
-              if (bingo) {
-                _currentWebViewController = controller;
-              }
-              _webViewControllers.addAll({position: controller});
-            },
-            onLoadStart: (controller, url) {
-              if (bingo) {
-                setState(() {
-                  _loadingPercentage = 0;
-                  _currentWebViewTitle = "Loading...";
-                });
-              }
-            },
-            onLoadStop: (controller, url) async {
-              if (position == _currentURLIndex) {
-                // String title = await _currentWebViewController.getTitle();
-                // print("title: $title | data['title']: ${data['title']}");
-                setState(() {
-                  _loadingPercentage = 100;
-                  _currentWebViewTitle = data["title"];
-                  // _currentWebViewTitle = title;
-                });
-                // _refreshController?.endRefreshing();
-              }
-              // _handlePageRefresh(position);
-            },
-            onReceivedError: (controller, request, error) {},
-            onProgressChanged: (controller, progress) {
-              if (bingo) {
-                setState(() {
-                  _loadingPercentage = progress;
-                });
-              }
-            },
-            onZoomScaleChanged: (controller, oldScale, newScale) {
-              print("zoomScale: $oldScale, $newScale");
-            },
-            contextMenu: ContextMenu(
-              // settings: ContextMenuSettings(
-              //   hideDefaultSystemContextMenuItems: true,
-              // ),
-              onCreateContextMenu: (hitTestResult) async {
-                print("hitTestResult");
-                if (!_menuShown) {
-                  print("show menu");
-                  _showSelectMenu(context);
+          initialUrlRequest: URLRequest(url: WebUri(data['link'])),
+          onWebViewCreated: (controller) {
+            controller.addJavaScriptHandler(
+                handlerName: 'getDrillText',
+                callback: (args) {
+                  print("DrillText ${args[0]}");
                   setState(() {
-                    _menuShown = true;
+                    _webpageContent = args[0];
                   });
-                } else {
-                  print("menu already shown");
-                }
-              },
-              onContextMenuActionItemClicked: (contextMenuItemClicked) => {
-                print("contextMenuItemClicked: ${contextMenuItemClicked.id}"),
-              },
-              onHideContextMenu: () {
-                print("onHideContextMenu");
-                // setState(() {
-                //   _menuShown = false;
-                // });
-                // final snackBar = SnackBar(
-                //   content: Text("onHideContextMenu"),
-                //   duration: const Duration(seconds: 3),
-                // );
-                // ScaffoldMessenger.of(context).showSnackBar(snackBar);
-              },
-              menuItems: [
-                ContextMenuItem(
-                  id: 1,
-                  title: "Drill",
-                  action: () async {
-                    String selectedText =
-                        await _currentWebViewController?.getSelectedText() ??
-                            "";
-                    print("selectedText: $selectedText");
+                });
+            if (bingo) {
+              _currentWebViewController = controller;
+            }
+            _webViewControllers.addAll({position: controller});
+          },
+          onLoadStart: (controller, url) {
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = 0;
+                _currentWebViewTitle = "Loading...";
+              });
+            }
+          },
+          onLoadStop: (controller, url) async {
+            if (position == _currentURLIndex) {
+              // String title = await _currentWebViewController.getTitle();
+              // print("title: $title | data['title']: ${data['title']}");
+              setState(() {
+                _loadingPercentage = 100;
+                _currentWebViewTitle = data["title"];
+                // _currentWebViewTitle = title;
+              });
+              // _refreshController?.endRefreshing();
+            }
+            // _handlePageRefresh(position);
+          },
+          onReceivedError: (controller, request, error) {},
+          onProgressChanged: (controller, progress) {
+            if (bingo) {
+              setState(() {
+                _loadingPercentage = progress;
+              });
+            }
+          },
+          onZoomScaleChanged: (controller, oldScale, newScale) {
+            print("zoomScale: $oldScale, $newScale");
+          },
+          contextMenu: ContextMenu(
+            // settings: ContextMenuSettings(
+            //   hideDefaultSystemContextMenuItems: true,
+            // ),
+            onCreateContextMenu: (hitTestResult) async {
+              print("hitTestResult");
+              if (!_menuShown) {
+                print("show menu");
+                _showSelectMenu(context);
+                setState(() {
+                  _menuShown = true;
+                });
+              } else {
+                print("menu already shown");
+              }
+            },
+            onContextMenuActionItemClicked: (contextMenuItemClicked) => {
+              print("contextMenuItemClicked: ${contextMenuItemClicked.id}"),
+            },
+            onHideContextMenu: () {
+              print("onHideContextMenu");
+              // setState(() {
+              //   _menuShown = false;
+              // });
+              // final snackBar = SnackBar(
+              //   content: Text("onHideContextMenu"),
+              //   duration: const Duration(seconds: 3),
+              // );
+              // ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            },
+            menuItems: [
+              ContextMenuItem(
+                id: 1,
+                title: "Drill",
+                action: () async {
+                  String selectedText =
+                      await _currentWebViewController?.getSelectedText() ?? "";
+                  print("selectedText: $selectedText");
 
-                    final snackBar = SnackBar(
-                      content: Text("Drilling ${selectedText}"),
-                      duration: const Duration(seconds: 3),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                  final snackBar = SnackBar(
+                    content: Text("Drilling ${selectedText}"),
+                    duration: const Duration(seconds: 3),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                    _performDrill(selectedText);
-                  },
-                )
-              ],
-            ),
+                  _performDrill(selectedText);
+                },
+              )
+            ],
           ),
         ),
         //     WebView(
@@ -2074,57 +2075,59 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   ),
                                 ),
                               ),
-                              Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom: Platform.isIOS
-                                        ? (_loadingPercentage < 100 ? 65 : 60)
-                                        : (_loadingPercentage < 100 ? 55 : 50),
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      print("webview tapped");
+
+                              // WebView
+                              // Flexible(
+                              //   child:
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: Platform.isIOS
+                                      ? (_loadingPercentage < 100 ? 65 : 60)
+                                      : (_loadingPercentage < 100 ? 55 : 50),
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    print("webview tapped");
+                                  },
+                                  onDoubleTap: () {
+                                    print("webview double tapped");
+                                  },
+                                  // onPanStart: (details) {
+                                  //   print(
+                                  //       "webview pan start ${details.globalPosition}");
+                                  //   _scrollX = details.globalPosition.dx;
+                                  //   _scrollY = details.globalPosition.dy;
+                                  // },
+                                  // onPanDown: (details) {
+                                  //   print(
+                                  //       "webview pan end ${details.globalPosition}");
+                                  // },
+                                  child: PreloadPageView.builder(
+                                    onPageChanged: (value) {
+                                      print("platform changed: $value");
+                                      print(
+                                          "${URLs[_searchText][SearchPlatformList[value]]}");
+                                      // setState(() {
+                                      //   _currentPreloadPageController =
+                                      //       _preloadPageControllers[value];
+                                      //   _currentPreloadPageKey =
+                                      //       _preloadPageKeys[value];
+                                      // });
                                     },
-                                    onDoubleTap: () {
-                                      print("webview double tapped");
-                                    },
-                                    // onPanStart: (details) {
-                                    //   print(
-                                    //       "webview pan start ${details.globalPosition}");
-                                    //   _scrollX = details.globalPosition.dx;
-                                    //   _scrollY = details.globalPosition.dy;
-                                    // },
-                                    // onPanDown: (details) {
-                                    //   print(
-                                    //       "webview pan end ${details.globalPosition}");
-                                    // },
-                                    child: PreloadPageView.builder(
-                                      onPageChanged: (value) {
-                                        print("platform changed: $value");
-                                        print(
-                                            "${URLs[_searchText][SearchPlatformList[value]]}");
-                                        // setState(() {
-                                        //   _currentPreloadPageController =
-                                        //       _preloadPageControllers[value];
-                                        //   _currentPreloadPageKey =
-                                        //       _preloadPageKeys[value];
-                                        // });
-                                      },
-                                      scrollDirection: Axis.vertical,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      key: _preloadPlatformKey,
-                                      preloadPagesCount: 0,
-                                      controller: _preloadPlatformController,
-                                      itemCount:
-                                          _activatedSearchPlatforms.length,
-                                      itemBuilder: (BuildContext context,
-                                              int platformPosition) =>
-                                          _buildPlatform(
-                                              context, platformPosition),
-                                    ),
+                                    scrollDirection: Axis.vertical,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    key: _preloadPlatformKey,
+                                    preloadPagesCount: 0,
+                                    controller: _preloadPlatformController,
+                                    itemCount: _activatedSearchPlatforms.length,
+                                    itemBuilder: (BuildContext context,
+                                            int platformPosition) =>
+                                        _buildPlatform(
+                                            context, platformPosition),
                                   ),
                                 ),
+                                // ),
                               ),
 
                               // Bottom Bar
