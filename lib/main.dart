@@ -1771,6 +1771,46 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
+  _testLanguage(String content) async {
+    final response = await http.post(
+      Uri.parse(
+          'https://language.googleapis.com/v1/documents:analyzeEntities?key=AIzaSyC3ooNGYaxDyOGVke0fSYCSLAMEe7hQ_UU'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode({
+        "document": {
+          "type": "PLAIN_TEXT",
+          "content": content,
+        },
+        "encodingType": "UTF8"
+      }),
+    );
+
+    print("response: $response");
+
+    if (response != null) {
+      if (response.statusCode == 200) {
+        var jsonResponse =
+            convert.jsonDecode(response.body) as Map<String, dynamic>;
+
+        print("jsonResponse: $jsonResponse");
+        // print(jsonResponse['items']);
+
+        //       var items = jsonResponse['items'] != null
+        //     ? jsonResponse['items'] as List<dynamic>
+        //    : [];
+        // print("items: ${items}");
+
+        // return items;
+        return response;
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        return null;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -2478,6 +2518,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                                     if (details.y < -0.5) {
                                       print("select platform");
+                                      _testLanguage(
+                                          "Finds named entities (currently proper names and common nouns) in the text along with entity types, salience, mentions for each entity, and other properties.");
                                     }
                                   },
                                 ),
