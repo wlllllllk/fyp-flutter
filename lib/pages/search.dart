@@ -23,6 +23,8 @@ import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart' as dio;
 import 'package:stats/stats.dart';
 
+import 'package:typed_data/typed_data.dart';
+
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -236,6 +238,13 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
+class Order {
+  int area;
+  String description;
+
+  Order({required this.area, required this.description});
+}
+
 _imageSearch(src, path, name) async {
   Directory dir = (await getApplicationDocumentsDirectory());
   bool fileExists = false;
@@ -259,6 +268,31 @@ _imageSearch(src, path, name) async {
 
     final bytes = io.File(path).readAsBytesSync();
     String img64 = base64Encode(bytes);
+
+    Future logoDetection(String image) async {
+      var _vision = vision.VisionApi(await _client);
+      var _api = _vision.images;
+      var _response =
+          await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
+        "requests": [
+          {
+            "image": {"content": image},
+            "features": [
+              {
+                "type": "LOGO_DETECTION",
+              }
+            ]
+          }
+        ]
+      }));
+      List<vision.EntityAnnotation> entities;
+      var logoOutput;
+      _response.responses?.forEach((data) {
+        entities = data.logoAnnotations as List<vision.EntityAnnotation>;
+        logoOutput = entities[0].description;
+      });
+      print(logoOutput);
+    }
 
     Future TextDetection(String image) async {
       var _vision = vision.VisionApi(await _client);
@@ -289,14 +323,16 @@ _imageSearch(src, path, name) async {
 
       final acc = [0];
       int count = 0;
-      List<String?> str_arr = [''];
-      String? string_ent = entities![0].description;
 
+      List<String?> str_arr = [''];
+      List<String?> original = [''];
+      String? string_ent = entities![0].description;
       final separated = string_ent?.split('\n');
-      //print(separated);
-      //  List<String> arr = print("arr 1: ${arr[0]}");
-      for (int j = 0; j < separated!.length; j++) {
+
+      for (int j = 1; j < entities!.length; j++) {
         var vertice = entities![j].boundingPoly!.vertices;
+        String? curString = entities![j].description;
+        //area of each words
         var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
         for (int i = 0; i < vertice!.length; i++) {
           if (vertice[i].x! > max_x) {
@@ -311,34 +347,41 @@ _imageSearch(src, path, name) async {
           if (vertice[i].y! < min_y!) {
             min_y = vertice[i].y!;
           }
-          // print(" VETICS X,Y: ${vertice[i].y}");
         }
+
         var length_x = max_x - min_x!;
         var length_y = max_y - min_y!;
         var area = length_x * length_y;
-        acc.insert(j, area);
 
-        //print(entities![j].boundingPoly!.normalizedVertices);
+        print(area);
+        print(entities![j].description);
+        acc.insert(j, area);
+        original.insert(j, entities![j].description);
       }
 
       final stats = Stats.fromData(acc);
-      for (int j = 0; j < separated.length; j++) {
-        final area = acc[j];
+      final numberArr = [0];
+      final Map<String, int> outputString = {};
 
-        if (separated.length > 10) {
-          if (area > (stats.median)) {
-            if (count < 10) {
-              str_arr.insert(count, separated[j]);
-            }
+      List<Order> orders = [];
+
+      var countArr = 0;
+
+      for (int j = 0; j < separated!.length; j++) {
+        for (int i = 0; i < original.length; i++) {
+          if (separated[j].contains(original[i]!)) {
+            numberArr[countArr] += acc[i];
           }
-        } else {
-          str_arr.insert(count, separated[j]);
         }
-        count++;
-        //print("J: ${j} : AREA: ${area} | DESC: $arr");
-
-        //print(entities![j].boundingPoly!.normalizedVertices);
+        orders.add(Order(area: numberArr[countArr], description: separated[j]));
+        countArr++;
+        numberArr.insert(countArr, 0);
       }
+
+      //print(numberArr);
+      orders.sort((a, b) => b.area.compareTo(a.area));
+      print("Ordered Output text: ${orders.map((order) => order.description)}");
+
       print("TEXT: $str_arr");
       return str_arr;
     }
@@ -427,10 +470,18 @@ _imageSearch(src, path, name) async {
         //     page_with_match_image![j].pageTitle.toString());
         // print("page with match image =" +
         //     page_with_match_image![j].url.toString());
-        urls.add({
-          'title': pageWithMatchImage![j].pageTitle.toString(),
-          'link': pageWithMatchImage![j].url.toString()
-        });
+
+        if (pageWithMatchImage != null) {
+          urls.add({
+            'title': pageWithMatchImage![j].pageTitle.toString(),
+            'link': pageWithMatchImage![j].url.toString()
+          });
+        } else {
+          urls.add({
+            'title': pageWithSimilarImage![j].toString(),
+            'link': pageWithSimilarImage![j].url.toString()
+          });
+        }
       }
 
       results.addAll({'urls': urls});
@@ -439,52 +490,84 @@ _imageSearch(src, path, name) async {
       return results;
     }
 
-    Future BingSearch(String imgpath) async {
-      final apiKey = "49a93c21e4074e8f8765a891fc8fcaf7";
+    Future BingSearch(String imgpath, String img64) async {
+      final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
       final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
       final String url =
           "https://api.bing.microsoft.com/v7.0/images/visualsearch";
 
       final endpointUrl =
-          ' https://api.cognitive.microsoft.com/bing/v7.0/images/visualsearch';
+          'https://api.bing.microsoft.com/v7.0/images/visualsearch';
 
+      final header = {
+        'Ocp-Apim-Subscription-Key': apiKey,
+        'Content-Type': 'application/json'
+      };
       // Convert the base64 image to bytes
-
-      // Create the HTTP request with the necessary headers and parameters
-      final params = {
-        'Content-Type': 'application/json',
-        'image': {
-          'file': imageData,
+      final request = {
+        'imageInfo': {
+          'url':
+              "https://animecorner.me/wp-content/uploads/2022/08/chisato_lr_ep_7.png",
+          'imageInsightsToken': '',
+          'cropArea': {
+            'top': 0.1,
+            'left': 0.5,
+            'right': 0.9,
+            'bottom': 0.9,
+          },
+        },
+        'knowledgeRequest': {
+          'filters': {
+            'site': '',
+          },
         },
       };
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'multipart/form-data; boundary=',
-          'X-BingApis-SDK': 'true',
-          'Accept': 'application/ld+json',
-          'Ocp-Apim-Subscription-Key': apiKey,
-        },
-        body: jsonEncode(params),
-      );
+      final jsonRequest = json.encode(request);
+      final visualSearch = await http.post(Uri.parse(endpointUrl),
+          headers: header, body: jsonRequest);
+      if (visualSearch.statusCode == 200) {
+      } else {
+        print('Failed to upload image. Error code: ${visualSearch.body}');
+      }
+      // Convert the base64 image to bytes
 
-      final responseJson = jsonDecode(response.body);
+      // Create the HTTP request with the necessary headers and parameters
+      /*
+      final request = http.MultipartRequest("POST", Uri.parse(endpointUrl));
+      request.headers['Ocp-Apim-Subscription-Key'] = apiKey;
+      request.headers['Content-Type'] = json.encode('application/json');
+      request.fields['imageInfo'] = json.encode(
+          '{"url":"","imageInsightsToken":"","cropArea":{"top":0.0,"left":0.0,"bottom":1.0,"right":1.0}}');
+      request.fields['knowledgeRequest'] =
+          json.encode('{"filters":{"site":""}}');
+      //request.files.add(await http.MultipartFile.fromPath('image', imgpath));
+
+      final response = await request.send();
+
+      final String responseString = await response.stream.bytesToString();
+      final responseJson = jsonDecode(responseString);
       final tags = responseJson['tags'];
       final visuallySimilarImages = responseJson['visuallySimilarImages'];
       final pages = responseJson['pages'];
 
-      print(responseJson);
-      print('Tags: $tags');
-      print('Visually similar images: $visuallySimilarImages');
-      print('Pages: $pages');
+      if (response.statusCode == 200) {
+        print(responseJson);
+        print('Tags: $tags');
+        print('Visually similar images: $visuallySimilarImages');
+        print('Pages: $pages');
+      } else {
+        print(responseJson);
+        print('Failed to upload image. Error code: ${response.statusCode}');
+      }*/
     }
 
-    BingSearch(path);
+    // BingSearch(path, img64);
     //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
-    // TextDetection(img64);
+    //  TextDetection(img64);
+    logoDetection(img64);
 
     // print("results = ${await Future.value(results)}");
     return await Future.value(webResults);
@@ -500,8 +583,6 @@ _imageSearch(src, path, name) async {
     }
   }
 }
-
-
 
 /*
 _cameraSerach(image, path) async {
