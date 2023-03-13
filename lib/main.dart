@@ -30,6 +30,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:context_menus/context_menus.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
+import 'package:pie_menu/pie_menu.dart';
 
 // import 'package:rake/rake.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -81,8 +82,8 @@ List<String> SearchPlatformList = [
 enum Theme { Light, Dark, Auto }
 
 // const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
-const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
-// const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
+// const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
+const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
@@ -535,7 +536,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         _searchResult = {};
       } else {
         _searchResult = URLs[_searchText];
-        // print("_searchResult $_searchResult");
+        print("_searchResult $_searchResult");
 
         print("_currentSearchPlatform $_currentSearchPlatform");
         _currentURLs = URLs[_searchText][_currentSearchPlatform]["list"];
@@ -576,7 +577,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     setState(() {
       _searchText = value;
-      if (URLs[_searchText] == null) {
+      if (URLs[_searchText] == null && _activatedSearchPlatforms.isEmpty) {
         _isFetching = true;
         newSearch = true;
       }
@@ -586,7 +587,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       _searchHistory.addAll({value.toString(): false});
     });
 
-    print("URLs[_searchText] ${URLs[_searchText]}");
+    if (kDebugMode) {
+      print("URLs[_searchText] ${URLs[_searchText]}");
+    }
 
     _normalSearch(newSearch);
 
@@ -652,7 +655,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   _getHistory() async {
-    print("getting history");
+    if (kDebugMode) {
+      print("getting history");
+    }
 
     final isar = await Isar.getInstance("url") ??
         await Isar.open([URLSchema], name: "url");
@@ -848,8 +853,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     await _updateCurrentURLs();
 
-    print(
-        "_currentURLs[_currentURLIndex]['link'] ${_currentURLs[_currentURLIndex]['link']}");
+    // print(
+    //     "_currentURLs[_currentURLIndex]['link'] ${_currentURLs[_currentURLIndex]['link']}");
 
     // print(
     //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
@@ -1458,8 +1463,10 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 
   _buildPlatform(context, platformPosition) {
-    print(
-        "platformPosition: $platformPosition | ${_activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform)} | ${_activatedSearchPlatforms.length}");
+    if (kDebugMode) {
+      print(
+          "platformPosition: $platformPosition | ${_activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform)} | ${_activatedSearchPlatforms.length}");
+    }
     return PreloadPageView.builder(
       physics: const NeverScrollableScrollPhysics(),
       preloadPagesCount: _preloadNumber,
@@ -1741,6 +1748,29 @@ class _WebViewContainerState extends State<WebViewContainer>
     return result.toList();
   }
 
+  _platformIconBuilder(String platform) {
+    switch (platform) {
+      case "Google":
+        return Icon(BoxIcons.bxl_google);
+      case "YouTube":
+        return Icon(BoxIcons.bxl_youtube);
+      case "Twitter":
+        return Icon(BoxIcons.bxl_twitter);
+      case "Facebook":
+        return Icon(BoxIcons.bxl_facebook);
+      case "Instagram":
+        return Icon(BoxIcons.bxl_instagram);
+      case "LinkedIn":
+        return Icon(BoxIcons.bxl_linkedin);
+      case "Bing":
+        return Icon(BoxIcons.bxl_bing);
+      case "Yahoo":
+        return Icon(BoxIcons.bxl_yahoo);
+      case "Baidu":
+        return Icon(BoxIcons.bxl_baidu);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -1992,26 +2022,26 @@ class _WebViewContainerState extends State<WebViewContainer>
                       // _hoverY >= 0 ? await _getSearchQuery() : print("cancel");
                       _hoverY >= 0 ? _performDrill() : print("cancel");
                     },
-                    child: FloatingActionButton.extended(
+                    child: FloatingActionButton(
                       onPressed: () {
-                        _changeSearchPlatform();
+                        // _changeSearchPlatform();
 
-                        // count down 5 seconds
-                        if (_autoSwitchPlatform == 1) {
-                          if (_platformActivationTimer == null) {
-                            _platformActivationTimer = RestartableTimer(
-                                const Duration(seconds: 2), () async {
-                              _normalSearch();
-                            });
-                          } else {
-                            _platformActivationTimer!.reset();
-                          }
-                        }
+                        // // count down 5 seconds
+                        // if (_autoSwitchPlatform == 1) {
+                        //   if (_platformActivationTimer == null) {
+                        //     _platformActivationTimer = RestartableTimer(
+                        //         const Duration(seconds: 2), () async {
+                        //       _normalSearch();
+                        //     });
+                        //   } else {
+                        //     _platformActivationTimer!.reset();
+                        //   }
+                        // }
                       },
-                      label: Text(_currentSearchPlatform),
+                      // label: Text(_currentSearchPlatform),
                       backgroundColor: _fabColor,
                       splashColor: Colors.amber[100],
-                      icon: const Icon(MyFlutterApp.drill),
+                      child: const Icon(MyFlutterApp.drill),
                       // child: AnimatedBuilder(
                       //   animation: _drillingAnimationController,
                       //   builder: (_, child) {
@@ -2037,6 +2067,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               child: !_isFetching
                   ? _searchResult.isNotEmpty
                       ? Flexible(
+                          // child: PieCanvas(
                           child: Stack(
                             children: <Widget>[
                               // WebView
@@ -2051,25 +2082,29 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //   },
 
                               // Title Bar
-                              ColoredBox(
-                                color: Colors.white,
-                                child: SizedBox(
-                                  // height: autoSize(50, context),
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 10.0,
-                                          right: 10.0,
-                                          top: 5.0,
-                                          bottom: 5.0),
-                                      child: Text(
-                                        _currentWebViewTitle,
-                                        style: const TextStyle(
-                                          fontSize: 16,
+                              Positioned(
+                                top: 0,
+                                width: MediaQuery.of(context).size.width,
+                                child: ColoredBox(
+                                  color: Colors.white,
+                                  child: SizedBox(
+                                    // height: autoSize(50, context),
+                                    child: Align(
+                                      alignment: Alignment.center,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                            left: 10.0,
+                                            right: 10.0,
+                                            top: 5.0,
+                                            bottom: 5.0),
+                                        child: Text(
+                                          _currentWebViewTitle,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                          ),
+                                          overflow: TextOverflow.visible,
+                                          textAlign: TextAlign.center,
                                         ),
-                                        overflow: TextOverflow.visible,
-                                        textAlign: TextAlign.center,
                                       ),
                                     ),
                                   ),
@@ -2081,6 +2116,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //   child:
                               Padding(
                                 padding: EdgeInsets.only(
+                                  top: 30,
                                   bottom: Platform.isIOS
                                       ? (_loadingPercentage < 100 ? 65 : 60)
                                       : (_loadingPercentage < 100 ? 55 : 50),
@@ -2352,6 +2388,20 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 bottom: 20,
                                 left:
                                     MediaQuery.of(context).size.width / 2 - 50,
+                                // child: PieMenu(
+                                //   onTap: () => print('tap'),
+                                //   theme: PieTheme(
+                                //     bouncingMenu: false,
+                                //     delayDuration: Duration.zero,
+                                //   ),
+                                //   actions: [
+                                //     PieAction(
+                                //       tooltip: 'like',
+                                //       onSelect: () => print('liked'),
+                                //       child: const Icon(Icons
+                                //           .favorite), // Not necessarily an icon widget
+                                //     ),
+                                //   ],
                                 child: Joystick(
                                   base: Container(
                                     width: 100,
@@ -2359,20 +2409,43 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(50),
                                       // color: Color.fromARGB(117, 224, 224, 224),
-                                      color: Colors.grey.withOpacity(0.3),
+                                      color: Colors.grey.withOpacity(0.2),
                                       backgroundBlendMode: BlendMode.multiply,
                                     ),
                                   ),
                                   stick: Container(
-                                    width: 45,
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(50),
-                                      color: Colors.grey.withOpacity(0.7),
-                                      backgroundBlendMode: BlendMode.multiply,
-                                    ),
-                                  ),
-                                  period: Duration(milliseconds: 300),
+                                      width: 45,
+                                      height: 45,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                        color: Colors.grey.withOpacity(0.5),
+                                        backgroundBlendMode: BlendMode.multiply,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          print("switch platform");
+                                          _changeSearchPlatform();
+
+                                          // count down 5 seconds
+                                          if (_autoSwitchPlatform == 1) {
+                                            if (_platformActivationTimer ==
+                                                null) {
+                                              _platformActivationTimer =
+                                                  RestartableTimer(
+                                                      const Duration(
+                                                          seconds: 2),
+                                                      () async {
+                                                _normalSearch();
+                                              });
+                                            } else {
+                                              _platformActivationTimer!.reset();
+                                            }
+                                          }
+                                        },
+                                        child: _platformIconBuilder(
+                                            _currentSearchPlatform),
+                                      )),
+                                  period: const Duration(milliseconds: 250),
                                   listener: (details) async {
                                     print(
                                         "joystick:  ${details.x}, ${details.y}");
@@ -2408,9 +2481,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     }
                                   },
                                 ),
+                                // ),
                               ),
                             ],
                           ),
+                          // ),
                         )
                       : Flexible(
                           child: Align(
