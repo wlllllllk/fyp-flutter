@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_searchub/main.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:isar/isar.dart';
 
@@ -10,7 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 //import "package:image/src/image.dart";
-import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:io' as io;
 import 'package:path/path.dart' as p;
@@ -20,6 +20,8 @@ import 'package:googleapis/storage/v1.dart';
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:icons_plus/icons_plus.dart';
+import 'package:menu_button/menu_button.dart';
 
 class CredentialsProvider {
   CredentialsProvider();
@@ -55,6 +57,8 @@ class SearchPage extends StatefulWidget {
     required this.updateCurrentURLs,
     required this.moveSwiper,
     required this.updateSearchText,
+    required this.searchPlatformList,
+    required this.currentPlatform,
   }) : super(key: key);
 
   final String realSearchText;
@@ -64,6 +68,8 @@ class SearchPage extends StatefulWidget {
   final updateCurrentURLs;
   final moveSwiper;
   final updateSearchText;
+  final searchPlatformList;
+  final currentPlatform;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -72,18 +78,48 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchFieldController = TextEditingController();
   // String _realSearchText = "";
+  String _platform = "";
 
   @override
   void initState() {
     super.initState();
     // _realSearchText = widget.realSearchText;
     _searchFieldController.text = widget.realSearchText;
+    _platform = widget.currentPlatform;
+  }
+
+  _changePlatform() {
+    print("change platform");
+  }
+
+  _platformIconBuilder(String platform) {
+    switch (platform) {
+      case "Google":
+        return Icon(BoxIcons.bxl_google);
+      case "YouTube":
+        return Icon(BoxIcons.bxl_youtube);
+      case "Twitter":
+        return Icon(BoxIcons.bxl_twitter);
+      case "Facebook":
+        return Icon(BoxIcons.bxl_facebook);
+      case "Instagram":
+        return Icon(BoxIcons.bxl_instagram);
+      case "LinkedIn":
+        return Icon(BoxIcons.bxl_linkedin);
+      case "Bing":
+        return Icon(BoxIcons.bxl_bing);
+      case "Yahoo":
+        return Icon(BoxIcons.bxl_yahoo);
+      case "Baidu":
+        return Icon(BoxIcons.bxl_baidu);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: Container(
           // height: 40,
           // padding: const EdgeInsets.only(left: 15),
@@ -96,7 +132,24 @@ class _SearchPageState extends State<SearchPage> {
             autofocus: true,
             decoration: InputDecoration(
               border: InputBorder.none,
-              hintText: 'Enter a search term',
+              hintText: 'Enter here',
+              prefixIcon: MenuButton(
+                child: _platformIconBuilder(_platform),
+                menuButtonBackgroundColor: Colors.white,
+                items: SearchPlatformList,
+                itemBuilder: (String value) => Container(
+                  height: 50,
+                  child: _platformIconBuilder(value),
+                ),
+                onItemSelected: (value) {
+                  print("value $value");
+                  // widget.updateCurrentURLs(value);
+                  // widget.moveSwiper(0);
+                  setState(() {
+                    _platform = value as String;
+                  });
+                },
+              ),
               suffixIcon: Container(
                 child: IntrinsicHeight(
                   child: Row(
@@ -209,7 +262,7 @@ class _SearchPageState extends State<SearchPage> {
             ),
             controller: _searchFieldController,
             onSubmitted: (value) {
-              widget.handleSearch(value);
+              widget.handleSearch(value, _platform);
             },
             autocorrect: false,
             maxLines: 1,
