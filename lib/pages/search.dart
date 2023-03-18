@@ -127,23 +127,19 @@ class _SearchPageState extends State<SearchPage> {
                             EasyLoading.showToast('image $image');
                             if (image != null) {
                               EasyLoading.show(status: 'Searching...');
-                              Map results = await _imageSearch(
+                              Map results = await _cameraSearch(
                                   image, image.path, image.name);
                               print("image $results");
-                              await widget
-                                  .updateSearchText(results["bestGuessLabel"]);
+
                               var items = null;
-                              if (results['urls'].length == 0) {
+                              if (results["urls"].length == 0) {
                                 items = await widget.performSearch(
-                                    results["bestGuessLabel"], "Google");
-                                await widget.updateURLs("replace",
-                                    results['bestGuessLabel'], "Google", items);
-                              } else {
+                                    results["urls"], "Bing");
                                 await widget.updateURLs(
-                                    "replace",
-                                    results['bestGuessLabel'],
-                                    "Google",
-                                    results['urls']);
+                                    "replace", results['urls'], "Bing", items);
+                              } else {
+                                await widget.updateURLs("replace",
+                                    results['urls'], "Bing", results['urls']);
                               }
                               await widget.updateCurrentURLs();
                               EasyLoading.dismiss();
@@ -166,7 +162,11 @@ class _SearchPageState extends State<SearchPage> {
                             final ImagePicker _picker = ImagePicker();
                             // Pick an image
                             final XFile? image = await _picker.pickImage(
-                                source: ImageSource.gallery);
+                              source: ImageSource.gallery,
+                              maxHeight: 1000,
+                              maxWidth: 1000,
+                              //imageQuality: 80,
+                            );
                             print("image $image");
                             EasyLoading.showToast('image $image');
                             if (image != null) {
@@ -494,80 +494,56 @@ _imageSearch(src, path, name) async {
       final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
       final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
-      final String url =
-          "https://api.bing.microsoft.com/v7.0/images/visualsearch";
-
-      final endpointUrl =
-          'https://api.bing.microsoft.com/v7.0/images/visualsearch';
-
-      final header = {
-        'Ocp-Apim-Subscription-Key': apiKey,
-        'Content-Type': 'application/json'
-      };
-      // Convert the base64 image to bytes
-      final request = {
-        'imageInfo': {
-          'url':
-              "https://animecorner.me/wp-content/uploads/2022/08/chisato_lr_ep_7.png",
-          'imageInsightsToken': '',
-          'cropArea': {
-            'top': 0.1,
-            'left': 0.5,
-            'right': 0.9,
-            'bottom': 0.9,
-          },
-        },
-        'knowledgeRequest': {
-          'filters': {
-            'site': '',
-          },
-        },
+      var uri =
+          Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
+      var headers = {
+        'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
       };
 
-      final jsonRequest = json.encode(request);
-      final visualSearch = await http.post(Uri.parse(endpointUrl),
-          headers: header, body: jsonRequest);
-      if (visualSearch.statusCode == 200) {
-      } else {
-        print('Failed to upload image. Error code: ${visualSearch.body}');
-      }
+      var request = http.MultipartRequest('POST', uri)
+        ..headers.addAll(headers)
+        ..files.add(await http.MultipartFile.fromPath('image', imgpath,
+            filename: 'myfile'));
+      var response = await request.send();
       // Convert the base64 image to bytes
-
-      // Create the HTTP request with the necessary headers and parameters
-      /*
-      final request = http.MultipartRequest("POST", Uri.parse(endpointUrl));
-      request.headers['Ocp-Apim-Subscription-Key'] = apiKey;
-      request.headers['Content-Type'] = json.encode('application/json');
-      request.fields['imageInfo'] = json.encode(
-          '{"url":"","imageInsightsToken":"","cropArea":{"top":0.0,"left":0.0,"bottom":1.0,"right":1.0}}');
-      request.fields['knowledgeRequest'] =
-          json.encode('{"filters":{"site":""}}');
-      //request.files.add(await http.MultipartFile.fromPath('image', imgpath));
-
-      final response = await request.send();
 
       final String responseString = await response.stream.bytesToString();
-      final responseJson = jsonDecode(responseString);
-      final tags = responseJson['tags'];
-      final visuallySimilarImages = responseJson['visuallySimilarImages'];
-      final pages = responseJson['pages'];
+
+      print(responseString);
+
+      List Result = [];
+      // Convert the base64 image to bytes
 
       if (response.statusCode == 200) {
-        print(responseJson);
-        print('Tags: $tags');
-        print('Visually similar images: $visuallySimilarImages');
-        print('Pages: $pages');
+        final responseJson = jsonDecode(responseString);
+        final elements = responseJson['tags'][0]['actions'];
+        var bingVisualObject;
+
+        print("response code ${response.statusCode}");
+        elements.forEach((data) => {
+              if (data['actionType'] == "VisualSearch")
+                {bingVisualObject = data['data']['value']}
+            });
+
+        bingVisualObject.forEach((value) {
+          print("Website name: ${value['name']}");
+          print("website: ${value['hostPageUrl']}");
+          Result.add({
+            'title': value['name'].toString(),
+            'link': value['hostPageUrl'].toString(),
+          });
+        });
       } else {
-        print(responseJson);
         print('Failed to upload image. Error code: ${response.statusCode}');
-      }*/
+      }
+      return Result;
     }
 
-    // BingSearch(path, img64);
+    var bingVisualResult = BingSearch(path, img64);
     //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
-    //  TextDetection(img64);
-    logoDetection(img64);
+    // TextDetection(img64);
+    // logoDetection(img64);
 
     // print("results = ${await Future.value(results)}");
     return await Future.value(webResults);
@@ -584,6 +560,64 @@ _imageSearch(src, path, name) async {
   }
 }
 
+_cameraSearch(src, path, name) async {
+  final bytes = io.File(path).readAsBytesSync();
+  String img64 = base64Encode(bytes);
+
+  Future BingSearch(String imgpath, String img64) async {
+    final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
+    final imageData = base64.encode(File(imgpath).readAsBytesSync());
+
+    var uri =
+        Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
+    var headers = {
+      'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
+    };
+
+    var request = http.MultipartRequest('POST', uri)
+      ..headers.addAll(headers)
+      ..files.add(await http.MultipartFile.fromPath('image', imgpath,
+          filename: 'myfile'));
+    var response = await request.send();
+    // Convert the base64 image to bytes
+
+    final String responseString = await response.stream.bytesToString();
+
+    print(responseString);
+
+    Map out = {};
+    List results = [];
+    // Convert the base64 image to bytes
+
+    if (response.statusCode == 200) {
+      final responseJson = jsonDecode(responseString);
+      final elements = responseJson['tags'][0]['actions'];
+      var bingVisualObject;
+
+      print("response code ${response.statusCode}");
+      elements.forEach((data) => {
+            if (data['actionType'] == "VisualSearch")
+              {bingVisualObject = data['data']['value']}
+          });
+
+      bingVisualObject.forEach((value) {
+        print("Website name: ${value['name']}");
+        print("website: ${value['hostPageUrl']}");
+        results.add({
+          'title': value['name'].toString(),
+          'link': value['hostPageUrl'].toString(),
+        });
+      });
+    } else {
+      print('Failed to upload image. Error code: ${response.statusCode}');
+    }
+    out.addAll({'urls': results});
+    return out;
+  }
+
+  var bingVisualResult = BingSearch(path, img64);
+  return bingVisualResult;
+}
 /*
 _cameraSerach(image, path) async {
   final InputImage inputImage = InputImage.fromFilePath(path);
