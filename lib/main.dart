@@ -434,6 +434,109 @@ class _WebViewContainerState extends State<WebViewContainer>
     return null;
   }
 
+  _performYTSearch(value) async {
+    var url = Uri.https('www.googleapis.com', '/youtube/v3/search', {
+      'key': "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw",
+      'part': "snippet",
+      'type': "video",
+      'maxResults': "100",
+      'q': value,
+    });
+
+    var response = !_gg ? await http.get(url) : null;
+
+    print("response: $response");
+
+    if (response != null) {
+      if (response.statusCode == 200) {
+        var jsonResponse =
+            convert.jsonDecode(response.body) as Map<String, dynamic>;
+
+        print("jsonResponse123: $jsonResponse");
+        // print(jsonResponse['items']);
+
+        var items = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
+        // print("items: ${items}");
+        var videoIds = [];
+
+        for (var item in items) {
+          videoIds.add(item['id']['videoId']);
+        }
+
+        print("videoIds: $videoIds");
+
+        return items;
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        return null;
+      }
+    }
+  }
+
+  _performTwitterSearch(value) async {
+    var url = Uri.https('api.twitter.com', '1.1/search/tweets.json', {
+      'q': value,
+      'result_type': "popular",
+    });
+
+    var response = !_gg ? await http.get(url) : null;
+
+    print("response: $response");
+
+    if (response != null) {
+      if (response.statusCode == 200) {
+        var jsonResponse =
+            convert.jsonDecode(response.body) as Map<String, dynamic>;
+
+        print("jsonResponse123: $jsonResponse");
+        // print(jsonResponse['items']);
+
+        var items = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
+        // print("items: ${items}");
+
+        return items;
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        return null;
+      }
+    }
+  }
+
+  _performFacebookSearch(value) async {
+    var url = Uri.https('api.twitter.com', '1.1/search/tweets.json', {
+      'q': value,
+      'result_type': "popular",
+    });
+
+    var response = !_gg ? await http.get(url) : null;
+
+    print("response: $response");
+
+    if (response != null) {
+      if (response.statusCode == 200) {
+        var jsonResponse =
+            convert.jsonDecode(response.body) as Map<String, dynamic>;
+
+        print("jsonResponse123: $jsonResponse");
+        // print(jsonResponse['items']);
+
+        var items = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
+        // print("items: ${items}");
+
+        return items;
+      } else {
+        print('Request failed with status: ${response.statusCode}.');
+        return null;
+      }
+    }
+  }
+
   _updateLastViewedPlatform(keyword, platform) async {
     if (URLs[keyword] == null) {
       URLs[keyword] = {"lastViewedPlatform": platform};
@@ -1795,12 +1898,15 @@ class _WebViewContainerState extends State<WebViewContainer>
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
         print("jsonResponse: $jsonResponse");
-        // print(jsonResponse['items']);
+        print(jsonResponse['name']);
 
-        //       var items = jsonResponse['items'] != null
-        //     ? jsonResponse['items'] as List<dynamic>
-        //    : [];
-        // print("items: ${items}");
+        var entities = jsonResponse['entities'] != null
+            ? jsonResponse['entities'] as List<dynamic>
+            : [];
+        print("entities: ${entities}");
+
+        var names = entities.map((e) => e['name']).toList();
+        print("names: ${names}");
 
         // return items;
         return response;
@@ -2521,6 +2627,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       _testLanguage(
                                           "Finds named entities (currently proper names and common nouns) in the text along with entity types, salience, mentions for each entity, and other properties.");
                                     }
+                                    _performTwitterSearch("cuhk");
+                                    _performYTSearch("cuhk");
                                   },
                                 ),
                                 // ),
@@ -2564,3 +2672,21 @@ class URL {
   String duration = Duration(seconds: 0).toString();
   bool bookmarked = false;
 }
+
+/*
+class Tag {
+  String name;
+  int salience;
+
+  Tag(this.name, this.salience);
+
+  factory Tag.fromJson(dynamic json) {
+    return Tag(json['name'] as String, json['salience'] as double);
+  }
+
+  @override
+  String toString() {
+    return '{ ${this.name}, ${this.salience} }';
+  }
+}
+*/
