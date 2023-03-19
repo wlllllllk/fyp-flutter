@@ -384,39 +384,78 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
     print("_gg: $_gg");
 
-    var ENGINE_ID;
-
-    switch (platform) {
-      case 'Google':
-        ENGINE_ID = SEARCH_ENGINE_ID_GOOGLE;
-        break;
-      case 'YouTube':
-        ENGINE_ID = SEARCH_ENGINE_ID_YOUTUBE;
-        break;
-      case 'Twitter':
-        ENGINE_ID = SEARCH_ENGINE_ID_TWITTER;
-        break;
-      case 'Facebook':
-        ENGINE_ID = SEARCH_ENGINE_ID_FACEBOOK;
-        break;
-      case 'Instagram':
-        ENGINE_ID = SEARCH_ENGINE_ID_INSTAGRAM;
-        break;
-      case 'LinkedIn':
-        ENGINE_ID = SEARCH_ENGINE_ID_LINKEDIN;
-        break;
-    }
+    var ENGINE_ID, uri;
 
     print("page: $page | _start: $_start");
 
-    var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
-      'key': API_KEY,
-      'cx': ENGINE_ID,
-      'q': value,
-      'start': _start.toString(),
-    });
+    // different uri for different search engines
+    switch (platform) {
+      case 'Google':
+        // ENGINE_ID = SEARCH_ENGINE_ID_GOOGLE;
+        uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
+          'key': API_KEY,
+          'cx': SEARCH_ENGINE_ID_GOOGLE,
+          'q': value,
+          'start': _start.toString(),
+        });
+        break;
+      case 'YouTube':
+        // ENGINE_ID = SEARCH_ENGINE_ID_YOUTUBE;
+        uri = Uri.https('www.googleapis.com', '/youtube/v3/search', {
+          'key': "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw",
+          'part': "snippet",
+          'type': "video",
+          'maxResults': "100",
+          'q': value,
+        });
+        break;
+      //www.googleapis.com/youtube/v3/search?key=AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw&part=snippet&type=video&maxResults=100&q=cuhk
+      case 'Twitter':
+        // ENGINE_ID = SEARCH_ENGINE_ID_TWITTER;
+        uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
+          'key': API_KEY,
+          'cx': SEARCH_ENGINE_ID_TWITTER,
+          'q': value,
+          'start': _start.toString(),
+        });
+        break;
+      case 'Facebook':
+        // ENGINE_ID = SEARCH_ENGINE_ID_FACEBOOK;
+        uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
+          'key': API_KEY,
+          'cx': SEARCH_ENGINE_ID_FACEBOOK,
+          'q': value,
+          'start': _start.toString(),
+        });
+        break;
+      case 'Instagram':
+        // ENGINE_ID = SEARCH_ENGINE_ID_INSTAGRAM;
+        uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
+          'key': API_KEY,
+          'cx': SEARCH_ENGINE_ID_INSTAGRAM,
+          'q': value,
+          'start': _start.toString(),
+        });
+        break;
+      case 'LinkedIn':
+        // ENGINE_ID = SEARCH_ENGINE_ID_LINKEDIN;
+        uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
+          'key': API_KEY,
+          'cx': SEARCH_ENGINE_ID_LINKEDIN,
+          'q': value,
+          'start': _start.toString(),
+        });
+        break;
+    }
 
-    var response = !_gg ? await http.get(url) : null;
+    // var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
+    //   'key': API_KEY,
+    //   'cx': ENGINE_ID,
+    //   'q': value,
+    //   'start': _start.toString(),
+    // });
+
+    var response = !_gg ? await http.get(uri) : null;
 
     print("response: $response");
 
@@ -431,7 +470,53 @@ class _WebViewContainerState extends State<WebViewContainer>
         var items = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
-        // print("items: ${items}");
+        print("items: ${items}");
+
+        if (items.isEmpty) {
+          // setState(() {
+          //   _gg = true;
+          // });
+          print("no results found");
+          await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text("No results found"),
+                  content: Text("Please try to change the search query"),
+                  actions: [
+                    TextButton(
+                      child: Text("OK"),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    )
+                  ],
+                );
+              });
+          return null;
+        }
+
+        switch (platform) {
+          case 'Google':
+            return items;
+          case 'YouTube':
+            for (var item in items) {
+              var videoId = item['id']['videoId'];
+              var videoUrl = "https://www.youtube.com/watch?v=$videoId";
+              item['title'] = item['snippet']['title'];
+              item['link'] = videoUrl;
+            }
+            print("items: $items");
+            return items;
+          case 'Twitter':
+            return items;
+          case 'Facebook':
+            return items;
+          case 'Instagram':
+            return items;
+          case 'LinkedIn':
+            return items;
+        }
 
         return items;
       } else {
@@ -466,7 +551,11 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     keyword = keyword.toString();
     platform = platform.toString();
-    print("list length: ${list.length}");
+    print("list length: ${list}");
+
+    if (list == null) {
+      return;
+    }
 
     setState(() {
       _marqueeKey = UniqueKey();
@@ -550,7 +639,11 @@ class _WebViewContainerState extends State<WebViewContainer>
         print("_searchResult $_searchResult");
 
         print("_currentSearchPlatform $_currentSearchPlatform");
-        _currentURLs = URLs[_searchText][_currentSearchPlatform]["list"];
+        if (URLs[_searchText][_currentSearchPlatform] == null) {
+          URLs[_searchText][_currentSearchPlatform] = {};
+        } else {
+          _currentURLs = URLs[_searchText][_currentSearchPlatform]["list"];
+        }
       }
     });
 
@@ -2671,13 +2764,14 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         print("switch platform");
                                         _changeSearchPlatform();
 
-                                        // count down 5 seconds
+                                        // count down 1 seconds
                                         if (_autoSwitchPlatform == 1) {
                                           if (_platformActivationTimer ==
                                               null) {
                                             _platformActivationTimer =
                                                 RestartableTimer(
-                                                    const Duration(seconds: 2),
+                                                    const Duration(
+                                                        milliseconds: 1000),
                                                     () async {
                                               _normalSearch();
                                             });
@@ -2704,7 +2798,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         await _testPreloadPageController
                                             .nextPage(
                                                 duration: const Duration(
-                                                    milliseconds: 300),
+                                                    milliseconds: 200),
                                                 curve: Curves.easeIn);
                                       }
                                     } else if (details.x < -0.5) {

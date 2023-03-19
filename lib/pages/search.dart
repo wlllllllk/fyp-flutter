@@ -262,7 +262,7 @@ class _SearchPageState extends State<SearchPage> {
             ),
             controller: _searchFieldController,
             onSubmitted: (value) {
-              widget.handleSearch(value, _platform);
+              if (value != "") widget.handleSearch(value, _platform);
             },
             autocorrect: false,
             maxLines: 1,
