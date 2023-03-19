@@ -89,9 +89,9 @@ List<String> SearchPlatformList = [
 
 enum Theme { Light, Dark, Auto }
 
-// const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
 // const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
-const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
+// const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
 const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
 const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
@@ -840,7 +840,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     print("length: ${keyword.split(' ').length}");
 
-    String selectedKeywords = "";
+    String selectedKeywords = "", selectedPlatform = "";
+    List<String> selectedPlatformList = [];
 
     bool abort = false;
 
@@ -848,46 +849,109 @@ class _WebViewContainerState extends State<WebViewContainer>
     if (keyword.split(' ').length > 10) {
       var extracted = await _extractKeywords(keyword);
 
-      List<S2Choice<String>> keywords = [];
+      List<MultiSelectItem> keywords = [];
       for (var i = 0; i < extracted.length; i++) {
-        keywords
-            .add(S2Choice<String>(value: extracted[i], title: extracted[i]));
+        keywords.add(MultiSelectItem(extracted[i], extracted[i]));
       }
+
+      List<MultiSelectItem> platforms = [];
+      for (var i = 0; i < SearchPlatformList.length; i++) {
+        platforms
+            .add(MultiSelectItem(SearchPlatformList[i], SearchPlatformList[i]));
+      }
+
+      // List<S2Choice<String>> keywords = [];
+      // for (var i = 0; i < extracted.length; i++) {
+      //   keywords
+      //       .add(S2Choice<String>(value: extracted[i], title: extracted[i]));
+      // }
 
       // ignore: use_build_context_synchronously
       await showDialog<String>(
+        barrierDismissible: false,
         context: context,
         builder: (BuildContext context) => AlertDialog(
+          scrollable: true,
           title: const Text('Are you interested in these keywords?'),
-          // content: c/nst Text('AlertDialog description'),
-          content: Container(
-            // width: 300,
-            width: MediaQuery.of(context).size.width,
-            child: SmartSelect.multiple(
-              title: 'Keywords',
-              placeholder: "Select keywords",
-              selectedValue: [],
-              choiceItems: keywords,
-              onChange: (state) {
-                print(state.value);
-                selectedKeywords = state.value.join(" ").trim();
-                print("updated $selectedKeywords");
-              },
-              modalType: S2ModalType.popupDialog,
-              choiceType: S2ChoiceType.chips,
-              // onModalClose: (state, confirmed) {
-              //   print("modal closed $state $confirmed");
-              //   print("selected keywords: $selectedKeywords");
-              // },
-
-              // groupBuilder: (context, header, choices) {
-              //   return StickyHeader(
-              //     header: header,
-              //     content: choices,
-              //   );
-              // },
-            ),
+          content: Column(
+            children: <Widget>[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: MultiSelectChipField(
+                  title: const Text(
+                    "Suggested Keywords",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  items: keywords,
+                  showHeader: true,
+                  scroll: false,
+                  onTap: (values) {
+                    print("selected: $values");
+                    selectedKeywords = values.join(" ").trim();
+                    print("updated $selectedKeywords");
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: MultiSelectChipField(
+                  title: const Text(
+                    "Available Platforms",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  items: platforms,
+                  showHeader: true,
+                  scroll: false,
+                  validator: (value) {
+                    print("validating $value");
+                  },
+                  onTap: (values) {
+                    print("selected: $values");
+                    selectedPlatform = values.isNotEmpty
+                        ? values[values.length - 1].toString()
+                        : "";
+                    print("updated $selectedPlatform");
+                  },
+                ),
+              ),
+            ],
           ),
+          //   SmartSelect.multiple(
+          //     title: 'Keywords',
+          //     placeholder: "Select keywords",
+          //     selectedValue: [],
+          //     choiceItems: keywords,
+          //     onChange: (state) {
+          //       print(state.value);
+          //       selectedKeywords = state.value.join(" ").trim();
+          //       print("updated $selectedKeywords");
+          //     },
+          //     modalType: S2ModalType.popupDialog,
+          //     choiceType: S2ChoiceType.chips,
+          //     // onModalClose: (state, confirmed) {
+          //     //   print("modal closed $state $confirmed");
+          //     //   print("selected keywords: $selectedKeywords");
+          //     // },
+
+          //     // groupBuilder: (context, header, choices) {
+          //     //   return StickyHeader(
+          //     //     header: header,
+          //     //     content: choices,
+          //     //   );
+          //     // },
+          //   ),
+          // ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -900,11 +964,14 @@ class _WebViewContainerState extends State<WebViewContainer>
               onPressed: () {
                 Navigator.pop(context, 'ALL');
               },
-              child: const Text('Drill ALL'),
+              child: const Text('Drill Original'),
             ),
             TextButton(
               onPressed: () {
                 print("final selected keywords: $selectedKeywords");
+                if (selectedKeywords == "") {
+                  return;
+                }
                 Navigator.pop(context, 'OK');
               },
               child: const Text('OK'),
@@ -914,7 +981,8 @@ class _WebViewContainerState extends State<WebViewContainer>
       );
     }
 
-    print("keyword: ${keyword} | selectedKeywords: ${selectedKeywords}");
+    print(
+        "keyword: ${keyword} | selectedKeywords: ${selectedKeywords} | selectedPlatform: ${selectedPlatform}");
 
     if (abort) return;
     // return;
@@ -922,7 +990,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _appBarColor = _searchingAppBarColor;
       _searchText = selectedKeywords == "" ? keyword : selectedKeywords;
-      print("_searchText $_searchText");
+      _currentSearchPlatform =
+          selectedPlatform == "" ? _currentSearchPlatform : selectedPlatform;
+      print(
+          "_searchText $_searchText | _currentSearchPlatform $_currentSearchPlatform");
 
       if (_searchHistory[_searchText.toString()] == false) {
         _searchHistory.update(_searchText.toString(), (value) => true);
