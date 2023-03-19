@@ -41,6 +41,8 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:drag_select_grid_view/drag_select_grid_view.dart';
 import 'package:awesome_select/awesome_select.dart';
 // import 'package:sticky_headers/sticky_headers.dart';
+import 'package:multi_select_flutter/multi_select_flutter.dart';
+
 import 'package:flutter/services.dart';
 
 import 'my_flutter_app_icons.dart';
