@@ -24,12 +24,9 @@ import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
 // import 'package:google_vision/google_vision.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-// import 'package:rake/rake.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:context_menus/context_menus.dart';
@@ -37,10 +34,6 @@ import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:pie_menu/pie_menu.dart';
 import 'package:screenshot/screenshot.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:drag_select_grid_view/drag_select_grid_view.dart';
-import 'package:awesome_select/awesome_select.dart';
-// import 'package:sticky_headers/sticky_headers.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 
 import 'package:flutter/services.dart';
@@ -141,7 +134,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     initialPage: 0,
   );
   final ScreenshotController _screenshotController = ScreenshotController();
-  final _gridController = DragSelectGridViewController();
 
   // search related
   // ignore: non_constant_identifier_names
@@ -2470,7 +2462,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 controller: _screenshotController,
                                 child: Padding(
                                   padding: EdgeInsets.only(
-                                    // top: 30,
+                                    top: 30,
                                     bottom: Platform.isIOS
                                         ? (_loadingPercentage < 100 ? 65 : 60)
                                         : (_loadingPercentage < 100 ? 55 : 50),
@@ -2690,7 +2682,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                     },
                                                     icon: const FaIcon(
                                                         FontAwesomeIcons
-                                                            .rotateLeft,
+                                                            .arrowLeft,
                                                         size: 20),
                                                   ),
                                                   IconButton(
