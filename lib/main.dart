@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:fyp_searchub/pages/history.dart';
 import 'package:fyp_searchub/pages/search.dart';
 import 'package:fyp_searchub/pages/settings.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:card_swiper/card_swiper.dart';
@@ -27,14 +29,18 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:scroll_snap_list/scroll_snap_list.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+// import 'package:rake/rake.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:context_menus/context_menus.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:pie_menu/pie_menu.dart';
-
-// import 'package:rake/rake.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:drag_select_grid_view/drag_select_grid_view.dart';
+import 'package:awesome_select/awesome_select.dart';
+// import 'package:sticky_headers/sticky_headers.dart';
 import 'package:flutter/services.dart';
 
 import 'my_flutter_app_icons.dart';
@@ -132,6 +138,8 @@ class _WebViewContainerState extends State<WebViewContainer>
   PreloadPageController _testPreloadPageController = PreloadPageController(
     initialPage: 0,
   );
+  final ScreenshotController _screenshotController = ScreenshotController();
+  final _gridController = DragSelectGridViewController();
 
   // search related
   // ignore: non_constant_identifier_names
@@ -157,9 +165,10 @@ class _WebViewContainerState extends State<WebViewContainer>
   // final _redirectStopwatch = Stopwatch();
 
   // colours
-  Color _defaultAppBarColor = Colors.white;
+  final Color _defaultAppBarColor = Colors.white;
+  final Color _searchingAppBarColor = Colors.amber[300]!;
+  final Color _themedAppBarColor = Colors.blue[100]!;
   Color _appBarColor = Colors.blue[100]!;
-  Color _themedAppBarColor = Colors.blue[100]!;
   Color _fabColor = Colors.blue[100]!;
 
   // ?maybe useful
@@ -490,7 +499,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         {
           // only set the URL list if there are results
           if (list.length > 0) {
-            print("platform: $platform");
+            print("platform replace: $platform");
             setState(() {
               // URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
               _resetLastViewedIndex(keyword, platform);
@@ -542,6 +551,19 @@ class _WebViewContainerState extends State<WebViewContainer>
         _currentURLs = URLs[_searchText][_currentSearchPlatform]["list"];
       }
     });
+
+    // setState(() {
+    //   // _pageKey = GlobalKey();
+
+    //   if (_fabColor == Colors.amber[300]!) {
+    //     _fabColor = Colors.blue[100]!;
+    //     _appBarColor = _defaultAppBarColor;
+    //     print("white");
+    //   } else {
+    //     _fabColor = Colors.amber[300]!;
+    //     _appBarColor = Colors.amber[300]!;
+    //   }
+    // });
   }
 
   _moveSwiper() async {
@@ -576,14 +598,15 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     setState(() {
-      _searchText = value;
+      _searchText = value.toString();
       if (URLs[_searchText] == null && _activatedSearchPlatforms.isEmpty) {
         _isFetching = true;
         newSearch = true;
       }
 
-      _appBarColor = _defaultAppBarColor;
-      _fabColor = Colors.blue[100]!;
+      // _appBarColor = _defaultAppBarColor;
+      // _fabColor = Colors.blue[100]!;
+      _appBarColor = _searchingAppBarColor;
       _searchHistory.addAll({value.toString(): false});
     });
 
@@ -609,6 +632,10 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     // // move the swiper
     // await _moveSwiper();
+
+    setState(() {
+      _appBarColor = _defaultAppBarColor;
+    });
   }
 
   void _updateSearchText(searchText) {
@@ -804,25 +831,113 @@ class _WebViewContainerState extends State<WebViewContainer>
   // }
 
   _performDrill([selectedText = null]) async {
+    String currentSearchText = _searchText;
     String keyword = selectedText ?? await _getSearchQuery();
+    keyword = keyword.trim();
     print("drilling... | $keyword");
 
+    print("length: ${keyword.split(' ').length}");
+
+    String selectedKeywords = "";
+
+    bool abort = false;
+
+    // auto keywords extraction if more than 10 words
+    if (keyword.split(' ').length > 10) {
+      var extracted = await _extractKeywords(keyword);
+
+      List<S2Choice<String>> keywords = [];
+      for (var i = 0; i < extracted.length; i++) {
+        keywords
+            .add(S2Choice<String>(value: extracted[i], title: extracted[i]));
+      }
+
+      // ignore: use_build_context_synchronously
+      await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Are you interested in these keywords?'),
+          // content: c/nst Text('AlertDialog description'),
+          content: Container(
+            // width: 300,
+            width: MediaQuery.of(context).size.width,
+            child: SmartSelect.multiple(
+              title: 'Keywords',
+              placeholder: "Select keywords",
+              selectedValue: [],
+              choiceItems: keywords,
+              onChange: (state) {
+                print(state.value);
+                selectedKeywords = state.value.join(" ").trim();
+                print("updated $selectedKeywords");
+              },
+              modalType: S2ModalType.popupDialog,
+              choiceType: S2ChoiceType.chips,
+              // onModalClose: (state, confirmed) {
+              //   print("modal closed $state $confirmed");
+              //   print("selected keywords: $selectedKeywords");
+              // },
+
+              // groupBuilder: (context, header, choices) {
+              //   return StickyHeader(
+              //     header: header,
+              //     content: choices,
+              //   );
+              // },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, 'Cancel');
+                abort = true;
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, 'ALL');
+              },
+              child: const Text('Drill ALL'),
+            ),
+            TextButton(
+              onPressed: () {
+                print("final selected keywords: $selectedKeywords");
+                Navigator.pop(context, 'OK');
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    print("keyword: ${keyword} | selectedKeywords: ${selectedKeywords}");
+
+    if (abort) return;
+    // return;
+
     setState(() {
-      _searchText = keyword;
+      _appBarColor = _searchingAppBarColor;
+      _searchText = selectedKeywords == "" ? keyword : selectedKeywords;
+      print("_searchText $_searchText");
 
       if (_searchHistory[_searchText.toString()] == false) {
         _searchHistory.update(_searchText.toString(), (value) => true);
       }
 
-      _searchHistory.addAll({keyword.toString(): _searchText.toString()});
+      // ! FIXED (?)
+      // _searchHistory.addAll({keyword.toString(): _searchText.toString()});
+      _searchHistory
+          .addAll({_searchText.toString(): currentSearchText.toString()});
 
-      if (_fabColor == Colors.amber[300]!) {
-        _fabColor = Colors.blue[100]!;
-        _appBarColor = _defaultAppBarColor;
-      } else {
-        _fabColor = Colors.amber[300]!;
-        _appBarColor = Colors.amber[300]!;
-      }
+      // if (_fabColor == Colors.amber[300]!) {
+      //   _fabColor = Colors.blue[100]!;
+      //   _appBarColor = _defaultAppBarColor;
+      // } else {
+      //   _fabColor = Colors.amber[300]!;
+      //   _appBarColor = Colors.amber[300]!;
+      // }
     });
 
     print("_searchHistory ${_searchHistory.toString()}");
@@ -866,20 +981,28 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     await _moveSwiper();
 
+    setState(() {
+      _appBarColor = _defaultAppBarColor;
+    });
+
     // _currentPreloadPageController.jumpToPage(0);
 
-    setState(() {
-      // _pageKey = GlobalKey();
+    // setState(() {
+    //   // _pageKey = GlobalKey();
 
-      if (_fabColor == Colors.amber[300]!) {
-        _fabColor = Colors.blue[100]!;
-        _appBarColor = _defaultAppBarColor;
-      } else {
-        _fabColor = Colors.amber[300]!;
-        _appBarColor = Colors.amber[300]!;
-      }
-    });
+    //   if (_fabColor == Colors.amber[300]!) {
+    //     _fabColor = Colors.blue[100]!;
+    //     _appBarColor = _defaultAppBarColor;
+    //   } else {
+    //     _fabColor = Colors.amber[300]!;
+    //     _appBarColor = Colors.amber[300]!;
+    //   }
+    // });
   }
+
+  // {
+  //   "search query 1": {}
+  // }
 
   _recordActivity() async {
     print("begin record...");
@@ -1589,7 +1712,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   // );
 
   _normalSearch([newSearch = false]) async {
-    print("newSearch: $newSearch");
+    print("newSearch: $newSearch @${_currentSearchPlatform}");
 
     if (!_activatedSearchPlatforms.containsKey(_currentSearchPlatform)) {
       setState(() {
@@ -1599,10 +1722,13 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     if (URLs[_searchText] == null ||
         URLs[_searchText][_currentSearchPlatform] == null) {
+      print("null");
       // do search only if it has not been done before
       var items = await _performSearch(_searchText, _currentSearchPlatform);
+      print("_currentSearchPlatform 2 $_currentSearchPlatform");
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
     } else {
+      print("not null");
       _updateLastViewedPlatform(_searchText, _currentSearchPlatform);
       _resetLastViewedIndex(_searchText, _currentSearchPlatform);
     }
@@ -1771,7 +1897,24 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
-  _testLanguage(String content) async {
+  _extractKeywords(String content) async {
+    // return ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+    // return [
+    //   "CUHK",
+    //   "range",
+    //   "study options",
+    //   "disciplines",
+    //   "students",
+    //   "research degrees",
+    //   "needs",
+    //   "PhD",
+    //   "Master's degrees",
+    //   "Diplomas",
+    //   "Certificate",
+    //   "MPhil",
+    //   "Taught Doctoral"
+    // ];
+
     final response = await http.post(
       Uri.parse(
           'https://language.googleapis.com/v1/documents:analyzeEntities?key=AIzaSyC3ooNGYaxDyOGVke0fSYCSLAMEe7hQ_UU'),
@@ -1794,16 +1937,19 @@ class _WebViewContainerState extends State<WebViewContainer>
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
-        print("jsonResponse: $jsonResponse");
-        // print(jsonResponse['items']);
+        // print("jsonResponse: $jsonResponse");
+        // print(jsonResponse['name']);
 
-        //       var items = jsonResponse['items'] != null
-        //     ? jsonResponse['items'] as List<dynamic>
-        //    : [];
-        // print("items: ${items}");
+        var entities = jsonResponse['entities'] != null
+            ? jsonResponse['entities'] as List<dynamic>
+            : [];
+        print("entities: ${entities}");
+
+        var names = entities.map((e) => e['name']).toList();
+        print("names: ${names}");
 
         // return items;
-        return response;
+        return names;
       } else {
         print('Request failed with status: ${response.statusCode}.');
         return null;
@@ -1909,38 +2055,38 @@ class _WebViewContainerState extends State<WebViewContainer>
                     ? const Alignment(1, 0.95)
                     : const Alignment(1, 0.88),
                 child: GestureDetector(
-                  onLongPress: () async {
-                    if (!_activatedSearchPlatforms
-                        .containsKey(_currentSearchPlatform)) {
-                      setState(() {
-                        // _activatedSearchPlatforms.add(_currentSearchPlatform);
-                        _activatedSearchPlatforms
-                            .addAll({_currentSearchPlatform: GlobalKey()});
-                      });
-                    }
+                  // onLongPress: () async {
+                  //   if (!_activatedSearchPlatforms
+                  //       .containsKey(_currentSearchPlatform)) {
+                  //     setState(() {
+                  //       // _activatedSearchPlatforms.add(_currentSearchPlatform);
+                  //       _activatedSearchPlatforms
+                  //           .addAll({_currentSearchPlatform: GlobalKey()});
+                  //     });
+                  //   }
 
-                    if (URLs[_searchText][_currentSearchPlatform] == null) {
-                      // do search only if it has not been done before
-                      var items = await _performSearch(
-                          _searchText, _currentSearchPlatform);
-                      await _updateURLs('replace', _searchText,
-                          _currentSearchPlatform, items);
-                    }
+                  //   if (URLs[_searchText][_currentSearchPlatform] == null) {
+                  //     // do search only if it has not been done before
+                  //     var items = await _performSearch(
+                  //         _searchText, _currentSearchPlatform);
+                  //     await _updateURLs('replace', _searchText,
+                  //         _currentSearchPlatform, items);
+                  //   }
 
-                    await _updateCurrentURLs();
-                    await _moveSwiper();
+                  //   await _updateCurrentURLs();
+                  //   await _moveSwiper();
 
-                    // print(
-                    //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
-                    await _preloadPlatformController.animateToPage(
-                        // _activatedSearchPlatforms
-                        //     .indexOf(_currentSearchPlatform),
-                        _activatedSearchPlatforms.keys
-                            .toList()
-                            .indexOf(_currentSearchPlatform),
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeIn);
-                  },
+                  //   // print(
+                  //   //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
+                  //   await _preloadPlatformController.animateToPage(
+                  //       // _activatedSearchPlatforms
+                  //       //     .indexOf(_currentSearchPlatform),
+                  //       _activatedSearchPlatforms.keys
+                  //           .toList()
+                  //           .indexOf(_currentSearchPlatform),
+                  //       duration: const Duration(milliseconds: 300),
+                  //       curve: Curves.easeIn);
+                  // },
                   child: Draggable(
                     feedback: Container(
                       width: 30,
@@ -2154,30 +2300,15 @@ class _WebViewContainerState extends State<WebViewContainer>
                               // WebView
                               // Flexible(
                               //   child:
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  top: 30,
-                                  bottom: Platform.isIOS
-                                      ? (_loadingPercentage < 100 ? 65 : 60)
-                                      : (_loadingPercentage < 100 ? 55 : 50),
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    print("webview tapped");
-                                  },
-                                  onDoubleTap: () {
-                                    print("webview double tapped");
-                                  },
-                                  // onPanStart: (details) {
-                                  //   print(
-                                  //       "webview pan start ${details.globalPosition}");
-                                  //   _scrollX = details.globalPosition.dx;
-                                  //   _scrollY = details.globalPosition.dy;
-                                  // },
-                                  // onPanDown: (details) {
-                                  //   print(
-                                  //       "webview pan end ${details.globalPosition}");
-                                  // },
+                              Screenshot(
+                                controller: _screenshotController,
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    // top: 30,
+                                    bottom: Platform.isIOS
+                                        ? (_loadingPercentage < 100 ? 65 : 60)
+                                        : (_loadingPercentage < 100 ? 55 : 50),
+                                  ),
                                   child: PreloadPageView.builder(
                                     onPageChanged: (value) {
                                       print("platform changed: $value");
@@ -2202,15 +2333,16 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         _buildPlatform(
                                             context, platformPosition),
                                   ),
+                                  // ),
                                 ),
-                                // ),
                               ),
 
                               // Bottom Bar
                               Positioned(
                                 width: MediaQuery.of(context).size.width,
                                 bottom: 0,
-                                child: ColoredBox(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 100),
                                   color: _appBarColor,
                                   child: SizedBox(
                                     height: Platform.isIOS
@@ -2425,7 +2557,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                               // Joystick
                               Positioned(
-                                bottom: 20,
+                                bottom: 45,
                                 left:
                                     MediaQuery.of(context).size.width / 2 - 50,
                                 // child: PieMenu(
@@ -2454,37 +2586,37 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     ),
                                   ),
                                   stick: Container(
-                                      width: 45,
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(50),
-                                        color: Colors.grey.withOpacity(0.5),
-                                        backgroundBlendMode: BlendMode.multiply,
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          print("switch platform");
-                                          _changeSearchPlatform();
+                                    width: 45,
+                                    height: 45,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
+                                      color: Colors.grey.withOpacity(0.5),
+                                      backgroundBlendMode: BlendMode.multiply,
+                                    ),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        print("switch platform");
+                                        _changeSearchPlatform();
 
-                                          // count down 5 seconds
-                                          if (_autoSwitchPlatform == 1) {
-                                            if (_platformActivationTimer ==
-                                                null) {
-                                              _platformActivationTimer =
-                                                  RestartableTimer(
-                                                      const Duration(
-                                                          seconds: 2),
-                                                      () async {
-                                                _normalSearch();
-                                              });
-                                            } else {
-                                              _platformActivationTimer!.reset();
-                                            }
+                                        // count down 5 seconds
+                                        if (_autoSwitchPlatform == 1) {
+                                          if (_platformActivationTimer ==
+                                              null) {
+                                            _platformActivationTimer =
+                                                RestartableTimer(
+                                                    const Duration(seconds: 2),
+                                                    () async {
+                                              _normalSearch();
+                                            });
+                                          } else {
+                                            _platformActivationTimer!.reset();
                                           }
-                                        },
-                                        child: _platformIconBuilder(
-                                            _currentSearchPlatform),
-                                      )),
+                                        }
+                                      },
+                                      child: _platformIconBuilder(
+                                          _currentSearchPlatform),
+                                    ),
+                                  ),
                                   period: const Duration(milliseconds: 250),
                                   listener: (details) async {
                                     print(
@@ -2518,8 +2650,38 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                                     if (details.y < -0.5) {
                                       print("select platform");
-                                      _testLanguage(
-                                          "Finds named entities (currently proper names and common nouns) in the text along with entity types, salience, mentions for each entity, and other properties.");
+                                      // _extractKeywords(
+                                      //     "Finds named entities (currently proper names and common nouns) in the text along with entity types, salience, mentions for each entity, and other properties.");
+
+                                      // double pixelRatio = MediaQuery.of(context)
+                                      //     .devicePixelRatio;
+
+                                      // Uint8List? image =
+                                      //     await _screenshotController.capture(
+                                      //         pixelRatio: pixelRatio,
+                                      //         delay: const Duration(
+                                      //             milliseconds: 10));
+
+                                      var image =
+                                          await _currentWebViewController!
+                                              .takeScreenshot();
+
+                                      print("image: $image");
+
+                                      if (image != null) {
+                                        final directory =
+                                            await getApplicationDocumentsDirectory();
+                                        final imagePath = await File(
+                                                '${directory.path}/${new DateTime.now().toIso8601String()}.png')
+                                            .create();
+                                        await imagePath.writeAsBytes(image);
+
+                                        print("path: $imagePath");
+
+                                        // /// Share Plugin
+                                        // await Share.shareFiles(
+                                        //     [imagePath.path]);
+                                      }
                                     }
                                   },
                                 ),
