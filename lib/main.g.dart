@@ -64,7 +64,7 @@ const URLSchema = CollectionSchema(
   getId: _uRLGetId,
   getLinks: _uRLGetLinks,
   attach: _uRLAttach,
-  version: '3.0.0',
+  version: '3.0.5',
 );
 
 int _uRLEstimateSize(
