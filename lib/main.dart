@@ -73,6 +73,7 @@ List<String> SearchAlgorithmList = [
 
 List<String> SearchPlatformList = [
   "Google",
+  "Bing",
   "YouTube",
   "Twitter",
   "Facebook",
@@ -153,6 +154,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   String _currentWebViewTitle = "";
   final Map _searchHistory = {};
   Map _activatedSearchPlatforms = {};
+  bool _isImageSearch = false;
 
   //stopwatch
   final activityStopwatch = Stopwatch();
@@ -380,19 +382,34 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     print("page: $page | _start: $_start");
 
+    var response;
     // different uri for different search engines
     switch (platform) {
       case 'Google':
-        // ENGINE_ID = SEARCH_ENGINE_ID_GOOGLE;
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
           'cx': SEARCH_ENGINE_ID_GOOGLE,
           'q': value,
           'start': _start.toString(),
         });
+        response = !_gg ? await http.get(uri) : null;
+
+        break;
+      // TODO: replace with Bing API
+      case 'Bing':
+        response = !_gg
+            ? await http.get(
+                Uri.parse(
+                    'https://api.bing.microsoft.com/v7.0/search?q=$value&count=100&offset=0'),
+                // Send authorization headers to the backend.
+                headers: {
+                  'Ocp-Apim-Subscription-Key':
+                      "d24c91d7b0f04d9aad0b07d22a2d9155",
+                },
+              )
+            : null;
         break;
       case 'YouTube':
-        // ENGINE_ID = SEARCH_ENGINE_ID_YOUTUBE;
         uri = Uri.https('www.googleapis.com', '/youtube/v3/search', {
           'key': "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw",
           'part': "snippet",
@@ -400,54 +417,46 @@ class _WebViewContainerState extends State<WebViewContainer>
           'maxResults': "100",
           'q': value,
         });
+        response = !_gg ? await http.get(uri) : null;
         break;
       //www.googleapis.com/youtube/v3/search?key=AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw&part=snippet&type=video&maxResults=100&q=cuhk
       case 'Twitter':
-        // ENGINE_ID = SEARCH_ENGINE_ID_TWITTER;
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
           'cx': SEARCH_ENGINE_ID_TWITTER,
           'q': value,
           'start': _start.toString(),
         });
+        response = !_gg ? await http.get(uri) : null;
         break;
       case 'Facebook':
-        // ENGINE_ID = SEARCH_ENGINE_ID_FACEBOOK;
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
           'cx': SEARCH_ENGINE_ID_FACEBOOK,
           'q': value,
           'start': _start.toString(),
         });
+        response = !_gg ? await http.get(uri) : null;
         break;
       case 'Instagram':
-        // ENGINE_ID = SEARCH_ENGINE_ID_INSTAGRAM;
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
           'cx': SEARCH_ENGINE_ID_INSTAGRAM,
           'q': value,
           'start': _start.toString(),
         });
+        response = !_gg ? await http.get(uri) : null;
         break;
       case 'LinkedIn':
-        // ENGINE_ID = SEARCH_ENGINE_ID_LINKEDIN;
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
           'cx': SEARCH_ENGINE_ID_LINKEDIN,
           'q': value,
           'start': _start.toString(),
         });
+        response = !_gg ? await http.get(uri) : null;
         break;
     }
-
-    // var url = Uri.https('www.googleapis.com', '/customsearch/v1', {
-    //   'key': API_KEY,
-    //   'cx': ENGINE_ID,
-    //   'q': value,
-    //   'start': _start.toString(),
-    // });
-
-    var response = !_gg ? await http.get(uri) : null;
 
     print("response: $response");
 
@@ -456,12 +465,67 @@ class _WebViewContainerState extends State<WebViewContainer>
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
-        // print(jsonResponse);
+        print(jsonResponse);
         // print(jsonResponse['items']);
 
-        var items = jsonResponse['items'] != null
-            ? jsonResponse['items'] as List<dynamic>
-            : [];
+        var items;
+        switch (platform) {
+          case 'Google':
+            items = jsonResponse['items'] != null
+                ? jsonResponse['items'] as List<dynamic>
+                : [];
+            break;
+          case 'Bing':
+            var results = jsonResponse['webPages'] != null
+                ? jsonResponse['webPages']['value'][0]['deepLinks']
+                    as List<dynamic>
+                : [];
+            items = [
+              {
+                "title": jsonResponse['webPages']['value'][0]['name'],
+                "link": jsonResponse['webPages']['value'][0]['url']
+              },
+            ];
+            for (var result in results) {
+              items.add({"title": result['name'], "link": result['url']});
+            }
+            break;
+          case 'YouTube':
+            items = jsonResponse['items'] != null
+                ? jsonResponse['items'] as List<dynamic>
+                : [];
+            for (var item in items) {
+              var videoId = item['id']['videoId'];
+              var videoUrl = "https://www.youtube.com/watch?v=$videoId";
+              item['title'] = item['snippet']['title'];
+              item['link'] = videoUrl;
+            }
+            break;
+          case 'Twitter':
+            items = jsonResponse['items'] != null
+                ? jsonResponse['items'] as List<dynamic>
+                : [];
+            break;
+          case 'Facebook':
+            items = jsonResponse['items'] != null
+                ? jsonResponse['items'] as List<dynamic>
+                : [];
+            break;
+          case 'Instagram':
+            items = jsonResponse['items'] != null
+                ? jsonResponse['items'] as List<dynamic>
+                : [];
+            break;
+          case 'LinkedIn':
+            items = jsonResponse['items'] != null
+                ? jsonResponse['items'] as List<dynamic>
+                : [];
+            break;
+        }
+
+        // var items = jsonResponse['items'] != null
+        //     ? jsonResponse['items'] as List<dynamic>
+        //     : [];
         print("items: ${items}");
 
         if (items.isEmpty) {
@@ -488,27 +552,30 @@ class _WebViewContainerState extends State<WebViewContainer>
           return null;
         }
 
-        switch (platform) {
-          case 'Google':
-            return items;
-          case 'YouTube':
-            for (var item in items) {
-              var videoId = item['id']['videoId'];
-              var videoUrl = "https://www.youtube.com/watch?v=$videoId";
-              item['title'] = item['snippet']['title'];
-              item['link'] = videoUrl;
-            }
-            print("items: $items");
-            return items;
-          case 'Twitter':
-            return items;
-          case 'Facebook':
-            return items;
-          case 'Instagram':
-            return items;
-          case 'LinkedIn':
-            return items;
-        }
+        // switch (platform) {
+        //   case 'Google':
+        //     return items;
+        //   case 'Bing':
+        //     // print("Bing results: ${items['webpages']}");
+        //     return items;
+        //   case 'YouTube':
+        //     for (var item in items) {
+        //       var videoId = item['id']['videoId'];
+        //       var videoUrl = "https://www.youtube.com/watch?v=$videoId";
+        //       item['title'] = item['snippet']['title'];
+        //       item['link'] = videoUrl;
+        //     }
+        //     print("items: $items");
+        //     return items;
+        //   case 'Twitter':
+        //     return items;
+        //   case 'Facebook':
+        //     return items;
+        //   case 'Instagram':
+        //     return items;
+        //   case 'LinkedIn':
+        //     return items;
+        // }
 
         return items;
       } else {
@@ -530,20 +597,29 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
-  _resetLastViewedIndex(keyword, platform) async {
-    if (URLs[keyword][platform] == null) {
+  _resetLastViewedIndex(keyword, platform, [resetAll = false]) async {
+    if (URLs[keyword][platform] == null || resetAll) {
       URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
     } else {
       URLs[keyword][platform]["lastViewedIndex"] = 0;
     }
   }
 
-  _updateURLs(mode, keyword, platform, list) async {
+  _updateURLs(mode, keyword, platform, list, [imageSearch = false]) async {
     print("updating...");
 
     keyword = keyword.toString();
     platform = platform.toString();
-    print("list length: ${list}");
+    print(
+        "searchText: $_searchText | keyword: $keyword | list length: ${list}");
+
+    if (imageSearch) {
+      print("from image search");
+      setState(() {
+        _searchText = keyword;
+        _currentSearchPlatform = platform;
+      });
+    }
 
     if (list == null) {
       return;
@@ -585,7 +661,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             print("platform replace: $platform");
             setState(() {
               // URLs[keyword][platform] = {"lastViewedIndex": 0, "list": []};
-              _resetLastViewedIndex(keyword, platform);
+              _resetLastViewedIndex(keyword, platform, true);
 
               for (var item in list) {
                 URLs[keyword][platform]["list"]
@@ -653,7 +729,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     // });
   }
 
-  _moveSwiper() async {
+  _moveSwiper([isImageSearch = false]) async {
     setState(() {
       if (_isSearching) {
         print("popping...");
@@ -671,10 +747,23 @@ class _WebViewContainerState extends State<WebViewContainer>
       // _pageKey = GlobalKey();
       _activatedSearchPlatforms[_currentSearchPlatform] = GlobalKey();
       print("_activatedSearchPlatforms $_activatedSearchPlatforms");
+
+      _appBarColor = _defaultAppBarColor;
+      // print("_appBarColor $_appBarColor");
     });
+
+    if (isImageSearch) {
+      await _preloadPlatformController.animateToPage(
+          // find the index of the current platform
+          _activatedSearchPlatforms.keys
+              .toList()
+              .indexOf(_currentSearchPlatform),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeIn);
+    }
   }
 
-  _handleSearch(value, [selectedPlatform = null]) async {
+  _handleSearch(value, [selectedPlatform]) async {
     bool newSearch = false;
 
     print("selectedPlatform $selectedPlatform");
@@ -701,7 +790,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       print("URLs[_searchText] ${URLs[_searchText]}");
     }
 
-    _normalSearch(newSearch);
+    _normalSearch(newSearch, false);
 
     // // the search results
     // var items = await _performSearch(_searchText, _currentSearchPlatform);
@@ -723,12 +812,20 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _appBarColor = _defaultAppBarColor;
     });
+
+    print("_appBarColor $_appBarColor");
   }
 
   void _updateSearchText(searchText) {
     setState(() {
       _searchText = searchText;
       _currentSearchPlatform = "Google";
+    });
+  }
+
+  void _setImageSearch(bool state) {
+    setState(() {
+      _isImageSearch = state;
     });
   }
 
@@ -755,6 +852,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSearchText: _updateSearchText,
             searchPlatformList: SearchPlatformList,
             currentPlatform: _currentSearchPlatform,
+            setImageSearch: _setImageSearch,
           );
         },
       ),
@@ -1848,14 +1946,16 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
-  _changeSearchPlatform() {
+  _changeSearchPlatform([updatedPlatform = ""]) {
     int index = SearchPlatformList.indexOf(_currentSearchPlatform);
     int newIndex = (index + 1);
     if (newIndex >= SearchPlatformList.length) {
       newIndex = 0;
     }
     setState(() {
-      _currentSearchPlatform = SearchPlatformList[newIndex];
+      _currentSearchPlatform = updatedPlatform == ""
+          ? SearchPlatformList[newIndex]
+          : updatedPlatform;
       _marqueeKey = UniqueKey();
     });
     print("new _currentSearchPlatform: $_currentSearchPlatform");
@@ -1869,7 +1969,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   //   },
   // );
 
-  _normalSearch([newSearch = false]) async {
+  _normalSearch([newSearch = false, refresh = false]) async {
     print("newSearch: $newSearch @${_currentSearchPlatform}");
 
     if (!_activatedSearchPlatforms.containsKey(_currentSearchPlatform)) {
@@ -1879,8 +1979,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     if (URLs[_searchText] == null ||
-        URLs[_searchText][_currentSearchPlatform] == null) {
-      print("null");
+        URLs[_searchText][_currentSearchPlatform] == null ||
+        refresh) {
+      print("null OR refresh");
       // do search only if it has not been done before
       var items = await _performSearch(_searchText, _currentSearchPlatform);
       print("_currentSearchPlatform 2 $_currentSearchPlatform");
@@ -2104,10 +2205,16 @@ class _WebViewContainerState extends State<WebViewContainer>
         print("entities: ${entities}");
 
         var names = entities.map((e) => e['name']).toList();
-        print("names: ${names}");
+        List results = [];
+        for (var name in names) {
+          if (!results.contains(name)) {
+            results.add(name);
+          }
+        }
+        print("results: ${results}");
 
         // return items;
-        return names;
+        return results;
       } else {
         print('Request failed with status: ${response.statusCode}.');
         return null;
@@ -2213,6 +2320,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                     ? const Alignment(1, 0.95)
                     : const Alignment(1, 0.88),
                 child: GestureDetector(
+                  onLongPress: () {
+                    print("fab long pressed");
+                    _normalSearch(false, true);
+                  },
                   // onLongPress: () async {
                   //   if (!_activatedSearchPlatforms
                   //       .containsKey(_currentSearchPlatform)) {
@@ -2368,6 +2479,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                     },
                     child: FloatingActionButton(
                       onPressed: () {
+                        print("fab tapped");
                         // _changeSearchPlatform();
 
                         // // count down 5 seconds

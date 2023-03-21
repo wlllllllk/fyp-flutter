@@ -69,6 +69,7 @@ class SearchPage extends StatefulWidget {
     required this.updateSearchText,
     required this.searchPlatformList,
     required this.currentPlatform,
+    required this.setImageSearch,
   }) : super(key: key);
 
   final String realSearchText;
@@ -80,6 +81,7 @@ class SearchPage extends StatefulWidget {
   final updateSearchText;
   final searchPlatformList;
   final currentPlatform;
+  final setImageSearch;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -88,7 +90,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchFieldController = TextEditingController();
   // String _realSearchText = "";
-  String _platform = "";
+  String _platform = "", _imageSearchPlatform = "";
 
   @override
   void initState() {
@@ -96,10 +98,6 @@ class _SearchPageState extends State<SearchPage> {
     // _realSearchText = widget.realSearchText;
     _searchFieldController.text = widget.realSearchText;
     _platform = widget.currentPlatform;
-  }
-
-  _changePlatform() {
-    print("change platform");
   }
 
   _platformIconBuilder(String platform) {
@@ -125,6 +123,37 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
+  _choosePlatform() {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Choose Platform"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              _imageSearchPlatform = "Google";
+              Navigator.pop(context);
+            },
+            child: const Text("Google"),
+          ),
+          TextButton(
+            onPressed: () {
+              _imageSearchPlatform = "Bing";
+              Navigator.pop(context);
+            },
+            child: const Text("Bing"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -144,6 +173,11 @@ class _SearchPageState extends State<SearchPage> {
               border: InputBorder.none,
               hintText: 'Enter here',
               prefixIcon: MenuButton(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                topDivider: false,
                 child: _platformIconBuilder(_platform),
                 menuButtonBackgroundColor: Colors.white,
                 items: SearchPlatformList,
@@ -181,26 +215,46 @@ class _SearchPageState extends State<SearchPage> {
                             print("image $image");
                             EasyLoading.showToast('image $image');
                             if (image != null) {
-                              EasyLoading.show(status: 'Searching...');
-                              Map results = await _cameraSearch(
-                                  image, image.path, image.name);
-                              print("image $results");
-
-                              var items = null;
-                              if (results["urls"].length == 0) {
-                                items = await widget.performSearch(
-                                    results["urls"], "Bing");
-                                await widget.updateURLs(
-                                    "replace", results['urls'], "Bing", items);
+                              _imageSearchPlatform = "";
+                              await _choosePlatform();
+                              if (_imageSearchPlatform == "") {
+                                return;
                               } else {
-                                await widget.updateURLs("replace",
-                                    results['urls'], "Bing", results['urls']);
+                                EasyLoading.show(status: 'Searching...');
+                                Map results = {};
+
+                                if (_imageSearchPlatform == "Google") {
+                                  results = await _imageSearch(
+                                      image, image.path, image.name);
+                                } else if (_imageSearchPlatform == "Bing") {
+                                  results = await _cameraSearch(
+                                      image, image.path, image.name);
+                                }
+                                print("image search $results");
+
+                                var items;
+
+                                if (results["urls"].length == 0) {
+                                  items = await widget.performSearch(
+                                      results["urls"], _imageSearchPlatform);
+                                  await widget.updateURLs(
+                                      "replace",
+                                      results['urls'],
+                                      _imageSearchPlatform,
+                                      items);
+                                } else {
+                                  await widget.updateURLs(
+                                      "replace",
+                                      results['urls'],
+                                      _imageSearchPlatform,
+                                      results['urls']);
+                                }
+                                await widget.updateCurrentURLs();
+                                EasyLoading.dismiss();
+                                EasyLoading.showToast(
+                                    'results length ${results['urls'].length}');
+                                await widget.moveSwiper(true);
                               }
-                              await widget.updateCurrentURLs();
-                              EasyLoading.dismiss();
-                              EasyLoading.showToast(
-                                  'results length ${results['urls'].length}');
-                              await widget.moveSwiper();
                             }
                           } catch (e) {
                             print("error $e");
@@ -225,31 +279,101 @@ class _SearchPageState extends State<SearchPage> {
                             print("image $image");
                             EasyLoading.showToast('image $image');
                             if (image != null) {
-                              EasyLoading.show(status: 'Searching...');
-                              Map results = await _imageSearch(
-                                  image, image.path, image.name);
-                              print("image $results");
-
-                              await widget
-                                  .updateSearchText(results["bestGuessLabel"]);
-                              var items = null;
-                              if (results['urls'].length == 0) {
-                                items = await widget.performSearch(
-                                    results["bestGuessLabel"], "Google");
-                                await widget.updateURLs("replace",
-                                    results['bestGuessLabel'], "Google", items);
+                              _imageSearchPlatform = "";
+                              await _choosePlatform();
+                              if (_imageSearchPlatform == "") {
+                                return;
                               } else {
-                                await widget.updateURLs(
-                                    "replace",
-                                    results['bestGuessLabel'],
-                                    "Google",
-                                    results['urls']);
+                                EasyLoading.show(status: 'Searching...');
+                                Map results = {};
+
+                                if (_imageSearchPlatform == "Google") {
+                                  var items;
+                                  results = await _imageSearch(
+                                      image, image.path, image.name);
+                                  if (results['urls'].length == 0) {
+                                    print("Google 000000000");
+
+                                    items = await widget.performSearch(
+                                        results["bestGuessLabel"], "Google");
+                                    await widget.updateURLs(
+                                        "replace",
+                                        results['bestGuessLabel'],
+                                        "Google",
+                                        items,
+                                        true);
+                                  } else {
+                                    print("Google not 000000000");
+                                    await widget.updateURLs(
+                                        "replace",
+                                        results['bestGuessLabel'],
+                                        "Google",
+                                        results['urls'],
+                                        true);
+                                  }
+                                } else if (_imageSearchPlatform == "Bing") {
+                                  var items;
+                                  results = await _cameraSearch(
+                                      image, image.path, image.name);
+                                  if (results["urls"].length == 0) {
+                                    print("Bing 000000000");
+                                    items = await widget.performSearch(
+                                        results["urls"], _imageSearchPlatform);
+                                    await widget.updateURLs(
+                                        "replace",
+                                        "Bing Image Search",
+                                        _imageSearchPlatform,
+                                        items,
+                                        true);
+                                  } else {
+                                    print("Bing not 000000000");
+                                    await widget.updateURLs(
+                                        "replace",
+                                        "Bing Image Search",
+                                        _imageSearchPlatform,
+                                        results['urls'],
+                                        true);
+                                  }
+                                }
+
+                                print(
+                                    "_imageSearchPlatform: $_imageSearchPlatform | image search $results");
+
+                                await widget.updateCurrentURLs();
+                                EasyLoading.dismiss();
+                                EasyLoading.showToast(
+                                    'results length ${results['urls'].length}');
+                                await widget.moveSwiper(true);
                               }
-                              await widget.updateCurrentURLs();
-                              EasyLoading.dismiss();
-                              EasyLoading.showToast(
-                                  'results length ${results['urls'].length}');
-                              await widget.moveSwiper();
+                              // await _choosePlatform();
+                              // if (_imageSearchPlatform == "") {
+                              //   return;
+                              // }
+                              // EasyLoading.show(status: 'Searching...');
+                              // Map results = await _imageSearch(
+                              //     image, image.path, image.name);
+                              // print("image $results");
+
+                              // await widget
+                              //     .updateSearchText(results["bestGuessLabel"]);
+                              // var items = null;
+                              // if (results['urls'].length == 0) {
+                              //   items = await widget.performSearch(
+                              //       results["bestGuessLabel"], "Google");
+                              //   await widget.updateURLs("replace",
+                              //       results['bestGuessLabel'], "Google", items);
+                              // } else {
+                              //   await widget.updateURLs(
+                              //       "replace",
+                              //       results['bestGuessLabel'],
+                              //       "Google",
+                              //       results['urls']);
+                              // }
+                              // await widget.updateCurrentURLs();
+                              // EasyLoading.dismiss();
+                              // EasyLoading.showToast(
+                              //     'results length ${results['urls'].length}');
+                              // await widget.moveSwiper();
                             }
                           } catch (e) {
                             print("error $e");
@@ -545,56 +669,6 @@ _imageSearch(src, path, name) async {
       return results;
     }
 
-    Future BingSearch(String imgpath, String img64) async {
-      final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
-      final imageData = base64.encode(File(imgpath).readAsBytesSync());
-
-      var uri =
-          Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
-      var headers = {
-        'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
-      };
-
-      var request = http.MultipartRequest('POST', uri)
-        ..headers.addAll(headers)
-        ..files.add(await http.MultipartFile.fromPath('image', imgpath,
-            filename: 'myfile'));
-      var response = await request.send();
-      // Convert the base64 image to bytes
-
-      final String responseString = await response.stream.bytesToString();
-
-      print(responseString);
-
-      List Result = [];
-      // Convert the base64 image to bytes
-
-      if (response.statusCode == 200) {
-        final responseJson = jsonDecode(responseString);
-        final elements = responseJson['tags'][0]['actions'];
-        var bingVisualObject;
-
-        print("response code ${response.statusCode}");
-        elements.forEach((data) => {
-              if (data['actionType'] == "VisualSearch")
-                {bingVisualObject = data['data']['value']}
-            });
-
-        bingVisualObject.forEach((value) {
-          print("Website name: ${value['name']}");
-          print("website: ${value['hostPageUrl']}");
-          Result.add({
-            'title': value['name'].toString(),
-            'link': value['hostPageUrl'].toString(),
-          });
-        });
-      } else {
-        print('Failed to upload image. Error code: ${response.statusCode}');
-      }
-      return Result;
-    }
-
-    var bingVisualResult = BingSearch(path, img64);
     //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
     // TextDetection(img64);
