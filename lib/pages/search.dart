@@ -248,27 +248,30 @@ class _SearchPageState extends State<SearchPage> {
             decoration: InputDecoration(
               border: InputBorder.none,
               hintText: 'Enter here',
-              prefixIcon: MenuButton(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+              prefixIcon: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: MenuButton(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  topDivider: false,
+                  child: _platformIconBuilder(_platform),
+                  menuButtonBackgroundColor: Colors.white,
+                  items: SearchPlatformList,
+                  itemBuilder: (String value) => Container(
+                    height: 50,
+                    child: _platformIconBuilder(value),
+                  ),
+                  onItemSelected: (value) {
+                    print("value $value");
+                    // widget.updateCurrentURLs(value);
+                    // widget.moveSwiper(0);
+                    setState(() {
+                      _platform = value as String;
+                    });
+                  },
                 ),
-                topDivider: false,
-                child: _platformIconBuilder(_platform),
-                menuButtonBackgroundColor: Colors.white,
-                items: SearchPlatformList,
-                itemBuilder: (String value) => Container(
-                  height: 50,
-                  child: _platformIconBuilder(value),
-                ),
-                onItemSelected: (value) {
-                  print("value $value");
-                  // widget.updateCurrentURLs(value);
-                  // widget.moveSwiper(0);
-                  setState(() {
-                    _platform = value as String;
-                  });
-                },
               ),
               suffixIcon: Container(
                 child: IntrinsicHeight(
@@ -656,49 +659,3 @@ _imageSearchBing(src, path, name) async {
   var bingVisualResult = BingSearch(path, img64);
   return bingVisualResult;
 }
-/*
-_cameraSerach(image, path) async {
-  final InputImage inputImage = InputImage.fromFilePath(path);
-
-  const mode = DetectionMode.single;
-
-  Future<String> _getModel(String assetPath) async {
-    if (io.Platform.isAndroid) {
-      return 'flutter_assets/$assetPath';
-    }
-    final path = '${(await getApplicationSupportDirectory()).path}/$assetPath';
-    await io.Directory(path).create(recursive: true);
-    final file = io.File(path);
-    if (!await file.exists()) {
-      final byteData = await rootBundle.load(assetPath);
-      await file.writeAsBytes(byteData.buffer
-          .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
-    }
-    return file.path;
-  }
-
-  final modelPath = await _getModel(
-      'assets/ml/lite-model_on_device_vision_classifier_popular_us_products_V1_1.tflite');
-// Options to configure the detector whil1 using a Firebase model.
-  final options = LocalObjectDetectorOptions(
-    mode: mode,
-    modelPath: modelPath,
-    classifyObjects: true,
-    multipleObjects: true,
-  );
-
-  final objectDetector = ObjectDetector(options: options);
-
-  final List<DetectedObject> objects =
-      await objectDetector.processImage(inputImage);
-
-  for (DetectedObject detectedObject in objects) {
-    final rect = detectedObject.boundingBox;
-    final trackingId = detectedObject.trackingId;
-
-    for (Label label in detectedObject.labels) {
-      print('${label.text} ${label.confidence}');
-    }
-  }
-  objectDetector.close();
-}*/

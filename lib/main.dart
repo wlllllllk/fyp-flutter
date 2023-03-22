@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:ffi';
 import 'dart:io' show File, Platform;
 
@@ -12,8 +13,8 @@ import 'package:fyp_searchub/pages/search.dart';
 import 'package:fyp_searchub/pages/settings.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:card_swiper/card_swiper.dart';
+// import 'package:webview_flutter/webview_flutter.dart';
+// import 'package:card_swiper/card_swiper.dart';
 import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
@@ -32,7 +33,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:context_menus/context_menus.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
-import 'package:pie_menu/pie_menu.dart';
+// import 'package:pie_menu/pie_menu.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -72,6 +73,7 @@ List<String> SearchAlgorithmList = [
   "TEST HIGHLIGHT"
 ];
 
+// ignore: non_constant_identifier_names
 List<String> SearchPlatformList = [
   "Google",
   "Bing",
@@ -182,8 +184,9 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   // positions
   double _hoverX = 0.0, _hoverY = 0.0;
-  double _scrollX = 0.0, _scrollY = 0.0;
+  // double _scrollX = 0.0, _scrollY = 0.0;
   double _joystickX = 0, _joystickY = 0;
+  double _joystickHeight = 100;
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
@@ -2137,23 +2140,23 @@ class _WebViewContainerState extends State<WebViewContainer>
   _platformIconBuilder(String platform) {
     switch (platform) {
       case "Google":
-        return Icon(BoxIcons.bxl_google);
+        return const Icon(BoxIcons.bxl_google, size: 24);
       case "YouTube":
-        return Icon(BoxIcons.bxl_youtube);
+        return const Icon(BoxIcons.bxl_youtube, size: 24);
       case "Twitter":
-        return Icon(BoxIcons.bxl_twitter);
+        return const Icon(BoxIcons.bxl_twitter, size: 24);
       case "Facebook":
-        return Icon(BoxIcons.bxl_facebook);
+        return const Icon(BoxIcons.bxl_facebook, size: 24);
       case "Instagram":
-        return Icon(BoxIcons.bxl_instagram);
+        return const Icon(BoxIcons.bxl_instagram, size: 24);
       case "LinkedIn":
-        return Icon(BoxIcons.bxl_linkedin);
+        return const Icon(BoxIcons.bxl_linkedin, size: 24);
       case "Bing":
-        return Icon(BoxIcons.bxl_bing);
+        return const Icon(BoxIcons.bxl_bing, size: 24);
       case "Yahoo":
-        return Icon(BoxIcons.bxl_yahoo);
+        return const Icon(BoxIcons.bxl_yahoo, size: 24);
       case "Baidu":
-        return Icon(BoxIcons.bxl_baidu);
+        return const Icon(BoxIcons.bxl_baidu, size: 24);
     }
   }
 
@@ -2174,7 +2177,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     //   "MPhil",
     //   "Taught Doctoral"
     // ];
-
+    print("content: $content");
     final response = await http.post(
       Uri.parse(
           'https://language.googleapis.com/v1/documents:analyzeEntities?key=AIzaSyC3ooNGYaxDyOGVke0fSYCSLAMEe7hQ_UU'),
@@ -2846,15 +2849,58 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 //     ),
                                 //   ],
                                 child: Joystick(
-                                  base: Container(
+                                  mode: _joystickHeight == 100
+                                      ? JoystickMode.horizontalAndVertical
+                                      : JoystickMode.vertical,
+                                  base: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
                                     width: 100,
-                                    height: 100,
+                                    height: _joystickHeight,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(50),
-                                      // color: Color.fromARGB(117, 224, 224, 224),
-                                      color: Colors.grey.withOpacity(0.2),
-                                      backgroundBlendMode: BlendMode.multiply,
+                                      color: _joystickHeight == 100
+                                          ? Colors.grey.withOpacity(0.2)
+                                          : Colors.white,
+                                      // backgroundBlendMode: BlendMode.multiply,
+                                      boxShadow: [
+                                        _joystickHeight == 100
+                                            ? const BoxShadow(
+                                                color: Colors.transparent,
+                                                spreadRadius: 5,
+                                                blurRadius: 7,
+                                                offset: Offset(0, 3),
+                                              )
+                                            : BoxShadow(
+                                                color: Colors.grey
+                                                    .withOpacity(0.5),
+                                                spreadRadius: 5,
+                                                blurRadius: 7,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                      ],
                                     ),
+                                    child: _joystickHeight != 100
+                                        ? Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              const Flexible(
+                                                child: Icon(
+                                                  EvaIcons.close_outline,
+                                                  size: 24,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                              ...SearchPlatformList.map(
+                                                (e) => Flexible(
+                                                  child:
+                                                      _platformIconBuilder(e),
+                                                ),
+                                              ).toList(),
+                                            ],
+                                          )
+                                        : null,
                                   ),
                                   stick: Container(
                                     width: 45,
@@ -2864,37 +2910,53 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       color: Colors.grey.withOpacity(0.5),
                                       backgroundBlendMode: BlendMode.multiply,
                                     ),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        print("switch platform");
-                                        _changeSearchPlatform();
+                                    // child: PieMenu(
+                                    //   onTap: () => print('tap'),
+                                    //   theme: PieTheme(
+                                    //     // bouncingMenu: false,
+                                    //     delayDuration:
+                                    //         Duration(milliseconds: 100),
+                                    //   ),
+                                    //   actions: [
+                                    //     PieAction(
+                                    //       tooltip: 'like',
+                                    //       onSelect: () => print('liked'),
+                                    //       child: const Icon(Icons
+                                    //           .favorite), // Not necessarily an icon widget
+                                    //     ),
+                                    //   ],
+                                    // child: GestureDetector(
+                                    //   onTap: () {
+                                    //     print("switch platform");
+                                    //     // _changeSearchPlatform();
 
-                                        // count down 1 seconds
-                                        if (_autoSwitchPlatform == 1) {
-                                          if (_platformActivationTimer ==
-                                              null) {
-                                            _platformActivationTimer =
-                                                RestartableTimer(
-                                                    const Duration(
-                                                        milliseconds: 1000),
-                                                    () async {
-                                              _normalSearch();
-                                            });
-                                          } else {
-                                            _platformActivationTimer!.reset();
-                                          }
-                                        }
-                                      },
-                                      child: _platformIconBuilder(
-                                          _currentSearchPlatform),
-                                    ),
+                                    //     // // count down 1 seconds
+                                    //     // if (_autoSwitchPlatform == 1) {
+                                    //     //   if (_platformActivationTimer ==
+                                    //     //       null) {
+                                    //     //     _platformActivationTimer =
+                                    //     //         RestartableTimer(
+                                    //     //             const Duration(
+                                    //     //                 milliseconds: 1500),
+                                    //     //             () async {
+                                    //     //       _normalSearch();
+                                    //     //     });
+                                    //     //   } else {
+                                    //     //     _platformActivationTimer!.reset();
+                                    //     //   }
+                                    //     // }
+                                    //   },
+                                    child: _platformIconBuilder(
+                                        _currentSearchPlatform),
+                                    // ),
+                                    // ),
                                   ),
                                   period: const Duration(milliseconds: 250),
                                   listener: (details) async {
                                     print(
                                         "joystick:  ${details.x}, ${details.y}");
-                                    _joystickX = details.x;
-                                    _joystickY = details.y;
+                                    // _joystickX = details.x;
+                                    // _joystickY = details.y;
                                     if (details.x > 0.5) {
                                       print("next");
                                       if (_currentURLIndex <
@@ -2915,53 +2977,78 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         await _testPreloadPageController
                                             .previousPage(
                                                 duration: const Duration(
-                                                    milliseconds: 300),
+                                                    milliseconds: 200),
                                                 curve: Curves.easeIn);
                                       }
                                     }
 
-                                    if (details.y < -0.5) {
+                                    if (details.y != 0) {
                                       print("select platform");
-                                      // _extractKeywords(
-                                      //     "Finds named entities (currently proper names and common nouns) in the text along with entity types, salience, mentions for each entity, and other properties.");
 
-                                      // double pixelRatio = MediaQuery.of(context)
-                                      //     .devicePixelRatio;
+                                      setState(() {
+                                        _joystickY = details.y;
+                                        _joystickHeight =
+                                            SearchPlatformList.length * 60;
+                                      });
+                                    }
+                                  },
+                                  onStickDragEnd: () {
+                                    if (_joystickHeight != 100) {
+                                      double step =
+                                          2 / (SearchPlatformList.length + 1);
 
-                                      // Uint8List? image =
-                                      //     await _screenshotController.capture(
-                                      //         pixelRatio: pixelRatio,
-                                      //         delay: const Duration(
-                                      //             milliseconds: 10));
+                                      log("_joystickY: $_joystickY | step: $step");
 
-                                      var image =
-                                          await _currentWebViewController!
-                                              .takeScreenshot();
-
-                                      print("image: $image");
-
-                                      if (image != null) {
-                                        final directory =
-                                            await getApplicationDocumentsDirectory();
-                                        final imagePath = await File(
-                                                '${directory.path}/${new DateTime.now().toIso8601String()}.png')
-                                            .create();
-                                        await imagePath.writeAsBytes(image);
-
-                                        print("path: $imagePath");
-
-                                        // /// Share Plugin
-                                        // await Share.shareFiles(
-                                        //     [imagePath.path]);
+                                      int target =
+                                          SearchPlatformList.length + 1;
+                                      if (_joystickY < 0) {
+                                        target =
+                                            (((_joystickY - 0.1) / step).abs() +
+                                                    (SearchPlatformList.length +
+                                                            1) /
+                                                        2)
+                                                .round();
+                                      } else {
+                                        target = (((_joystickY - 0.1) / step) -
+                                                ((SearchPlatformList.length +
+                                                        1) /
+                                                    2))
+                                            .abs()
+                                            .round();
                                       }
+
+                                      target = (target -
+                                                  (SearchPlatformList.length +
+                                                      1))
+                                              .abs() -
+                                          1;
+
+                                      if (target >= SearchPlatformList.length) {
+                                        target = SearchPlatformList.length - 1;
+                                        log("target: $target | platform: ${SearchPlatformList[target]}");
+                                      }
+
+                                      if (target >= 0) {
+                                        log("target: $target | platform: ${SearchPlatformList[target]}");
+
+                                        _changeSearchPlatform(
+                                            SearchPlatformList[target]);
+                                        _normalSearch();
+                                      } else {
+                                        log("cancel");
+                                      }
+
+                                      setState(() {
+                                        _joystickHeight = 100;
+                                      });
                                     }
                                   },
                                 ),
                                 // ),
                               ),
                             ],
+                            // ),
                           ),
-                          // ),
                         )
                       : Flexible(
                           child: Align(
