@@ -154,6 +154,82 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  _performImageSearch(source) async {
+    print("picking...");
+    try {
+      final ImagePicker _picker = ImagePicker();
+      // Pick an image
+      final XFile? image = source == "camera"
+          ? await _picker.pickImage(
+              source: ImageSource.camera,
+              maxHeight: 1000,
+              maxWidth: 1000,
+              //imageQuality: 80,
+            )
+          : await _picker.pickImage(
+              source: ImageSource.gallery,
+              maxHeight: 1000,
+              maxWidth: 1000,
+              //imageQuality: 80,
+            );
+      print("image $image");
+      EasyLoading.showToast('image $image');
+      if (image != null) {
+        _imageSearchPlatform = "";
+        await _choosePlatform();
+        if (_imageSearchPlatform == "") {
+          return;
+        } else {
+          EasyLoading.show(status: 'Searching...');
+          Map results = {};
+
+          if (_imageSearchPlatform == "Google") {
+            var items;
+            results = await _imageSearchGoogle(image, image.path, image.name);
+            if (results['urls'].length == 0) {
+              print("Google 000000000");
+
+              items = await widget.performSearch(
+                  results["bestGuessLabel"], "Google");
+              await widget.updateURLs(
+                  "replace", results['bestGuessLabel'], "Google", items, true);
+            } else {
+              print("Google not 000000000");
+              await widget.updateURLs("replace", results['bestGuessLabel'],
+                  "Google", results['urls'], true);
+            }
+          } else if (_imageSearchPlatform == "Bing") {
+            var items;
+            results = await _imageSearchBing(image, image.path, image.name);
+            if (results["urls"].length == 0) {
+              print("Bing 000000000");
+              items = await widget.performSearch(
+                  results["urls"], _imageSearchPlatform);
+              await widget.updateURLs("replace", "Bing Image Search",
+                  _imageSearchPlatform, items, true);
+            } else {
+              print("Bing not 000000000");
+              await widget.updateURLs("replace", "Bing Image Search",
+                  _imageSearchPlatform, results['urls'], true);
+            }
+          }
+
+          print(
+              "_imageSearchPlatform: $_imageSearchPlatform | image search $results");
+
+          await widget.updateCurrentURLs();
+          EasyLoading.dismiss();
+          EasyLoading.showToast('results length ${results['urls'].length}');
+          await widget.moveSwiper(true);
+        }
+      }
+    } catch (e) {
+      print("error $e");
+      EasyLoading.showToast('error $e');
+    }
+    print("picked");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,180 +282,13 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                       IconButton(
                         onPressed: () async {
-                          print("picking...");
-                          try {
-                            final ImagePicker _picker = ImagePicker();
-                            // Pick an image
-                            final XFile? image = await _picker.pickImage(
-                                source: ImageSource.camera);
-                            print("image $image");
-                            EasyLoading.showToast('image $image');
-                            if (image != null) {
-                              _imageSearchPlatform = "";
-                              await _choosePlatform();
-                              if (_imageSearchPlatform == "") {
-                                return;
-                              } else {
-                                EasyLoading.show(status: 'Searching...');
-                                Map results = {};
-
-                                if (_imageSearchPlatform == "Google") {
-                                  results = await _imageSearch(
-                                      image, image.path, image.name);
-                                } else if (_imageSearchPlatform == "Bing") {
-                                  results = await _cameraSearch(
-                                      image, image.path, image.name);
-                                }
-                                print("image search $results");
-
-                                var items;
-
-                                if (results["urls"].length == 0) {
-                                  items = await widget.performSearch(
-                                      results["urls"], _imageSearchPlatform);
-                                  await widget.updateURLs(
-                                      "replace",
-                                      results['urls'],
-                                      _imageSearchPlatform,
-                                      items);
-                                } else {
-                                  await widget.updateURLs(
-                                      "replace",
-                                      results['urls'],
-                                      _imageSearchPlatform,
-                                      results['urls']);
-                                }
-                                await widget.updateCurrentURLs();
-                                EasyLoading.dismiss();
-                                EasyLoading.showToast(
-                                    'results length ${results['urls'].length}');
-                                await widget.moveSwiper(true);
-                              }
-                            }
-                          } catch (e) {
-                            print("error $e");
-                            EasyLoading.showToast('error $e');
-                          }
-                          print("picked");
+                          _performImageSearch("camera");
                         },
                         icon: const Icon(Icons.photo_camera),
                       ),
                       IconButton(
                         onPressed: () async {
-                          print("picking...");
-                          try {
-                            final ImagePicker _picker = ImagePicker();
-                            // Pick an image
-                            final XFile? image = await _picker.pickImage(
-                              source: ImageSource.gallery,
-                              maxHeight: 1000,
-                              maxWidth: 1000,
-                              //imageQuality: 80,
-                            );
-                            print("image $image");
-                            EasyLoading.showToast('image $image');
-                            if (image != null) {
-                              _imageSearchPlatform = "";
-                              await _choosePlatform();
-                              if (_imageSearchPlatform == "") {
-                                return;
-                              } else {
-                                EasyLoading.show(status: 'Searching...');
-                                Map results = {};
-
-                                if (_imageSearchPlatform == "Google") {
-                                  var items;
-                                  results = await _imageSearch(
-                                      image, image.path, image.name);
-                                  if (results['urls'].length == 0) {
-                                    print("Google 000000000");
-
-                                    items = await widget.performSearch(
-                                        results["bestGuessLabel"], "Google");
-                                    await widget.updateURLs(
-                                        "replace",
-                                        results['bestGuessLabel'],
-                                        "Google",
-                                        items,
-                                        true);
-                                  } else {
-                                    print("Google not 000000000");
-                                    await widget.updateURLs(
-                                        "replace",
-                                        results['bestGuessLabel'],
-                                        "Google",
-                                        results['urls'],
-                                        true);
-                                  }
-                                } else if (_imageSearchPlatform == "Bing") {
-                                  var items;
-                                  results = await _cameraSearch(
-                                      image, image.path, image.name);
-                                  if (results["urls"].length == 0) {
-                                    print("Bing 000000000");
-                                    items = await widget.performSearch(
-                                        results["urls"], _imageSearchPlatform);
-                                    await widget.updateURLs(
-                                        "replace",
-                                        "Bing Image Search",
-                                        _imageSearchPlatform,
-                                        items,
-                                        true);
-                                  } else {
-                                    print("Bing not 000000000");
-                                    await widget.updateURLs(
-                                        "replace",
-                                        "Bing Image Search",
-                                        _imageSearchPlatform,
-                                        results['urls'],
-                                        true);
-                                  }
-                                }
-
-                                print(
-                                    "_imageSearchPlatform: $_imageSearchPlatform | image search $results");
-
-                                await widget.updateCurrentURLs();
-                                EasyLoading.dismiss();
-                                EasyLoading.showToast(
-                                    'results length ${results['urls'].length}');
-                                await widget.moveSwiper(true);
-                              }
-                              // await _choosePlatform();
-                              // if (_imageSearchPlatform == "") {
-                              //   return;
-                              // }
-                              // EasyLoading.show(status: 'Searching...');
-                              // Map results = await _imageSearch(
-                              //     image, image.path, image.name);
-                              // print("image $results");
-
-                              // await widget
-                              //     .updateSearchText(results["bestGuessLabel"]);
-                              // var items = null;
-                              // if (results['urls'].length == 0) {
-                              //   items = await widget.performSearch(
-                              //       results["bestGuessLabel"], "Google");
-                              //   await widget.updateURLs("replace",
-                              //       results['bestGuessLabel'], "Google", items);
-                              // } else {
-                              //   await widget.updateURLs(
-                              //       "replace",
-                              //       results['bestGuessLabel'],
-                              //       "Google",
-                              //       results['urls']);
-                              // }
-                              // await widget.updateCurrentURLs();
-                              // EasyLoading.dismiss();
-                              // EasyLoading.showToast(
-                              //     'results length ${results['urls'].length}');
-                              // await widget.moveSwiper();
-                            }
-                          } catch (e) {
-                            print("error $e");
-                            EasyLoading.showToast('error $e');
-                          }
-                          print("picked");
+                          _performImageSearch("gallery");
                         },
                         icon: const Icon(Icons.photo),
                       ),
@@ -424,7 +333,7 @@ class Order {
   Order({required this.area, required this.description});
 }
 
-_imageSearch(src, path, name) async {
+_imageSearchGoogle(src, path, name) async {
   Directory dir = (await getApplicationDocumentsDirectory());
   bool fileExists = false;
   String filename = "credential.json";
@@ -689,7 +598,7 @@ _imageSearch(src, path, name) async {
   }
 }
 
-_cameraSearch(src, path, name) async {
+_imageSearchBing(src, path, name) async {
   final bytes = io.File(path).readAsBytesSync();
   String img64 = base64Encode(bytes);
 
