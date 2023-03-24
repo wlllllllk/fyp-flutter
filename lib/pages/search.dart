@@ -549,16 +549,18 @@ _imageSearch(src, path, name) async {
       final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
       final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
+      //?mkt=zh-HK&setLang=EN
       var uri =
           Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
       var headers = {
-        'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
+        'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
       };
 
       var request = http.MultipartRequest('POST', uri)
         ..headers.addAll(headers)
         ..files.add(await http.MultipartFile.fromPath('image', imgpath,
             filename: 'myfile'));
+
       var response = await request.send();
       // Convert the base64 image to bytes
 
