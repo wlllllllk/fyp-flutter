@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -42,7 +43,7 @@ class CredentialsProvider {
     String filename = "credential.json";
     File jsonCredential = File(directory.path + "/" + filename);
     fileExists = jsonCredential.existsSync();
-    print("JSON EXIST?= " + fileExists.toString());
+    log("JSON EXIST?= " + fileExists.toString());
 
     String _file = await jsonCredential.readAsStringSync();
     /*String _file = await rootBundle
@@ -98,6 +99,21 @@ class _SearchPageState extends State<SearchPage> {
     // _realSearchText = widget.realSearchText;
     _searchFieldController.text = widget.realSearchText;
     _platform = widget.currentPlatform;
+
+    EasyLoading.instance
+      ..displayDuration = const Duration(milliseconds: 2000)
+      ..indicatorType = EasyLoadingIndicatorType.ripple
+      ..loadingStyle = EasyLoadingStyle.dark
+      ..indicatorSize = 45.0
+      ..radius = 10.0
+      // ..progressColor = Colors.yellow
+      // ..backgroundColor = Colors.green
+      // ..indicatorColor = Colors.yellow
+      // ..textColor = Colors.yellow
+      // ..maskColor = Colors.blue.withOpacity(0.5)
+      ..userInteractions = true
+      ..maskType = EasyLoadingMaskType.black
+      ..dismissOnTap = true;
   }
 
   _platformIconBuilder(String platform) {
@@ -155,79 +171,95 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   _performImageSearch(source) async {
-    print("picking...");
-    try {
-      final ImagePicker _picker = ImagePicker();
-      // Pick an image
-      final XFile? image = source == "camera"
-          ? await _picker.pickImage(
-              source: ImageSource.camera,
-              maxHeight: 1000,
-              maxWidth: 1000,
-              //imageQuality: 80,
-            )
-          : await _picker.pickImage(
-              source: ImageSource.gallery,
-              maxHeight: 1000,
-              maxWidth: 1000,
-              //imageQuality: 80,
-            );
-      print("image $image");
-      EasyLoading.showToast('image $image');
-      if (image != null) {
-        _imageSearchPlatform = "";
-        await _choosePlatform();
-        if (_imageSearchPlatform == "") {
-          return;
-        } else {
-          EasyLoading.show(status: 'Searching...');
-          Map results = {};
+    log("picking...");
+    // try {
+    final ImagePicker picker = ImagePicker();
+    // Pick an image
+    final XFile? image = source == "camera"
+        ? await picker.pickImage(
+            source: ImageSource.camera,
+            maxHeight: 1000,
+            maxWidth: 1000,
+            //imageQuality: 80,
+          )
+        : await picker.pickImage(
+            source: ImageSource.gallery,
+            maxHeight: 1000,
+            maxWidth: 1000,
+            //imageQuality: 80,
+          );
+    log("image $image");
+    // EasyLoading.showToast('image $image');
 
-          if (_imageSearchPlatform == "Google") {
-            var items;
-            results = await _imageSearchGoogle(image, image.path, image.name);
-            if (results['urls'].length == 0) {
-              print("Google 000000000");
+    final snackBar = SnackBar(
+      content: Text("image $image"),
+      duration: const Duration(seconds: 3),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-              items = await widget.performSearch(
-                  results["bestGuessLabel"], "Google");
-              await widget.updateURLs(
-                  "replace", results['bestGuessLabel'], "Google", items, true);
-            } else {
-              print("Google not 000000000");
-              await widget.updateURLs("replace", results['bestGuessLabel'],
-                  "Google", results['urls'], true);
-            }
-          } else if (_imageSearchPlatform == "Bing") {
-            var items;
-            results = await _imageSearchBing(image, image.path, image.name);
-            if (results["urls"].length == 0) {
-              print("Bing 000000000");
-              items = await widget.performSearch(
-                  results["urls"], _imageSearchPlatform);
-              await widget.updateURLs("replace", "Bing Image Search",
-                  _imageSearchPlatform, items, true);
-            } else {
-              print("Bing not 000000000");
-              await widget.updateURLs("replace", "Bing Image Search",
-                  _imageSearchPlatform, results['urls'], true);
-            }
+    if (image != null) {
+      _imageSearchPlatform = "";
+      await _choosePlatform();
+      if (_imageSearchPlatform == "") {
+        return;
+      } else {
+        EasyLoading.show(
+          status: 'Searching on $_imageSearchPlatform',
+        );
+
+        Map results = {};
+
+        if (_imageSearchPlatform == "Google") {
+          var items;
+          results = await _imageSearchGoogle(image, image.path, image.name);
+          if (results['urls'].length == 0) {
+            log("Google 000000000");
+
+            items =
+                await widget.performSearch(results["bestGuessLabel"], "Google");
+            await widget.updateURLs(
+                "replace", results['bestGuessLabel'], "Google", items, true);
+          } else {
+            log("Google not 000000000");
+            await widget.updateURLs("replace", results['bestGuessLabel'],
+                "Google", results['urls'], true);
           }
-
-          print(
-              "_imageSearchPlatform: $_imageSearchPlatform | image search $results");
-
-          await widget.updateCurrentURLs();
-          EasyLoading.dismiss();
-          EasyLoading.showToast('results length ${results['urls'].length}');
-          await widget.moveSwiper(true);
+        } else if (_imageSearchPlatform == "Bing") {
+          var items;
+          results = await _imageSearchBing(image, image.path, image.name);
+          if (results["urls"].length == 0) {
+            log("Bing 000000000");
+            items = await widget.performSearch(
+                results["urls"], _imageSearchPlatform);
+            await widget.updateURLs("replace", "Bing Image Search",
+                _imageSearchPlatform, items, true);
+          } else {
+            log("Bing not 000000000");
+            await widget.updateURLs("replace", "Bing Image Search",
+                _imageSearchPlatform, results['urls'], true);
+          }
         }
+
+        log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
+
+        await widget.updateCurrentURLs();
+        EasyLoading.dismiss();
+        // EasyLoading.showToast('results length ${results['urls'].length}');
+
+        final snackBar = SnackBar(
+          content: Text("results length ${results['urls'].length}"),
+          duration: const Duration(seconds: 3),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+        await widget.moveSwiper(true);
       }
-    } catch (e) {
-      print("error $e");
-      EasyLoading.showToast('error $e');
     }
-    print("picked");
+    // } catch (e) {
+    //   log("error image search $e");
+    //   EasyLoading.showToast('error $e');
+    // }
+    // log("picked");
   }
 
   @override
@@ -264,7 +296,7 @@ class _SearchPageState extends State<SearchPage> {
                     child: _platformIconBuilder(value),
                   ),
                   onItemSelected: (value) {
-                    print("value $value");
+                    log("value $value");
                     // widget.updateCurrentURLs(value);
                     // widget.moveSwiper(0);
                     setState(() {
@@ -320,7 +352,8 @@ class _SearchPageState extends State<SearchPage> {
         child: const Align(
           alignment: Alignment.center,
           child: Text(
-            "Search here",
+            // "Search here",
+            "",
             style: TextStyle(fontSize: 22),
           ),
         ),
@@ -349,9 +382,9 @@ _imageSearchGoogle(src, path, name) async {
   jsonCredential.writeAsStringSync(json.encode(decoded));
   bool exist = await io.File(jsonCredential.path).exists();
   if (exist) {
-    print("STILL HERE ");
+    log("STILL HERE ");
   } else {
-    print("JSON CRED doesnt exits");
+    log("JSON CRED doesnt exits");
   }
 
   try {
@@ -360,32 +393,32 @@ _imageSearchGoogle(src, path, name) async {
     final bytes = io.File(path).readAsBytesSync();
     String img64 = base64Encode(bytes);
 
-    Future logoDetection(String image) async {
-      var _vision = vision.VisionApi(await _client);
-      var _api = _vision.images;
-      var _response =
-          await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
-        "requests": [
-          {
-            "image": {"content": image},
-            "features": [
-              {
-                "type": "LOGO_DETECTION",
-              }
-            ]
-          }
-        ]
-      }));
-      List<vision.EntityAnnotation> entities;
-      var logoOutput;
-      _response.responses?.forEach((data) {
-        entities = data.logoAnnotations as List<vision.EntityAnnotation>;
-        logoOutput = entities[0].description;
-      });
-      print(logoOutput);
-    }
+    // Future logoDetection(String image) async {
+    //   var _vision = vision.VisionApi(await _client);
+    //   var _api = _vision.images;
+    //   var _response =
+    //       await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
+    //     "requests": [
+    //       {
+    //         "image": {"content": image},
+    //         "features": [
+    //           {
+    //             "type": "LOGO_DETECTION",
+    //           }
+    //         ]
+    //       }
+    //     ]
+    //   }));
+    //   List<vision.EntityAnnotation> entities;
+    //   var logoOutput;
+    //   _response.responses?.forEach((data) {
+    //     entities = data.logoAnnotations as List<vision.EntityAnnotation>;
+    //     logoOutput = entities[0].description;
+    //   });
+    //   log(logoOutput);
+    // }
 
-    Future TextDetection(String image) async {
+    Future textDetection(String image) async {
       var _vision = vision.VisionApi(await _client);
       var _api = _vision.images;
       var _response =
@@ -408,7 +441,7 @@ _imageSearchGoogle(src, path, name) async {
         entities = data.textAnnotations as List<vision.EntityAnnotation>?;
       });
       if (entities == null) {
-        print("No words is detected");
+        log("No words is detected");
         exit(1);
       }
 
@@ -444,8 +477,8 @@ _imageSearchGoogle(src, path, name) async {
         var length_y = max_y - min_y!;
         var area = length_x * length_y;
 
-        print(area);
-        print(entities![j].description);
+        log("$image");
+        log("$entities![j].description");
         acc.insert(j, area);
         original.insert(j, entities![j].description);
       }
@@ -469,11 +502,11 @@ _imageSearchGoogle(src, path, name) async {
         numberArr.insert(countArr, 0);
       }
 
-      //print(numberArr);
+      //log(numberArr);
       orders.sort((a, b) => b.area.compareTo(a.area));
-      print("Ordered Output text: ${orders.map((order) => order.description)}");
+      log("Ordered Output text: ${orders.map((order) => order.description)}");
 
-      print("TEXT: $str_arr");
+      log("TEXT: $str_arr");
       return str_arr;
     }
 
@@ -495,7 +528,7 @@ _imageSearchGoogle(src, path, name) async {
           }
         ]
       }));
-      // print(entity.entityId);
+      // log(entity.entityId);
       List<vision.WebEntity>? entities;
       List<vision.WebImage>? fullMatchImage;
       List<vision.WebImage>? partialMatchImage;
@@ -521,33 +554,33 @@ _imageSearchGoogle(src, path, name) async {
         if (data.webDetection?.partialMatchingImages != null) {
           partialMatchImage =
               data.webDetection!.partialMatchingImages as List<vision.WebImage>;
-          print("not null1 | ${data.webDetection?.partialMatchingImages}");
+          log("not null1 | ${data.webDetection?.partialMatchingImages}");
         } else {
-          print("null1");
+          log("null1");
         }
 
         if (data.webDetection?.pagesWithMatchingImages != null) {
           pageWithMatchImage = data.webDetection!.pagesWithMatchingImages
               as List<vision.WebPage>;
-          print("not null2 | ${data.webDetection?.pagesWithMatchingImages}");
+          log("not null2 | ${data.webDetection?.pagesWithMatchingImages}");
         } else {
-          print("null2");
+          log("null2");
         }
 
         if (data.webDetection?.visuallySimilarImages != null) {
           pageWithSimilarImage =
               data.webDetection!.visuallySimilarImages as List<vision.WebImage>;
-          print("not null3 | ${data.webDetection?.visuallySimilarImages}");
+          log("not null3 | ${data.webDetection?.visuallySimilarImages}");
         } else {
-          print("null3");
+          log("null3");
         }
 
-        print("_label 4 | ${_label as List<vision.WebLabel>}");
+        log("_label 4 | ${_label as List<vision.WebLabel>}");
         bestguess = _label?.single ?? '';
         //entity = entities!;
       });
 
-      // print("best guess label=  " + bestguess.label.toString());
+      // log("best guess label=  " + bestguess.label.toString());
       String bestGuessLabel = bestguess.label.toString();
 
       i = 0;
@@ -557,9 +590,9 @@ _imageSearchGoogle(src, path, name) async {
       List urls = [];
       int len = pageWithSimilarImage?.length ?? 0;
       for (j = 0; j < len; j++) {
-        // print("page with match image title=" +
+        // log("page with match image title=" +
         //     page_with_match_image![j].pageTitle.toString());
-        // print("page with match image =" +
+        // log("page with match image =" +
         //     page_with_match_image![j].url.toString());
 
         if (pageWithMatchImage != null) {
@@ -583,20 +616,20 @@ _imageSearchGoogle(src, path, name) async {
 
     //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
-    // TextDetection(img64);
+    // textDetection(img64);
     // logoDetection(img64);
 
-    // print("results = ${await Future.value(results)}");
+    // log("results = ${await Future.value(results)}");
     return await Future.value(webResults);
   } finally {
     await jsonCredential.delete();
     fileExists = jsonCredential.existsSync();
-    print("FINALLY = " + fileExists.toString());
+    log("FINALLY = " + fileExists.toString());
     bool exist = await io.File(jsonCredential.path).exists();
     if (exist) {
-      print("STILL HERE ");
+      log("STILL HERE ");
     } else {
-      print("JSON CRED doesnt exits");
+      log("JSON CRED doesnt exits");
     }
   }
 }
@@ -624,7 +657,7 @@ _imageSearchBing(src, path, name) async {
 
     final String responseString = await response.stream.bytesToString();
 
-    print(responseString);
+    log(responseString);
 
     Map out = {};
     List results = [];
@@ -635,22 +668,22 @@ _imageSearchBing(src, path, name) async {
       final elements = responseJson['tags'][0]['actions'];
       var bingVisualObject;
 
-      print("response code ${response.statusCode}");
+      log("response code ${response.statusCode}");
       elements.forEach((data) => {
             if (data['actionType'] == "VisualSearch")
               {bingVisualObject = data['data']['value']}
           });
 
       bingVisualObject.forEach((value) {
-        print("Website name: ${value['name']}");
-        print("website: ${value['hostPageUrl']}");
+        log("Website name: ${value['name']}");
+        log("website: ${value['hostPageUrl']}");
         results.add({
           'title': value['name'].toString(),
           'link': value['hostPageUrl'].toString(),
         });
       });
     } else {
-      print('Failed to upload image. Error code: ${response.statusCode}');
+      log('Failed to upload image. Error code: ${response.statusCode}');
     }
     out.addAll({'urls': results});
     return out;
