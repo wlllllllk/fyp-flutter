@@ -1155,3 +1155,663 @@ extension URLQueryProperty on QueryBuilder<URL, URL, QQueryProperty> {
     });
   }
 }
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters
+
+extension GetSearchRecordCollection on Isar {
+  IsarCollection<SearchRecord> get searchRecords => this.collection();
+}
+
+const SearchRecordSchema = CollectionSchema(
+  name: r'SearchRecord',
+  id: 5686413277232449711,
+  properties: {
+    r'searchCount': PropertySchema(
+      id: 0,
+      name: r'searchCount',
+      type: IsarType.long,
+    ),
+    r'searchText': PropertySchema(
+      id: 1,
+      name: r'searchText',
+      type: IsarType.string,
+    ),
+    r'time': PropertySchema(
+      id: 2,
+      name: r'time',
+      type: IsarType.dateTime,
+    )
+  },
+  estimateSize: _searchRecordEstimateSize,
+  serialize: _searchRecordSerialize,
+  deserialize: _searchRecordDeserialize,
+  deserializeProp: _searchRecordDeserializeProp,
+  idName: r'id',
+  indexes: {},
+  links: {},
+  embeddedSchemas: {},
+  getId: _searchRecordGetId,
+  getLinks: _searchRecordGetLinks,
+  attach: _searchRecordAttach,
+  version: '3.0.5',
+);
+
+int _searchRecordEstimateSize(
+  SearchRecord object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.searchText;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _searchRecordSerialize(
+  SearchRecord object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeLong(offsets[0], object.searchCount);
+  writer.writeString(offsets[1], object.searchText);
+  writer.writeDateTime(offsets[2], object.time);
+}
+
+SearchRecord _searchRecordDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = SearchRecord();
+  object.id = id;
+  object.searchCount = reader.readLong(offsets[0]);
+  object.searchText = reader.readStringOrNull(offsets[1]);
+  object.time = reader.readDateTime(offsets[2]);
+  return object;
+}
+
+P _searchRecordDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readLong(offset)) as P;
+    case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _searchRecordGetId(SearchRecord object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _searchRecordGetLinks(SearchRecord object) {
+  return [];
+}
+
+void _searchRecordAttach(
+    IsarCollection<dynamic> col, Id id, SearchRecord object) {
+  object.id = id;
+}
+
+extension SearchRecordQueryWhereSort
+    on QueryBuilder<SearchRecord, SearchRecord, QWhere> {
+  QueryBuilder<SearchRecord, SearchRecord, QAfterWhere> anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension SearchRecordQueryWhere
+    on QueryBuilder<SearchRecord, SearchRecord, QWhereClause> {
+  QueryBuilder<SearchRecord, SearchRecord, QAfterWhereClause> idEqualTo(Id id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterWhereClause> idNotEqualTo(
+      Id id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterWhereClause> idGreaterThan(
+      Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterWhereClause> idLessThan(Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterWhereClause> idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension SearchRecordQueryFilter
+    on QueryBuilder<SearchRecord, SearchRecord, QFilterCondition> {
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> idEqualTo(
+      Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> idGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> idLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'searchCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'searchCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'searchCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'searchCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'searchText',
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'searchText',
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'searchText',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'searchText',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'searchText',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'searchText',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'searchText',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'searchText',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'searchText',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'searchText',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'searchText',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      searchTextIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'searchText',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> timeEqualTo(
+      DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'time',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition>
+      timeGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'time',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> timeLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'time',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterFilterCondition> timeBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'time',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension SearchRecordQueryObject
+    on QueryBuilder<SearchRecord, SearchRecord, QFilterCondition> {}
+
+extension SearchRecordQueryLinks
+    on QueryBuilder<SearchRecord, SearchRecord, QFilterCondition> {}
+
+extension SearchRecordQuerySortBy
+    on QueryBuilder<SearchRecord, SearchRecord, QSortBy> {
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> sortBySearchCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy>
+      sortBySearchCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> sortBySearchText() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchText', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy>
+      sortBySearchTextDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchText', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> sortByTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'time', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> sortByTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'time', Sort.desc);
+    });
+  }
+}
+
+extension SearchRecordQuerySortThenBy
+    on QueryBuilder<SearchRecord, SearchRecord, QSortThenBy> {
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> thenBySearchCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy>
+      thenBySearchCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> thenBySearchText() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchText', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy>
+      thenBySearchTextDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'searchText', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> thenByTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'time', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QAfterSortBy> thenByTimeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'time', Sort.desc);
+    });
+  }
+}
+
+extension SearchRecordQueryWhereDistinct
+    on QueryBuilder<SearchRecord, SearchRecord, QDistinct> {
+  QueryBuilder<SearchRecord, SearchRecord, QDistinct> distinctBySearchCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'searchCount');
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QDistinct> distinctBySearchText(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'searchText', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SearchRecord, SearchRecord, QDistinct> distinctByTime() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'time');
+    });
+  }
+}
+
+extension SearchRecordQueryProperty
+    on QueryBuilder<SearchRecord, SearchRecord, QQueryProperty> {
+  QueryBuilder<SearchRecord, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<SearchRecord, int, QQueryOperations> searchCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'searchCount');
+    });
+  }
+
+  QueryBuilder<SearchRecord, String?, QQueryOperations> searchTextProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'searchText');
+    });
+  }
+
+  QueryBuilder<SearchRecord, DateTime, QQueryOperations> timeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'time');
+    });
+  }
+}

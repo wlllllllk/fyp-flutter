@@ -144,6 +144,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       _prevSearchText = "",
       _previousURL = "",
       _currentSearchPlatform = "",
+      _prevSearchPlatform = "",
       _webpageContent = "",
       _currentWebViewTitle = "";
   bool _isSearching = false, _gg = false, _isImageSearch = false;
@@ -178,8 +179,16 @@ class _WebViewContainerState extends State<WebViewContainer>
   // positions
   double _hoverX = 0.0, _hoverY = 0.0;
   // double _scrollX = 0.0, _scrollY = 0.0;
-  double _joystickX = 0, _joystickY = 0;
-  double _joystickHeight = 100;
+  double _joystickX = 0,
+      _joystickY = 0,
+      _joystickBottom = 45,
+      _joystickLeft = 0;
+  double _joystickHeight = 100, _joystickWidth = 100;
+  bool _togglePlatformMode = false;
+
+  // databases
+  late Isar _isar;
+  List _searchRecords = [];
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
@@ -195,13 +204,27 @@ class _WebViewContainerState extends State<WebViewContainer>
     final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final autoSwitchPlatform = await prefs.getInt("autoSwitchPlatform") ?? 0;
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
+
+    await Isar.open([URLSchema, SearchRecordSchema], name: "isar");
+    final isar = Isar.getInstance("isar");
+    final searchRecords =
+        await isar!.searchRecords.where().sortByTimeDesc().findAll();
+
+    // final isarSearchRecords =
+    //     await Isar.open([SearchRecordSchema], name: "SearchRecord");
+
     setState(() {
       _currentSearchPlatform = "Google";
       _searchAlgorithm = algorithm;
       _preloadNumber = preloadNumber;
       _autoSwitchPlatform = autoSwitchPlatform;
       _theme = theme;
+      _isar = isar!;
+      _searchRecords = searchRecords;
+      _joystickLeft =
+          (MediaQuery.of(context).size.width / 2) - (_joystickWidth / 2);
     });
+
     log("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
     // log(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
 
@@ -348,8 +371,54 @@ class _WebViewContainerState extends State<WebViewContainer>
     return query;
   }
 
+  _updateSearchRecord(String searchText) async {
+    // check if the record exist
+    final searchRecord = await _isar.searchRecords
+        .filter()
+        .searchTextEqualTo(searchText)
+        .findAll();
+    log("searchRecord: ${searchRecord}");
+
+    // record exists
+    if (searchRecord.isNotEmpty) {
+      log("exist");
+      await _isar.writeTxn(() async {
+        final existingRecord =
+            await _isar.searchRecords.get(searchRecord[0].id);
+
+        existingRecord!.time = DateTime.now();
+        existingRecord.searchCount++;
+
+        await _isar.searchRecords.put(existingRecord);
+      });
+    }
+    // new record
+    else {
+      log("put new");
+
+      final newSearchRecord = SearchRecord()
+        ..searchText = _searchText
+        ..time = DateTime.now()
+        ..searchCount = 1;
+
+      log("newSearchRecord: $newSearchRecord");
+      await _isar.writeTxn(() async {
+        await _isar.searchRecords.put(newSearchRecord);
+      });
+    }
+
+    _searchRecords =
+        await _isar.searchRecords.where().sortByTimeDesc().findAll();
+
+    log("searchRecords: ${_searchRecords}");
+  }
+
   _performSearch(value, platform) async {
     log("searching...");
+
+    EasyLoading.show(
+      status: 'Searching $value on $platform',
+    );
 
     log("_searchTimer.tick ${_searchTimer.tick}");
     if (_searchCount == 0 || _searchTimer.tick > 0) {
@@ -362,6 +431,8 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _searchCount++;
     });
+
+    await _updateSearchRecord(_searchText);
 
     log("_searchCount: $_searchCount | _searchTimer.isActive: ${_searchTimer.isActive}");
 
@@ -389,9 +460,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           'start': _start.toString(),
         });
         response = !_gg ? await http.get(uri) : null;
-
         break;
-      // TODO: replace with Bing API
       case 'Bing':
         response = !_gg
             ? await http.get(
@@ -415,7 +484,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         });
         response = !_gg ? await http.get(uri) : null;
         break;
-      //www.googleapis.com/youtube/v3/search?key=AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw&part=snippet&type=video&maxResults=100&q=cuhk
+      // TODO: replace with Twitter API
       case 'Twitter':
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
@@ -425,6 +494,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         });
         response = !_gg ? await http.get(uri) : null;
         break;
+      // TODO: replace with Facebook API
       case 'Facebook':
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
@@ -434,6 +504,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         });
         response = !_gg ? await http.get(uri) : null;
         break;
+      // TODO: replace with Instagram API
       case 'Instagram':
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
@@ -443,6 +514,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         });
         response = !_gg ? await http.get(uri) : null;
         break;
+      // TODO: replace with LinkedIn API (?)
       case 'LinkedIn':
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
           'key': API_KEY,
@@ -453,6 +525,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         response = !_gg ? await http.get(uri) : null;
         break;
     }
+
+    EasyLoading.dismiss();
 
     log("response: $response");
 
@@ -534,7 +608,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           // setState(() {
           //   _gg = true;
           // });
-          log("no results found");
+          log("no results found | _currentSearchPlatform: $_currentSearchPlatform | _prevSearchPlatform: $_prevSearchPlatform");
           await showDialog(
               context: context,
               builder: (BuildContext context) {
@@ -556,33 +630,15 @@ class _WebViewContainerState extends State<WebViewContainer>
             _searchHistory.remove(_searchText);
             _searchText = _prevSearchText;
           });
-          return null;
-        }
 
-        // switch (platform) {
-        //   case 'Google':
-        //     return items;
-        //   case 'Bing':
-        //     // log("Bing results: ${items['webpages']}");
-        //     return items;
-        //   case 'YouTube':
-        //     for (var item in items) {
-        //       var videoId = item['id']['videoId'];
-        //       var videoUrl = "https://www.youtube.com/watch?v=$videoId";
-        //       item['title'] = item['snippet']['title'];
-        //       item['link'] = videoUrl;
-        //     }
-        //     log("items: $items");
-        //     return items;
-        //   case 'Twitter':
-        //     return items;
-        //   case 'Facebook':
-        //     return items;
-        //   case 'Instagram':
-        //     return items;
-        //   case 'LinkedIn':
-        //     return items;
-        // }
+          _changeSearchPlatform(_prevSearchPlatform);
+          return null;
+        } else {
+          setState(() {
+            _prevSearchText = _searchText;
+            _prevSearchPlatform = _currentSearchPlatform;
+          });
+        }
 
         return items;
       } else {
@@ -836,12 +892,13 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   final TextEditingController _searchFieldController = TextEditingController();
 
-  void _pushSearchPage() {
+  void _pushSearchPage() async {
     setState(() {
       _isSearching = true;
     });
 
     _searchFieldController.text = _searchText;
+    log("_searchRecords: $_searchRecords");
 
     Navigator.push(
       context,
@@ -858,6 +915,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             searchPlatformList: SearchPlatformList,
             currentPlatform: _currentSearchPlatform,
             setImageSearch: _setImageSearch,
+            searchRecords: _searchRecords,
           );
         },
       ),
@@ -1176,11 +1234,9 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     setState(() {
       _appBarColor = _searchingAppBarColor;
-      _prevSearchText = _searchText;
       _searchText = selectedKeywords == "" ? keyword : selectedKeywords;
       _currentSearchPlatform =
           selectedPlatform == "" ? _currentSearchPlatform : selectedPlatform;
-      log("_searchText $_searchText | _currentSearchPlatform $_currentSearchPlatform");
 
       if (_searchHistory[_searchText.toString()] == false) {
         _searchHistory.update(_searchText.toString(), (value) => true);
@@ -1989,7 +2045,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       // do search only if it has not been done before
       var items = await _performSearch(_searchText, _currentSearchPlatform);
       log("_currentSearchPlatform 2 $_currentSearchPlatform");
+      // if (items != null) {
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
+      // }
     } else {
       log("not null");
       _updateLastViewedPlatform(_searchText, _currentSearchPlatform);
@@ -2825,41 +2883,40 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                               // Joystick
                               Positioned(
-                                bottom: 45,
-                                left:
-                                    MediaQuery.of(context).size.width / 2 - 50,
+                                bottom: _joystickBottom,
+                                left: _joystickLeft,
                                 child: Joystick(
-                                  mode: _joystickHeight == 100
-                                      ? JoystickMode.horizontalAndVertical
-                                      : JoystickMode.vertical,
+                                  mode: _togglePlatformMode
+                                      ? JoystickMode.vertical
+                                      : JoystickMode.horizontalAndVertical,
                                   base: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
-                                    width: 100,
+                                    width: _joystickWidth,
                                     height: _joystickHeight,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(50),
-                                      color: _joystickHeight == 100
-                                          ? Colors.grey.withOpacity(0.2)
-                                          : Colors.white,
+                                      color: _togglePlatformMode
+                                          ? Colors.white
+                                          : Colors.grey.withOpacity(0.2),
                                       // backgroundBlendMode: BlendMode.multiply,
                                       boxShadow: [
-                                        _joystickHeight == 100
-                                            ? const BoxShadow(
-                                                color: Colors.transparent,
-                                                spreadRadius: 5,
-                                                blurRadius: 7,
-                                                offset: Offset(0, 3),
-                                              )
-                                            : BoxShadow(
+                                        _togglePlatformMode
+                                            ? BoxShadow(
                                                 color: Colors.grey
                                                     .withOpacity(0.5),
                                                 spreadRadius: 5,
                                                 blurRadius: 7,
                                                 offset: const Offset(0, 3),
+                                              )
+                                            : const BoxShadow(
+                                                color: Colors.transparent,
+                                                spreadRadius: 5,
+                                                blurRadius: 7,
+                                                offset: Offset(0, 3),
                                               ),
                                       ],
                                     ),
-                                    child: _joystickHeight != 100
+                                    child: _togglePlatformMode
                                         ? Column(
                                             mainAxisSize: MainAxisSize.min,
                                             mainAxisAlignment:
@@ -2882,39 +2939,53 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           )
                                         : null,
                                   ),
-                                  stick: Container(
-                                    width: 45,
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(50),
-                                      color: Colors.grey.withOpacity(0.5),
-                                      backgroundBlendMode: BlendMode.multiply,
-                                    ),
-                                    // child: GestureDetector(
-                                    //   onTap: () {
-                                    //     log("switch platform");
-                                    //     // _changeSearchPlatform();
+                                  stick: GestureDetector(
+                                    onTap: () {
+                                      // unshrink joystick
+                                      setState(() {
+                                        _joystickWidth = 100;
+                                        _joystickHeight = 100;
+                                        // _joystickBottom = 45;
+                                        // _joystickLeft =
+                                        //     (MediaQuery.of(context).size.width /
+                                        //             2) -
+                                        //         (_joystickWidth / 2);
+                                      });
+                                    },
+                                    child: Container(
+                                      width: 45,
+                                      height: 45,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                        color: Colors.grey.withOpacity(0.5),
+                                        backgroundBlendMode: BlendMode.multiply,
+                                      ),
+                                      // child: GestureDetector(
+                                      //   onTap: () {
+                                      //     log("switch platform");
+                                      //     // _changeSearchPlatform();
 
-                                    //     // // count down 1 seconds
-                                    //     // if (_autoSwitchPlatform == 1) {
-                                    //     //   if (_platformActivationTimer ==
-                                    //     //       null) {
-                                    //     //     _platformActivationTimer =
-                                    //     //         RestartableTimer(
-                                    //     //             const Duration(
-                                    //     //                 milliseconds: 1500),
-                                    //     //             () async {
-                                    //     //       _normalSearch();
-                                    //     //     });
-                                    //     //   } else {
-                                    //     //     _platformActivationTimer!.reset();
-                                    //     //   }
-                                    //     // }
-                                    //   },
-                                    child: _joystickHeight != 100
-                                        ? null
-                                        : _platformIconBuilder(
-                                            _currentSearchPlatform),
+                                      //     // // count down 1 seconds
+                                      //     // if (_autoSwitchPlatform == 1) {
+                                      //     //   if (_platformActivationTimer ==
+                                      //     //       null) {
+                                      //     //     _platformActivationTimer =
+                                      //     //         RestartableTimer(
+                                      //     //             const Duration(
+                                      //     //                 milliseconds: 1500),
+                                      //     //             () async {
+                                      //     //       _normalSearch();
+                                      //     //     });
+                                      //     //   } else {
+                                      //     //     _platformActivationTimer!.reset();
+                                      //     //   }
+                                      //     // }
+                                      //   },
+                                      child: _togglePlatformMode
+                                          ? null
+                                          : _platformIconBuilder(
+                                              _currentSearchPlatform),
+                                    ),
                                   ),
                                   period: const Duration(milliseconds: 250),
                                   listener: (details) async {
@@ -2951,15 +3022,43 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                                       setState(() {
                                         _joystickY = details.y;
-                                        if (_joystickHeight == 100) {
-                                          _joystickHeight =
-                                              SearchPlatformList.length * 60;
-                                        }
+                                        _togglePlatformMode = true;
+
+                                        // if (_joystickBottom == 0) {
+                                        //   // unshrink joystick
+                                        //   setState(() {
+                                        //     _joystickWidth = 100;
+                                        //     _joystickHeight = 100;
+                                        //     // _joystickBottom = 45;
+                                        //     // _joystickLeft =
+                                        //     //     (MediaQuery.of(context)
+                                        //     //                 .size
+                                        //     //                 .width /
+                                        //     //             2) -
+                                        //     //         (_joystickWidth / 2);
+                                        //   });
+                                        // }
+
+                                        _joystickHeight =
+                                            SearchPlatformList.length * 60;
                                       });
                                     }
+                                    // else if (details.y > 0 &&
+                                    //     !_togglePlatformMode) {
+                                    //   // shrink joystick
+                                    //   // setState(() {
+                                    //   //   _joystickWidth = 45;
+                                    //   //   _joystickHeight = 45;
+                                    //   //   _joystickBottom = 15;
+                                    //   //   _joystickLeft =
+                                    //   //       (MediaQuery.of(context).size.width /
+                                    //   //               2) -
+                                    //   //           (_joystickWidth / 2);
+                                    //   // });
+                                    // }
                                   },
                                   onStickDragEnd: () {
-                                    if (_joystickHeight != 100) {
+                                    if (_togglePlatformMode) {
                                       // area for each option
                                       double step =
                                           2 / (SearchPlatformList.length + 1);
@@ -3014,6 +3113,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
                                       setState(() {
                                         _joystickHeight = 100;
+                                        _joystickWidth = 100;
+                                        _togglePlatformMode = false;
                                       });
                                     }
                                   },
@@ -3048,6 +3149,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   }
 }
 
+// flutter pub run build_runner build
 @collection
 class URL {
   Id id = Isar.autoIncrement; // you can also use id = null to auto increment
@@ -3058,4 +3160,12 @@ class URL {
   int viewCount = 1;
   String duration = Duration(seconds: 0).toString();
   bool bookmarked = false;
+}
+
+@collection
+class SearchRecord {
+  Id id = Isar.autoIncrement; // you can also use id = null to auto increment
+  String? searchText;
+  DateTime time = DateTime.now();
+  int searchCount = 1;
 }

@@ -71,6 +71,7 @@ class SearchPage extends StatefulWidget {
     required this.searchPlatformList,
     required this.currentPlatform,
     required this.setImageSearch,
+    required this.searchRecords,
   }) : super(key: key);
 
   final String realSearchText;
@@ -83,6 +84,7 @@ class SearchPage extends StatefulWidget {
   final searchPlatformList;
   final currentPlatform;
   final setImageSearch;
+  final searchRecords;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -349,13 +351,36 @@ class _SearchPageState extends State<SearchPage> {
       ),
       body: Container(
         color: Colors.white,
-        child: const Align(
+        child: Align(
           alignment: Alignment.center,
-          child: Text(
-            // "Search here",
-            "",
-            style: TextStyle(fontSize: 22),
+          child: ListView(
+            children: [
+              ...widget.searchRecords.map((record) {
+                return ListTile(
+                  title: Text(record.searchText,
+                      style: TextStyle(
+                        fontSize: 18,
+                      )),
+                  trailing: IconButton(
+                    icon: const Icon(EvaIcons.close_outline),
+                    onPressed: () {
+                      log("delete");
+                    },
+                  ),
+                  onTap: () {
+                    log("record.searchText ${record.searchText}");
+                    widget.handleSearch(record.searchText, _platform);
+                  },
+                );
+              }).toList(),
+            ],
           ),
+
+          // Text(
+          //   // "Search here",
+          //   "",
+          //   style: TextStyle(fontSize: 22),
+          // ),
         ),
       ),
     );
@@ -673,6 +698,8 @@ _imageSearchBing(src, path, name) async {
             if (data['actionType'] == "VisualSearch")
               {bingVisualObject = data['data']['value']}
           });
+
+      log("bingVisualObject $bingVisualObject");
 
       bingVisualObject.forEach((value) {
         log("Website name: ${value['name']}");
