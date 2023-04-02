@@ -76,6 +76,7 @@ class SearchPage extends StatefulWidget {
     required this.platformIconBuilder,
     required this.imageSearchGoogle,
     required this.imageSearchBing,
+    required this.mergeResults,
   }) : super(key: key);
 
   final String realSearchText;
@@ -93,6 +94,7 @@ class SearchPage extends StatefulWidget {
   final platformIconBuilder;
   final imageSearchGoogle;
   final imageSearchBing;
+  final mergeResults;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -217,10 +219,19 @@ class _SearchPageState extends State<SearchPage> {
       } else {
         EasyLoading.show(
           status: 'Searching on $_imageSearchPlatform',
+          // status: 'Performing Image Search',
         );
 
-        Map results = {};
+        Map resultsGoogle = {}, resultsBing = {};
+        // var itemsGoogle;
+        // resultsGoogle = await widget.imageSearchGoogle(image, image.path);
 
+        // resultsBing = await widget.imageSearchBing(image, image.path);
+        // String keyword = resultsGoogle["bestGuessLabel"];
+        // var results =
+        //     widget.mergeResults([resultsGoogle['urls'], resultsGoogle['urls']]);
+
+        Map results = {};
         if (_imageSearchPlatform == "Google") {
           var items;
           results = await widget.imageSearchGoogle(image, image.path);
@@ -251,21 +262,22 @@ class _SearchPageState extends State<SearchPage> {
                 _imageSearchPlatform, results['urls'], true);
           }
         }
-
-        log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
-
-        await widget.updateCurrentURLs();
-        EasyLoading.dismiss();
-        // EasyLoading.showToast('results length ${results['urls'].length}');
-
-        final snackBar = SnackBar(
-          content: Text("results length ${results['urls'].length}"),
-          duration: const Duration(seconds: 3),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-        await widget.moveSwiper(true);
       }
+
+      // log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
+
+      await widget.updateCurrentURLs();
+      EasyLoading.dismiss();
+      // EasyLoading.showToast('results length ${results['urls'].length}');
+
+      // final snackBar = SnackBar(
+      //   content: Text("results length ${results.length}"),
+      //   duration: const Duration(seconds: 3),
+      // );
+      // ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+      await widget.moveSwiper(true);
+      // }
     }
     // } catch (e) {
     //   log("error image search $e");

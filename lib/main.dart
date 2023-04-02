@@ -562,15 +562,19 @@ class _WebViewContainerState extends State<WebViewContainer>
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
-        log(jsonResponse.toString());
+        // log(jsonResponse.toString());
         // log(jsonResponse['items']);
 
-        var items;
+        var items = [];
         switch (platform) {
           case 'Google':
-            items = jsonResponse['items'] != null
+            var results = jsonResponse['items'] != null
                 ? jsonResponse['items'] as List<dynamic>
                 : [];
+
+            for (var result in results) {
+              items.add({"title": result['title'], "link": result['link']});
+            }
             break;
           case 'Bing':
             var results = jsonResponse['webPages'] != null
@@ -900,23 +904,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     _normalSearch(newSearch, false);
 
-    // // the search results
-    // var items = await _performSearch(_searchText, _currentSearchPlatform);
-    // // log("items $items");
-
-    // // update the URLs
-    // await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
-
-    // // update the current URLs
-    // await _updateCurrentURLs();
-
-    // setState(() {
-    //   _isFetching = false;
-    // });
-
-    // // move the swiper
-    // await _moveSwiper();
-
     setState(() {
       _appBarColor = _defaultAppBarColor;
     });
@@ -973,6 +960,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             platformIconBuilder: _platformIconBuilder,
             imageSearchGoogle: _imageSearchGoogle,
             imageSearchBing: _imageSearchBing,
+            mergeResults: _mergeResults,
           );
         },
       ),
@@ -2137,6 +2125,87 @@ class _WebViewContainerState extends State<WebViewContainer>
   //   },
   // );
 
+  List _mergeResults(List itemsList) {
+    List results = [];
+    int maxLength = 0;
+    for (var items in itemsList) {
+      maxLength = items.length > maxLength ? items.length : maxLength;
+    }
+
+    log("merge maxLength: $maxLength");
+
+    int mainCounter = 0;
+    while (mainCounter < maxLength) {
+      for (int i = 0; i < itemsList.length; i++) {
+        if (mainCounter < itemsList[i].length) {
+          results.add(itemsList[i][mainCounter]);
+        }
+      }
+      mainCounter++;
+    }
+
+    log("merge results: ${results.length}");
+
+    return results;
+  }
+
+  _smartSearch() async {
+    Map platforms = {"Google": {}, "Bing": {}};
+    List results = [];
+    int minLength = 100;
+
+    for (int i = 0; i < platforms.length; i++) {
+      log('smart: ${platforms.keys.elementAt(i).toString()}');
+      var items =
+          await _performSearch(_searchText, platforms.keys.elementAt(i));
+      await _updateURLs('replace', _searchText,
+          platforms.keys.elementAt(i).toString(), items);
+      if (items.length < minLength) {
+        minLength = items.length;
+      }
+      log('smart: ${platforms.keys.elementAt(i).toString()} | ${items.length}');
+      results.addAll(items);
+      platforms[platforms.keys.elementAt(i).toString()] = items;
+    }
+
+    log("smart length: $minLength | results: $results");
+    return _mergeResults(platforms.values.toList());
+
+    // List test = [];
+    // int i = 0;
+    // for (i = 0; i < minLength; i++) {
+    //   test.add(platforms["Google"][i]);
+    //   test.add(platforms["Bing"][i]);
+    // }
+
+    // if (i < platforms["Google"].length) {
+    //   log("smart Google longer | $i | ${platforms["Google"].length}");
+    //   for (int j = i; j < platforms["Google"].length; j++) {
+    //     log("smart: ${platforms["Google"][j]}");
+    //     test.add(platforms["Google"][j]);
+    //   }
+    // }
+    // if (i < platforms["Bing"].length) {
+    //   log("smart Bing longer | $i | ${platforms["Bing"].length}");
+    //   for (int j = i; j < platforms["Bing"].length; j++) {
+    //     test.add(platforms["Bing"][j]);
+    //   }
+    // }
+
+    // sort the results according to frequency
+    // for (var result in results) {
+    //   if (!test.contains(result["link"])) {
+    //     test.add({result["link"]: 1});
+    //   } else {
+    //     test[result["link"]]++;
+    //   }
+    // }
+
+    // log("test: $test");
+
+    // return test;
+  }
+
   _normalSearch([newSearch = false, refresh = false]) async {
     log("newSearch: $newSearch @${_currentSearchPlatform}");
 
@@ -2146,16 +2215,23 @@ class _WebViewContainerState extends State<WebViewContainer>
       });
     }
 
+    // do search only if it has not been done before or user force refresh
     if (URLs[_searchText] == null ||
         URLs[_searchText][_currentSearchPlatform] == null ||
         refresh) {
       log("null OR refresh");
-      // do search only if it has not been done before
-      var items = await _performSearch(_searchText, _currentSearchPlatform);
-      log("_currentSearchPlatform 2 $_currentSearchPlatform");
-      // if (items != null) {
+      var items;
+      // smart search (search on all platforms)
+      if (_currentSearchPlatform == "SmartText") {
+        items = await _smartSearch();
+      }
+
+      // only on one platform
+      else {
+        items = await _performSearch(_searchText, _currentSearchPlatform);
+        log("_currentSearchPlatform 2 $_currentSearchPlatform");
+      }
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
-      // }
     } else {
       log("not null");
       _updateLastViewedPlatform(_searchText, _currentSearchPlatform);
