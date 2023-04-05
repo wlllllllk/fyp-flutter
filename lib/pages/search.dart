@@ -177,7 +177,11 @@ class _SearchPageState extends State<SearchPage> {
                             final ImagePicker _picker = ImagePicker();
                             // Pick an image
                             final XFile? image = await _picker.pickImage(
-                                source: ImageSource.camera);
+                              source: ImageSource.camera,
+                              maxHeight: 800,
+                              maxWidth: 800,
+                              imageQuality: 80,
+                            );
                             print("image $image");
                             EasyLoading.showToast('image $image');
                             if (image != null) {
@@ -218,9 +222,9 @@ class _SearchPageState extends State<SearchPage> {
                             // Pick an image
                             final XFile? image = await _picker.pickImage(
                               source: ImageSource.gallery,
-                              maxHeight: 1000,
-                              maxWidth: 1000,
-                              //imageQuality: 80,
+                              maxHeight: 800,
+                              maxWidth: 800,
+                              imageQuality: 80,
                             );
                             print("image $image");
                             EasyLoading.showToast('image $image');
@@ -316,6 +320,52 @@ _imageSearch(src, path, name) async {
     print("STILL HERE ");
   } else {
     print("JSON CRED doesnt exits");
+  }
+
+  List shoppingResult = [];
+  const List<String> shoppingKeywords = [
+    'shop',
+    'store',
+    'buy',
+    'cart',
+    'checkout',
+    'ecommerce',
+    'product',
+    'item',
+  ];
+
+  const List<String> e_commercePlatforms = [
+    'shopify.com',
+    'woocommerce.com',
+    'magento.com',
+    'prestashop.com',
+    'bigcommerce.com',
+  ];
+
+  Future<String?> fetchUrlContent(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+      return response.body;
+    } catch (e) {
+      print('Error fetching URL content: $e');
+      return null;
+    }
+  }
+
+  bool isShoppingWebsite(String url) {
+    for (final keyword in shoppingKeywords) {
+      if (url.contains(keyword)) {
+        return true;
+      }
+    }
+
+    for (final platform in e_commercePlatforms) {
+      if (url.contains(platform)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   try {
@@ -550,16 +600,26 @@ _imageSearch(src, path, name) async {
       final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
       //?mkt=zh-HK&setLang=EN
-      var uri =
-          Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
+      var uri = Uri.parse(
+          'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=en-US');
       var headers = {
         'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
+      };
+
+      final knowledgeRequest = {
+        'knowledgeRequest': {
+          'invokedSkillsRequestData': {'enableEntityData': 'true'}
+        }
       };
 
       var request = http.MultipartRequest('POST', uri)
         ..headers.addAll(headers)
         ..files.add(await http.MultipartFile.fromPath('image', imgpath,
             filename: 'myfile'));
+
+      // request.fields[
+      //        'knowledgeRequest[invokedSkillsRequestData][enableEntityData]'] =
+      //    'true';
 
       var response = await request.send();
       // Convert the base64 image to bytes
@@ -569,30 +629,59 @@ _imageSearch(src, path, name) async {
       print(responseString);
 
       List Result = [];
+
       // Convert the base64 image to bytes
 
       if (response.statusCode == 200) {
         final responseJson = jsonDecode(responseString);
+
+        final tags = responseJson['tags'] as List<dynamic>;
+        for (final tag in tags) {
+          // if (tag['actions']['_type'] == 'ImageRelatedSearchesAction') {
+          //   print(tag['actions']);
+          // }
+        }
+
         final elements = responseJson['tags'][0]['actions'];
         var bingVisualObject;
+        var bingVisualQuery = null;
 
         print("response code ${response.statusCode}");
         elements.forEach((data) => {
               if (data['actionType'] == "VisualSearch")
                 {bingVisualObject = data['data']['value']}
             });
+        elements.forEach((data) => {
+              if (data['actionType'] == "RelatedSearches")
+                {bingVisualQuery = data['data']['value']}
+            });
 
-        bingVisualObject.forEach((value) {
+        bingVisualObject.forEach((value) async {
+          print("fetch URL: ==============");
           print("Website name: ${value['name']}");
           print("website: ${value['hostPageUrl']}");
+
+          final isShopping = isShoppingWebsite(value['hostPageUrl']);
+          if (isShopping) {
+            shoppingResult.add(value['hostPageUrl']);
+          }
+          print('Is the URL a shopping website? $isShopping');
+
           Result.add({
             'title': value['name'].toString(),
             'link': value['hostPageUrl'].toString(),
           });
         });
+
+        if (bingVisualQuery != null) {
+          bingVisualQuery.forEach((value) async {
+            print("Query name: ${value['text']}");
+          });
+        }
       } else {
         print('Failed to upload image. Error code: ${response.statusCode}');
       }
+      print("results ${shoppingResult}");
       return Result;
     }
 
@@ -603,6 +692,7 @@ _imageSearch(src, path, name) async {
     // logoDetection(img64);
 
     // print("results = ${await Future.value(results)}");
+
     return await Future.value(webResults);
   } finally {
     await jsonCredential.delete();
@@ -625,8 +715,8 @@ _cameraSearch(src, path, name) async {
     final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
     final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
-    var uri =
-        Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
+    var uri = Uri.parse(
+        'https://api.bing.microsoft.com/v7.0/images/visualsearch?zh-TW');
     var headers = {
       'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
     };
@@ -657,9 +747,10 @@ _cameraSearch(src, path, name) async {
               {bingVisualObject = data['data']['value']}
           });
 
-      bingVisualObject.forEach((value) {
+      bingVisualObject.forEach((value) async {
         print("Website name: ${value['name']}");
         print("website: ${value['hostPageUrl']}");
+
         results.add({
           'title': value['name'].toString(),
           'link': value['hostPageUrl'].toString(),
