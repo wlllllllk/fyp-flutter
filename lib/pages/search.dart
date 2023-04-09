@@ -247,7 +247,7 @@ class _SearchPageState extends State<SearchPage> {
       var results =
           widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
       log("image search results: $results");
-      await widget.updateURLs("replace", keyword, "SmartImage", results, true);
+      await widget.updateURLs("replace", keyword, "Webpage", results, true);
       // Map results = {};
       // if (_imageSearchPlatform == "Google") {
       //   var items;
@@ -308,85 +308,86 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Container(
-          // height: 40,
-          // padding: const EdgeInsets.only(left: 15),
-          // decoration: BoxDecoration(
-          // color: Colors.white,
-          // borderRadius: BorderRadius.circular(10),
-          // ),
-          child: TextField(
-            textInputAction: TextInputAction.search,
-            autofocus: true,
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: 'Enter here',
-              prefixIcon: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: MenuButton(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+        title: Column(
+            // height: 40,
+            // padding: const EdgeInsets.only(left: 15),
+            // decoration: BoxDecoration(
+            // color: Colors.white,
+            // borderRadius: BorderRadius.circular(10),
+            // ),
+            children: <Widget>[
+              TextField(
+                textInputAction: TextInputAction.search,
+                autofocus: true,
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'Enter here',
+                  // prefixIcon: ClipRRect(
+                  //   borderRadius: BorderRadius.circular(10),
+                  //   child: MenuButton(
+                  //     decoration: BoxDecoration(
+                  //       color: Colors.white,
+                  //       borderRadius: BorderRadius.circular(10),
+                  //     ),
+                  //     topDivider: false,
+                  //     child: widget.platformIconBuilder(_platform),
+                  //     menuButtonBackgroundColor: Colors.white,
+                  //     items: SearchPlatformList,
+                  //     itemBuilder: (String value) => SizedBox(
+                  //       height: 50,
+                  //       child: widget.platformIconBuilder(value),
+                  //     ),
+                  //     onItemSelected: (value) {
+                  //       log("value $value");
+                  //       // widget.updateCurrentURLs(value);
+                  //       // widget.moveSwiper(0);
+                  //       setState(() {
+                  //         _platform = value as String;
+                  //       });
+                  //     },
+                  //   ),
+                  // ),
+                  suffixIcon: Container(
+                    child: IntrinsicHeight(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          IconButton(
+                            onPressed: _searchFieldController.clear,
+                            icon: const Icon(Icons.clear),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              _performImageSearch("camera");
+                            },
+                            icon: const Icon(Icons.photo_camera),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              _performImageSearch("gallery");
+                            },
+                            icon: const Icon(Icons.photo),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  topDivider: false,
-                  child: widget.platformIconBuilder(_platform),
-                  menuButtonBackgroundColor: Colors.white,
-                  items: SearchPlatformList,
-                  itemBuilder: (String value) => SizedBox(
-                    height: 50,
-                    child: widget.platformIconBuilder(value),
-                  ),
-                  onItemSelected: (value) {
-                    log("value $value");
-                    // widget.updateCurrentURLs(value);
-                    // widget.moveSwiper(0);
-                    setState(() {
-                      _platform = value as String;
-                    });
-                  },
+                  // IconButton(
+                  //   onPressed: _searchFieldController.clear,
+                  //   icon: const Icon(Icons.photo),
+                  // ),
+                  //   ],
+                  // ),
                 ),
+                controller: _searchFieldController,
+                onSubmitted: (value) {
+                  if (value != "") widget.handleSearch(value, _platform);
+                },
+                autocorrect: false,
+                maxLines: 1,
               ),
-              suffixIcon: Container(
-                child: IntrinsicHeight(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      IconButton(
-                        onPressed: _searchFieldController.clear,
-                        icon: const Icon(Icons.clear),
-                      ),
-                      IconButton(
-                        onPressed: () async {
-                          _performImageSearch("camera");
-                        },
-                        icon: const Icon(Icons.photo_camera),
-                      ),
-                      IconButton(
-                        onPressed: () async {
-                          _performImageSearch("gallery");
-                        },
-                        icon: const Icon(Icons.photo),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // IconButton(
-              //   onPressed: _searchFieldController.clear,
-              //   icon: const Icon(Icons.photo),
-              // ),
-              //   ],
-              // ),
-            ),
-            controller: _searchFieldController,
-            onSubmitted: (value) {
-              if (value != "") widget.handleSearch(value, _platform);
-            },
-            autocorrect: false,
-            maxLines: 1,
-          ),
-        ),
+            ]),
       ),
       body: Container(
         color: Colors.white,
@@ -394,6 +395,27 @@ class _SearchPageState extends State<SearchPage> {
           alignment: Alignment.center,
           child: ListView(
             children: [
+              Padding(
+                padding: const EdgeInsets.only(
+                    left: 16.0, right: 16.0, bottom: 16.0),
+                child: SegmentedButton(
+                  segments: SearchPlatformList.map((e) => ButtonSegment(
+                      value: e,
+                      label: Text(e),
+                      icon: widget.platformIconBuilder(e))).toList(),
+                  selected: {_platform},
+                  onSelectionChanged: (newSelection) {
+                    log("newSelection $newSelection");
+
+                    setState(() {
+                      // By default there is only a single segment that can be
+                      // selected at one time, so its value is always the first
+                      // item in the selected set.
+                      _platform = newSelection.first.toString();
+                    });
+                  },
+                ),
+              ),
               ..._searchRecords.map((record) {
                 return ListTile(
                   title: Text(record.searchText,

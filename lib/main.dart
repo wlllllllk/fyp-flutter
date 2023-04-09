@@ -88,7 +88,7 @@ List<String> SearchPlatformList = [
   // "Instagram",
   // "LinkedIn",
   // "SmartImage",
-  "Text",
+  "Webpage",
   "Video",
   "SNS",
 ];
@@ -234,7 +234,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     //     await Isar.open([SearchRecordSchema], name: "SearchRecord");
 
     setState(() {
-      _currentSearchPlatform = "Text";
+      _currentSearchPlatform = "Webpage";
       _searchAlgorithm = algorithm;
       _preloadNumber = preloadNumber;
       _autoSwitchPlatform = autoSwitchPlatform;
@@ -1178,6 +1178,8 @@ class _WebViewContainerState extends State<WebViewContainer>
   _performDrill([selectedText = null]) async {
     String currentSearchText = _searchText;
     String keyword = selectedText ?? await _getSearchQuery();
+    log("drilling... 1| $keyword");
+
     if (keyword == "") {
       await _currentWebViewController!.takeScreenshot().then((value) async {
         // log("screenshot $value");
@@ -1228,8 +1230,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       // log("image $image");
       return;
     }
+
     keyword = keyword.trim();
-    log("drilling... | $keyword");
+    log("drilling... 2| $keyword");
 
     log("keyword length: ${keyword.split(' ').length}, ${keyword.length}");
 
@@ -1321,31 +1324,6 @@ class _WebViewContainerState extends State<WebViewContainer>
               ),
             ],
           ),
-          //   SmartSelect.multiple(
-          //     title: 'Keywords',
-          //     placeholder: "Select keywords",
-          //     selectedValue: [],
-          //     choiceItems: keywords,
-          //     onChange: (state) {
-          //       log(state.value);
-          //       selectedKeywords = state.value.join(" ").trim();
-          //       log("updated $selectedKeywords");
-          //     },
-          //     modalType: S2ModalType.popupDialog,
-          //     choiceType: S2ChoiceType.chips,
-          //     // onModalClose: (state, confirmed) {
-          //     //   log("modal closed $state $confirmed");
-          //     //   log("selected keywords: $selectedKeywords");
-          //     // },
-
-          //     // groupBuilder: (context, header, choices) {
-          //     //   return StickyHeader(
-          //     //     header: header,
-          //     //     content: choices,
-          //     //   );
-          //     // },
-          //   ),
-          // ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -1426,7 +1404,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     if (URLs[_searchText][_currentSearchPlatform] == null) {
       // do search only if it has not been done before
-      var items = await _performSearch(_searchText, _currentSearchPlatform);
+      // var items = await _performSearch(_searchText, _currentSearchPlatform);
+      var items = await _mergeSearch(_currentSearchPlatform);
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
     }
 
@@ -2201,10 +2180,49 @@ class _WebViewContainerState extends State<WebViewContainer>
     return results;
   }
 
+  _getWebpageHash(String link) async {
+    var response = await http.get(Uri.parse(link));
+    // log("hash0: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      // Parse the HTML content
+      var document = parse(response.body);
+      // log("document: ${document.outerHtml}");
+
+      // // Inspect the meta-refresh tag
+      // var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
+      // log("metaRefreshTag: $metaRefreshTag");
+      // if (metaRefreshTag != null) {
+      //   // Extract the "content" attribute value, which contains the redirect URL
+      //   var content = metaRefreshTag.attributes['content'];
+
+      //   // Extract the URL from the "content" attribute value
+      //   var redirectUrl = content?.split(';')[1].trim().substring(4);
+
+      //   // The web page is being client-side redirected
+      //   print('Redirect URL: $redirectUrl');
+      // }
+
+      // Convert the content to string
+      String content = utf8.decode(response.bodyBytes);
+      // log("hash1: $content");
+
+      // Generate an MD5 hash of the content
+      var hash = md5.convert(utf8.encode(content));
+      log("hash: $hash | link: $link");
+      return hash;
+
+      // Return the hexadecimal representation of the hash
+      // return hash.toString();
+    } else {
+      throw Exception(
+          'Failed to fetch web page content: ${response.statusCode}');
+    }
+  }
+
   _mergeSearch(String type) async {
     Map platforms = {};
     switch (type) {
-      case "Text":
+      case "Webpage":
         platforms = {"Google": {}, "Bing": {}};
         break;
       case "Video":
@@ -2221,7 +2239,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     List results = [];
-    int minLength = 100;
+    int minLength = 100000;
 
     for (int i = 0; i < platforms.length; i++) {
       log('smart: ${platforms.keys.elementAt(i).toString()}');
@@ -2238,7 +2256,63 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     log("smart length: $minLength | results: $results");
-    return _mergeResults(platforms.values.toList());
+
+    var mergedResults = _mergeResults(platforms.values.toList());
+
+    Map webpageHashes = {};
+    Map webpageFrequency = {};
+    for (int i = 0; i < mergedResults.length; i++) {
+      // var hash = await _getWebpageHash(mergedResults[i]["link"]);
+      // log("smart hash: $hash");
+      // if (webpageHashes[hash] == null) {
+      //   webpageHashes[hash] = 1;
+      // } else {
+      //   webpageHashes[hash] += 1;
+      // }
+      if (webpageFrequency[mergedResults[i]["link"]] == null) {
+        webpageFrequency[mergedResults[i]["link"]] = 1;
+      } else {
+        webpageFrequency[mergedResults[i]["link"]] += 1;
+      }
+    }
+
+    // Convert the map entries to a list
+    List<MapEntry> entries = webpageFrequency.entries.toList();
+
+    // Sort the list based on the values in ascending order
+    entries.sort((a, b) => b.value.compareTo(a.value));
+
+    // Create a new map from the sorted list
+    Map sortedWebpageFrequency = Map.fromEntries(entries);
+
+    // log("webpageHashes: $webpageHashes");
+    // log("mergedResults: $mergedResults");
+    log("webpageFrequency: $webpageFrequency");
+    log("sortedWebpageFrequency: $sortedWebpageFrequency");
+
+    log("mergedResults.toList(): ${mergedResults.toList()}");
+    var test = mergedResults.firstWhere(
+        (element) => element["title"] == "The University of Hong Kong (HKU)");
+    log("test: ${test}");
+
+    List finalSortedList = [];
+    List links = sortedWebpageFrequency.keys.toList();
+    // log("keys: ${links}");
+
+    for (int i = 0; i < sortedWebpageFrequency.length; i++) {
+      log("keys[i]: ${links[i]}");
+
+      finalSortedList.add({
+        "title": mergedResults
+            .firstWhere((element) => element["link"] == links[i])["title"],
+        "link": links[i]
+      });
+    }
+
+    log("finalSortedList: $finalSortedList");
+
+    // return mergedResults;
+    return finalSortedList;
 
     // List test = [];
     // int i = 0;
@@ -2447,7 +2521,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   _platformIconBuilder(String platform) {
     switch (platform) {
-      case "Text":
+      case "Webpage":
         // return const Icon(
         //   FontAwesome.wand_magic_sparkles,
         //   size: 24,
@@ -2578,27 +2652,27 @@ class _WebViewContainerState extends State<WebViewContainer>
                   Navigator.pop(context);
                 },
               ),
-              ListTile(
-                trailing: _selectedPageIndex == 1
-                    ? Icon(Icons.history, color: Colors.blue[900])
-                    : const Icon(Icons.history_outlined),
-                title: const Text('History'),
-                onTap: () {
-                  _onItemTapped(1);
-                  Navigator.pop(context);
-                  _pushHistoryPage();
-                },
-              ),
-              ListTile(
-                trailing: _selectedPageIndex == 2
-                    ? Icon(Icons.bookmark, color: Colors.blue[900])
-                    : const Icon(Icons.bookmark_outline),
-                title: const Text('Bookmarked'),
-                onTap: () {
-                  _onItemTapped(2);
-                  Navigator.pop(context);
-                },
-              ),
+              // ListTile(
+              //   trailing: _selectedPageIndex == 1
+              //       ? Icon(Icons.history, color: Colors.blue[900])
+              //       : const Icon(Icons.history_outlined),
+              //   title: const Text('History'),
+              //   onTap: () {
+              //     _onItemTapped(1);
+              //     Navigator.pop(context);
+              //     _pushHistoryPage();
+              //   },
+              // ),
+              // ListTile(
+              //   trailing: _selectedPageIndex == 2
+              //       ? Icon(Icons.bookmark, color: Colors.blue[900])
+              //       : const Icon(Icons.bookmark_outline),
+              //   title: const Text('Bookmarked'),
+              //   onTap: () {
+              //     _onItemTapped(2);
+              //     Navigator.pop(context);
+              //   },
+              // ),
               ListTile(
                 trailing: _selectedPageIndex == 3
                     ? Icon(Icons.settings, color: Colors.blue[900])
@@ -2624,7 +2698,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                   child: Marquee(
                     key: _marqueeKey,
                     text: _searchResult.isNotEmpty
-                        ? '$_searchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
+                        // ? '$_searchText on $_currentSearchPlatform (${_currentURLIndex + 1} of ${_currentURLs.length})'
+                        ? '$_searchText (${_currentURLIndex + 1} of ${_currentURLs.length})'
                         : 'Results for $_searchText',
                     style: const TextStyle(fontSize: 18),
                     scrollAxis: Axis.horizontal, //scroll direction
@@ -3230,39 +3305,55 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         //         (_joystickWidth / 2);
                                       });
                                     },
-                                    child: Container(
-                                      width: 45,
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(50),
-                                        color: Colors.grey.withOpacity(0.5),
-                                        backgroundBlendMode: BlendMode.multiply,
-                                      ),
-                                      // child: GestureDetector(
-                                      //   onTap: () {
-                                      //     log("switch platform");
-                                      //     // _changeSearchPlatform();
+                                    child: GestureDetector(
+                                      onDoubleTap: () {
+                                        log("joystick double tapped");
+                                        if (_joystickBottom == 45) {
+                                          setState(() {
+                                            _joystickBottom = 0;
+                                          });
+                                        } else {
+                                          setState(() {
+                                            _joystickBottom = 45;
+                                          });
+                                        }
+                                      },
+                                      child: Container(
+                                        width: 45,
+                                        height: 45,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(50),
+                                          color: Colors.grey.withOpacity(0.5),
+                                          backgroundBlendMode:
+                                              BlendMode.multiply,
+                                        ),
+                                        // child: GestureDetector(
+                                        //   onTap: () {
+                                        //     log("switch platform");
+                                        //     // _changeSearchPlatform();
 
-                                      //     // // count down 1 seconds
-                                      //     // if (_autoSwitchPlatform == 1) {
-                                      //     //   if (_platformActivationTimer ==
-                                      //     //       null) {
-                                      //     //     _platformActivationTimer =
-                                      //     //         RestartableTimer(
-                                      //     //             const Duration(
-                                      //     //                 milliseconds: 1500),
-                                      //     //             () async {
-                                      //     //       _normalSearch();
-                                      //     //     });
-                                      //     //   } else {
-                                      //     //     _platformActivationTimer!.reset();
-                                      //     //   }
-                                      //     // }
-                                      //   },
-                                      child: _togglePlatformMode
-                                          ? null
-                                          : _platformIconBuilder(
-                                              _currentSearchPlatform),
+                                        //     // // count down 1 seconds
+                                        //     // if (_autoSwitchPlatform == 1) {
+                                        //     //   if (_platformActivationTimer ==
+                                        //     //       null) {
+                                        //     //     _platformActivationTimer =
+                                        //     //         RestartableTimer(
+                                        //     //             const Duration(
+                                        //     //                 milliseconds: 1500),
+                                        //     //             () async {
+                                        //     //       _normalSearch();
+                                        //     //     });
+                                        //     //   } else {
+                                        //     //     _platformActivationTimer!.reset();
+                                        //     //   }
+                                        //     // }
+                                        //   },
+                                        child: _togglePlatformMode
+                                            ? null
+                                            : _platformIconBuilder(
+                                                _currentSearchPlatform),
+                                      ),
                                     ),
                                   ),
                                   period: const Duration(milliseconds: 150),
@@ -3302,6 +3393,12 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         _joystickY = details.y;
                                         _togglePlatformMode = true;
 
+                                        if (_joystickBottom == 0) {
+                                          setState(() {
+                                            _joystickBottom = 45;
+                                          });
+                                        }
+
                                         // if (_joystickBottom == 0) {
                                         //   // unshrink joystick
                                         //   setState(() {
@@ -3318,7 +3415,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         // }
 
                                         _joystickHeight =
-                                            SearchPlatformList.length * 60;
+                                            SearchPlatformList.length * 70;
                                       });
                                     }
                                     // else if (details.y > 0 &&
