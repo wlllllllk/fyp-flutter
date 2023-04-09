@@ -31,6 +31,8 @@ import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:crypto/crypto.dart';
+import 'package:html/parser.dart';
 
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
@@ -77,23 +79,27 @@ List<String> SearchAlgorithmList = [
 
 // ignore: non_constant_identifier_names
 List<String> SearchPlatformList = [
-  "SmartText",
-  "Google",
-  "Bing",
-  "YouTube",
-  "Twitter",
-  "Facebook",
-  "Instagram",
-  "LinkedIn"
+  // "SmartText",
+  // "Google",
+  // "Bing",
+  // "YouTube",
+  // "Twitter",
+  // "Facebook",
+  // "Instagram",
+  // "LinkedIn",
+  // "SmartImage",
+  "Text",
+  "Video",
+  "SNS",
 ];
 
-// ignore: non_constant_identifier_names
-List<String> SearchPlatformList_Text = [
-  "Google",
-  "Bing",
-  "DuckDuckGo",
-  "Yahoo",
-];
+// // ignore: non_constant_identifier_names
+// List<String> SearchPlatformList_Text = [
+//   "Google",
+//   "Bing",
+//   "DuckDuckGo",
+//   "Yahoo",
+// ];
 
 enum Theme { Light, Dark, Auto }
 
@@ -188,6 +194,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   // others
   bool _menuShown = false;
   bool _isFetching = false;
+  var _currentImage;
 
   // positions
   double _hoverX = 0.0, _hoverY = 0.0;
@@ -227,7 +234,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     //     await Isar.open([SearchRecordSchema], name: "SearchRecord");
 
     setState(() {
-      _currentSearchPlatform = "Google";
+      _currentSearchPlatform = "Text";
       _searchAlgorithm = algorithm;
       _preloadNumber = preloadNumber;
       _autoSwitchPlatform = autoSwitchPlatform;
@@ -930,9 +937,53 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  void _updateCurrentImage(image) {
+    setState(() {
+      _currentImage = image;
+    });
+    log("_currentImage $_currentImage");
+  }
+
   final TextEditingController _searchFieldController = TextEditingController();
 
   void _pushSearchPage() async {
+    // String url = "http://www.cuhk.edu.hk";
+    // var response = await http.get(Uri.parse(url));
+    // log("hash0: ${response.statusCode}");
+    // if (response.statusCode == 200) {
+    //   // Parse the HTML content
+    //   var document = parse(response.body);
+    //   // log("document: ${document.outerHtml}");
+
+    //   // Inspect the meta-refresh tag
+    //   var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
+    //   log("metaRefreshTag: $metaRefreshTag");
+    //   if (metaRefreshTag != null) {
+    //     // Extract the "content" attribute value, which contains the redirect URL
+    //     var content = metaRefreshTag.attributes['content'];
+
+    //     // Extract the URL from the "content" attribute value
+    //     var redirectUrl = content?.split(';')[1].trim().substring(4);
+
+    //     // The web page is being client-side redirected
+    //     print('Redirect URL: $redirectUrl');
+    //   }
+
+    //   // Convert the content to string
+    //   String content = utf8.decode(response.bodyBytes);
+    //   log("hash1: $content");
+
+    //   // Generate an MD5 hash of the content
+    //   var hash = md5.convert(utf8.encode(content));
+    //   log("hash2: $hash");
+
+    //   // Return the hexadecimal representation of the hash
+    //   // return hash.toString();
+    // } else {
+    //   throw Exception(
+    //       'Failed to fetch web page content: ${response.statusCode}');
+    // }
+
     setState(() {
       _isSearching = true;
     });
@@ -961,6 +1012,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             imageSearchGoogle: _imageSearchGoogle,
             imageSearchBing: _imageSearchBing,
             mergeResults: _mergeResults,
+            updateCurrentImage: _updateCurrentImage,
           );
         },
       ),
@@ -2149,8 +2201,25 @@ class _WebViewContainerState extends State<WebViewContainer>
     return results;
   }
 
-  _smartSearch() async {
-    Map platforms = {"Google": {}, "Bing": {}};
+  _mergeSearch(String type) async {
+    Map platforms = {};
+    switch (type) {
+      case "Text":
+        platforms = {"Google": {}, "Bing": {}};
+        break;
+      case "Video":
+        platforms = {"YouTube": {}};
+        break;
+      case "SNS":
+        platforms = {
+          "Twitter": {},
+          "Facebook": {},
+          "Instagram": {},
+          "LinkedIn": {}
+        };
+        break;
+    }
+
     List results = [];
     int minLength = 100;
 
@@ -2163,7 +2232,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (items.length < minLength) {
         minLength = items.length;
       }
-      log('smart: ${platforms.keys.elementAt(i).toString()} | ${items.length}');
+      log('smart: ${platforms.keys.elementAt(i).toString()} | ${items}');
       results.addAll(items);
       platforms[platforms.keys.elementAt(i).toString()] = items;
     }
@@ -2221,16 +2290,16 @@ class _WebViewContainerState extends State<WebViewContainer>
         refresh) {
       log("null OR refresh");
       var items;
-      // smart search (search on all platforms)
-      if (_currentSearchPlatform == "SmartText") {
-        items = await _smartSearch();
-      }
+      // merge search (search on all platforms)
+      // if (_currentSearchPlatform == "Text") {
+      items = await _mergeSearch(_currentSearchPlatform);
+      // }
 
       // only on one platform
-      else {
-        items = await _performSearch(_searchText, _currentSearchPlatform);
-        log("_currentSearchPlatform 2 $_currentSearchPlatform");
-      }
+      // else {
+      //   items = await _performSearch(_searchText, _currentSearchPlatform);
+      //   log("_currentSearchPlatform 2 $_currentSearchPlatform");
+      // }
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
     } else {
       log("not null");
@@ -2378,12 +2447,18 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   _platformIconBuilder(String platform) {
     switch (platform) {
-      case "SmartText":
-        return const Icon(
-          FontAwesome.wand_magic_sparkles,
-          size: 24,
-          color: Colors.green,
-        );
+      case "Text":
+        // return const Icon(
+        //   FontAwesome.wand_magic_sparkles,
+        //   size: 24,
+        //   color: Colors.green,
+        // );
+        return const Icon(HeroIcons.globe_alt, size: 24);
+      case "Video":
+        return const Icon(BoxIcons.bx_video, size: 24);
+      case "SNS":
+        return const Icon(BoxIcons.bx_message, size: 24);
+
       case "Google":
         return const Icon(BoxIcons.bxl_google, size: 24);
       case "YouTube":
@@ -2402,6 +2477,12 @@ class _WebViewContainerState extends State<WebViewContainer>
         return const Icon(BoxIcons.bxl_yahoo, size: 24);
       case "Baidu":
         return const Icon(BoxIcons.bxl_baidu, size: 24);
+      // case "SmartImage":
+      //   return const Icon(
+      //     FontAwesome.photo_film,
+      //     size: 24,
+      //     color: Colors.green,
+      //   );
     }
   }
 
@@ -2785,6 +2866,18 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //     log("webview long pressed");
                               //   },
 
+                              // TODO: show currently searching image
+                              if (_currentImage != null)
+                                Positioned(
+                                  top: 0,
+                                  child: Image.file(
+                                    File(_currentImage.path),
+                                    fit: BoxFit.cover,
+                                    width: MediaQuery.of(context).size.width,
+                                    height: MediaQuery.of(context).size.height,
+                                  ),
+                                ),
+
                               // Title Bar
                               Positioned(
                                 top: 0,
@@ -2818,40 +2911,35 @@ class _WebViewContainerState extends State<WebViewContainer>
                               // WebView
                               // Flexible(
                               //   child:
-                              Screenshot(
-                                controller: _screenshotController,
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 30,
-                                    bottom: Platform.isIOS
-                                        ? (_loadingPercentage < 100 ? 65 : 60)
-                                        : (_loadingPercentage < 100 ? 55 : 50),
-                                  ),
-                                  child: PreloadPageView.builder(
-                                    onPageChanged: (value) {
-                                      log("platform changed: $value");
-                                      log("${URLs[_searchText][SearchPlatformList[value]]}");
-                                      // setState(() {
-                                      //   _currentPreloadPageController =
-                                      //       _preloadPageControllers[value];
-                                      //   _currentPreloadPageKey =
-                                      //       _preloadPageKeys[value];
-                                      // });
-                                    },
-                                    scrollDirection: Axis.vertical,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    key: _preloadPlatformKey,
-                                    preloadPagesCount: 0,
-                                    controller: _preloadPlatformController,
-                                    itemCount: _activatedSearchPlatforms.length,
-                                    itemBuilder: (BuildContext context,
-                                            int platformPosition) =>
-                                        _buildPlatform(
-                                            context, platformPosition),
-                                  ),
-                                  // ),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: 30,
+                                  bottom: Platform.isIOS
+                                      ? (_loadingPercentage < 100 ? 65 : 60)
+                                      : (_loadingPercentage < 100 ? 55 : 50),
                                 ),
+                                child: PreloadPageView.builder(
+                                  onPageChanged: (value) {
+                                    log("platform changed: $value");
+                                    log("${URLs[_searchText][SearchPlatformList[value]]}");
+                                    // setState(() {
+                                    //   _currentPreloadPageController =
+                                    //       _preloadPageControllers[value];
+                                    //   _currentPreloadPageKey =
+                                    //       _preloadPageKeys[value];
+                                    // });
+                                  },
+                                  scrollDirection: Axis.vertical,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  key: _preloadPlatformKey,
+                                  preloadPagesCount: 0,
+                                  controller: _preloadPlatformController,
+                                  itemCount: _activatedSearchPlatforms.length,
+                                  itemBuilder: (BuildContext context,
+                                          int platformPosition) =>
+                                      _buildPlatform(context, platformPosition),
+                                ),
+                                // ),
                               ),
 
                               // Bottom Bar
@@ -3619,6 +3707,7 @@ _imageSearchGoogle(src, path) async {
         //     page_with_match_image![j].url.toString());
 
         if (pageWithMatchImage != null) {
+          log("pageWithMatchImage: $pageWithMatchImage | len: $len | j: $j");
           urls.add({
             'title': pageWithMatchImage![j].pageTitle.toString(),
             'link': pageWithMatchImage![j].url.toString()
@@ -3699,14 +3788,19 @@ _imageSearchBing(src, path) async {
 
       log("bingVisualObject $bingVisualObject");
 
-      bingVisualObject.forEach((value) {
-        log("Website name: ${value['name']}");
-        log("website: ${value['hostPageUrl']}");
-        results.add({
-          'title': value['name'].toString(),
-          'link': value['hostPageUrl'].toString(),
+      if (bingVisualObject == null) {
+        log("bing search result null");
+        // return null;
+      } else {
+        bingVisualObject.forEach((value) {
+          log("Website name: ${value['name']}");
+          log("website: ${value['hostPageUrl']}");
+          results.add({
+            'title': value['name'].toString(),
+            'link': value['hostPageUrl'].toString(),
+          });
         });
-      });
+      }
     } else {
       log('Failed to upload image. Error code: ${response.statusCode}');
     }

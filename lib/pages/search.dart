@@ -77,6 +77,7 @@ class SearchPage extends StatefulWidget {
     required this.imageSearchGoogle,
     required this.imageSearchBing,
     required this.mergeResults,
+    required this.updateCurrentImage,
   }) : super(key: key);
 
   final String realSearchText;
@@ -95,6 +96,7 @@ class SearchPage extends StatefulWidget {
   final imageSearchGoogle;
   final imageSearchBing;
   final mergeResults;
+  final updateCurrentImage;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -153,36 +155,36 @@ class _SearchPageState extends State<SearchPage> {
   //   }
   // }
 
-  _choosePlatform() {
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Choose Platform"),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              _imageSearchPlatform = "Google";
-              Navigator.pop(context);
-            },
-            child: const Text("Google"),
-          ),
-          TextButton(
-            onPressed: () {
-              _imageSearchPlatform = "Bing";
-              Navigator.pop(context);
-            },
-            child: const Text("Bing"),
-          ),
-        ],
-      ),
-    );
-  }
+  // _choosePlatform() {
+  //   return showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text("Choose Platform"),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //           },
+  //           child: const Text("Cancel"),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             _imageSearchPlatform = "Google";
+  //             Navigator.pop(context);
+  //           },
+  //           child: const Text("Google"),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             _imageSearchPlatform = "Bing";
+  //             Navigator.pop(context);
+  //           },
+  //           child: const Text("Bing"),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   _performImageSearch(source) async {
     log("picking...");
@@ -194,13 +196,13 @@ class _SearchPageState extends State<SearchPage> {
             source: ImageSource.camera,
             maxHeight: 1000,
             maxWidth: 1000,
-            //imageQuality: 80,
+            imageQuality: 80,
           )
         : await picker.pickImage(
             source: ImageSource.gallery,
             maxHeight: 1000,
             maxWidth: 1000,
-            //imageQuality: 80,
+            imageQuality: 80,
           );
     log("image $image");
     // EasyLoading.showToast('image $image');
@@ -212,57 +214,72 @@ class _SearchPageState extends State<SearchPage> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
     if (image != null) {
+      widget.updateCurrentImage(image);
       _imageSearchPlatform = "";
-      await _choosePlatform();
-      if (_imageSearchPlatform == "") {
-        return;
-      } else {
-        EasyLoading.show(
-          status: 'Searching on $_imageSearchPlatform',
-          // status: 'Performing Image Search',
-        );
+      // await _choosePlatform();
+      // if (_imageSearchPlatform == "") {
+      //   return;
+      // } else {
 
-        Map resultsGoogle = {}, resultsBing = {};
-        // var itemsGoogle;
-        // resultsGoogle = await widget.imageSearchGoogle(image, image.path);
+      EasyLoading.show(
+        // status: 'Perform Image Search',
+        status: "Searching on Google",
+      );
 
-        // resultsBing = await widget.imageSearchBing(image, image.path);
-        // String keyword = resultsGoogle["bestGuessLabel"];
-        // var results =
-        //     widget.mergeResults([resultsGoogle['urls'], resultsGoogle['urls']]);
+      Map resultsGoogle = {}, resultsBing = {};
+      // var itemsGoogle;
+      resultsGoogle = await widget.imageSearchGoogle(image, image.path);
+      log("image search results Google: $resultsGoogle");
 
-        Map results = {};
-        if (_imageSearchPlatform == "Google") {
-          var items;
-          results = await widget.imageSearchGoogle(image, image.path);
-          if (results['urls'].length == 0) {
-            log("Google 000000000");
+      // EasyLoading.dismiss();
 
-            items =
-                await widget.performSearch(results["bestGuessLabel"], "Google");
-            await widget.updateURLs(
-                "replace", results['bestGuessLabel'], "Google", items, true);
-          } else {
-            log("Google not 000000000");
-            await widget.updateURLs("replace", results['bestGuessLabel'],
-                "Google", results['urls'], true);
-          }
-        } else if (_imageSearchPlatform == "Bing") {
-          var items;
-          results = await widget.imageSearchBing(image, image.path);
-          if (results["urls"].length == 0) {
-            log("Bing 000000000");
-            items = await widget.performSearch(
-                results["urls"], _imageSearchPlatform);
-            await widget.updateURLs("replace", "Bing Image Search",
-                _imageSearchPlatform, items, true);
-          } else {
-            log("Bing not 000000000");
-            await widget.updateURLs("replace", "Bing Image Search",
-                _imageSearchPlatform, results['urls'], true);
-          }
-        }
-      }
+      EasyLoading.show(
+        status: 'Searching on Bing',
+      );
+      resultsBing = await widget.imageSearchBing(image, image.path);
+      log("image search results Bing: $resultsBing");
+
+      // EasyLoading.dismiss();
+      EasyLoading.show(
+        status: 'Merging Results',
+      );
+      String keyword = resultsGoogle["bestGuessLabel"];
+      var results =
+          widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
+      log("image search results: $results");
+      await widget.updateURLs("replace", keyword, "SmartImage", results, true);
+      // Map results = {};
+      // if (_imageSearchPlatform == "Google") {
+      //   var items;
+      //   results = await widget.imageSearchGoogle(image, image.path);
+      //   if (results['urls'].length == 0) {
+      //     log("Google 000000000");
+
+      //     items =
+      //         await widget.performSearch(results["bestGuessLabel"], "Google");
+      //     await widget.updateURLs(
+      //         "replace", results['bestGuessLabel'], "Google", items, true);
+      //   } else {
+      //     log("Google not 000000000");
+      //     await widget.updateURLs("replace", results['bestGuessLabel'],
+      //         "Google", results['urls'], true);
+      //   }
+      // } else if (_imageSearchPlatform == "Bing") {
+      //   var items;
+      //   results = await widget.imageSearchBing(image, image.path);
+      //   if (results["urls"].length == 0) {
+      //     log("Bing 000000000");
+      //     items =
+      //         await widget.performSearch(results["urls"], _imageSearchPlatform);
+      //     await widget.updateURLs("replace", "Bing Image Search",
+      //         _imageSearchPlatform, items, true);
+      //   } else {
+      //     log("Bing not 000000000");
+      //     await widget.updateURLs("replace", "Bing Image Search",
+      //         _imageSearchPlatform, results['urls'], true);
+      //   }
+      // }
+      // }
 
       // log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
 
@@ -315,7 +332,7 @@ class _SearchPageState extends State<SearchPage> {
                   child: widget.platformIconBuilder(_platform),
                   menuButtonBackgroundColor: Colors.white,
                   items: SearchPlatformList,
-                  itemBuilder: (String value) => Container(
+                  itemBuilder: (String value) => SizedBox(
                     height: 50,
                     child: widget.platformIconBuilder(value),
                   ),
