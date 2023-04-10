@@ -186,7 +186,7 @@ class _SearchPageState extends State<SearchPage> {
                             EasyLoading.showToast('image $image');
                             if (image != null) {
                               EasyLoading.show(status: 'Searching...');
-                              Map results = await _cameraSearch(
+                              Map results = await _imageSearch(
                                   image, image.path, image.name);
                               print("image $results");
 
@@ -595,7 +595,8 @@ _imageSearch(src, path, name) async {
       return results;
     }
 
-    Future BingSearch(String imgpath, String img64) async {
+    List bestGuessLabel = [];
+    Future<Map> BingSearch(String imgpath, String img64) async {
       final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
       final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
@@ -630,6 +631,7 @@ _imageSearch(src, path, name) async {
 
       List Result = [];
 
+      Map results = {"bestGuessLabel": bestGuessLabel};
       // Convert the base64 image to bytes
 
       if (response.statusCode == 200) {
@@ -657,9 +659,9 @@ _imageSearch(src, path, name) async {
             });
 
         bingVisualObject.forEach((value) async {
-          print("fetch URL: ==============");
-          print("Website name: ${value['name']}");
-          print("website: ${value['hostPageUrl']}");
+          // print("fetch URL: ==============");
+          //  print("Website name: ${value['name']}");
+          // print("website: ${value['hostPageUrl']}");
 
           final isShopping = isShoppingWebsite(value['hostPageUrl']);
           if (isShopping) {
@@ -675,19 +677,72 @@ _imageSearch(src, path, name) async {
 
         if (bingVisualQuery != null) {
           bingVisualQuery.forEach((value) async {
-            print("Query name: ${value['text']}");
+            // print("Query name: ${value['text']}");
           });
+          bestGuessLabel.add(bingVisualQuery[0]['text']);
+          print(bestGuessLabel);
         }
       } else {
         print('Failed to upload image. Error code: ${response.statusCode}');
       }
+
+      // print("Bing: ${results['bestGuessLabel']}");
+
       print("results ${shoppingResult}");
-      return Result;
+      results.addAll({'urls': Result});
+
+      return results;
     }
 
     var bingVisualResult = BingSearch(path, img64);
+
+    //print(text['bestGuessLabel']);
+    // print(text);
     //BingVisualSearch(img64, path, name);
     var webResults = webSearch(img64);
+
+    Map bing = await Future.value(bingVisualResult);
+    Map Google = await Future.value(webResults);
+
+    List mergeList = [];
+    final keyBing = bing.keys.toList();
+    //print("LEY BING: ${bing[1](0)}");
+    final keyGoogle = Google.keys.toList();
+
+    Map output = {};
+    String bestguessBing = bing["bestGuessLabel"][0];
+    String bestguessGoogle = Google["bestGuessLabel"];
+
+    Map<dynamic, dynamic> outputMerge = {
+      "bestGuessLabel1": bestguessBing,
+      "bestGuessLabel2": bestguessGoogle,
+    };
+    var bingCount = 0;
+    var GoogleCount = 0;
+    var bingelement = bing["urls"];
+    var Googlelement = Google["urls"];
+    var maxlength = bingelement.length + Googlelement.length;
+
+    for (int i = 0; i < maxlength; i++) {
+      if (GoogleCount < Googlelement.length) {
+        if ((i % 2) == 0) {
+          mergeList.add(bingelement[bingCount]);
+          bingCount++;
+        }
+        if ((i % 2) == 1) {
+          mergeList.add(Googlelement[GoogleCount]);
+          GoogleCount++;
+        }
+      } else {
+        mergeList.add(bingelement[bingCount]);
+        bingCount++;
+      }
+    }
+
+    outputMerge.addAll({'urls': mergeList});
+
+    print("Merge List ${outputMerge}");
+
     // TextDetection(img64);
     // logoDetection(img64);
 
@@ -707,7 +762,9 @@ _imageSearch(src, path, name) async {
   }
 }
 
+ /*
 _cameraSearch(src, path, name) async {
+ 
   final bytes = io.File(path).readAsBytesSync();
   String img64 = base64Encode(bytes);
 
@@ -763,9 +820,10 @@ _cameraSearch(src, path, name) async {
     return out;
   }
 
+
   var bingVisualResult = BingSearch(path, img64);
   return bingVisualResult;
-}
+}*/
 /*
 _cameraSerach(image, path) async {
   final InputImage inputImage = InputImage.fromFilePath(path);
@@ -811,4 +869,5 @@ _cameraSerach(image, path) async {
     }
   }
   objectDetector.close();
-}*/
+}
+*/
