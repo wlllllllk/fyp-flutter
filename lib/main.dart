@@ -1240,10 +1240,13 @@ class _WebViewContainerState extends State<WebViewContainer>
     List<String> selectedPlatformList = [];
 
     bool abort = false;
+    // false = contain non-english character
+    var containNonEnglish = RegExp(r'^\w+');
+    log("regex: ${containNonEnglish.hasMatch(keyword)}");
 
-    // auto keywords extraction if more than 10 words
-    // if (keyword.split(' ').length > 10) {
-    if (true) {
+    // auto keywords extraction if more than 10 words, or characters (non-english)
+    if (((!containNonEnglish.hasMatch(keyword) && keyword.length > 10) ||
+        keyword.split(' ').length > 10)) {
       var extracted = await _extractKeywords(keyword);
 
       List<MultiSelectItem> keywords = [];
