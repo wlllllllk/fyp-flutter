@@ -531,6 +531,19 @@ class _WebViewContainerState extends State<WebViewContainer>
         });
         response = !_gg ? await http.get(uri) : null;
         break;
+
+      case 'Vimeo':
+        response = !_gg
+            ? await http.get(
+                Uri.parse(
+                    'https://api.vimeo.com/videos?page=1&per_page=100&query=$value&sort=relevant'),
+                // Send authorization headers to the backend.
+                headers: {
+                  'Authorization': "bearer 721697e9ac433826e98951bd7e250647",
+                },
+              )
+            : null;
+        break;
       // TODO: replace with Twitter API
       case 'Twitter':
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
@@ -630,6 +643,17 @@ class _WebViewContainerState extends State<WebViewContainer>
                 "date": result['datePublished'],
                 "viewCount": result['viewCount'],
               });
+            }
+            break;
+          case 'Vimeo':
+            items = jsonResponse['data'] != null
+                ? jsonResponse['data'] as List<dynamic>
+                : [];
+            for (var item in items) {
+              item['title'] = item['name'];
+              item['description'] = item['description'];
+              item['date'] = item['created_time'];
+              item['link'] = item['link'];
             }
             break;
           case 'YouTube':
@@ -2252,7 +2276,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         platforms = {"Google": {}, "Bing": {}};
         break;
       case "Video":
-        platforms = {"YouTube": {}, "Bing Video": {}};
+        platforms = {"YouTube": {}, "Bing Video": {}, "Vimeo": {}};
         break;
       case "SNS":
         platforms = {
