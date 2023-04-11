@@ -337,8 +337,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                         window.flutter_inappwebview.callHandler('getDrillText', centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
-          // query = (await _currentWebViewController!.getTitle())!;
-          query = "";
+          query = (await _currentWebViewController!.getTitle())!;
+          // query = "";
         } else {
           // log(rake.rank(_webpageContent, minChars: 5, minFrequency: 2));
           query = _webpageContent;
@@ -1182,7 +1182,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     if (keyword == "") {
       await _currentWebViewController!.takeScreenshot().then((value) async {
-        // log("screenshot $value");
+        log("screenshot taken");
         // save the screeenshot
         final tempDir = await getTemporaryDirectory();
         String path = tempDir.path + "/image.png";
@@ -1205,29 +1205,22 @@ class _WebViewContainerState extends State<WebViewContainer>
         log("image $image");
         EasyLoading.show(status: "Searching...");
         // Map results = await _imageSearchBing(image, path);
-        Map results = await _imageSearchGoogle(image, path);
+
+        // text detection
+        // var detectedText =
+        //     await _imageSearchGoogle(image, path, "text_detection");
+        // log("detectedText: $detectedText");
+
+        await _performImageSearch(image, path);
+        // Map results = await _imageSearchGoogle(image, path);
         EasyLoading.dismiss();
-        log("results bing $results");
+        // log("results google $results");
 
         // remove the screenshot
-        await file.delete();
+        // await file.delete();
         return;
       });
 
-      // final XFile? image = source == "camera"
-      //   ? await picker.pickImage(
-      //       source: ImageSource.camera,
-      //       maxHeight: 1000,
-      //       maxWidth: 1000,
-      //       //imageQuality: 80,
-      //     )
-      //   : await picker.pickImage(
-      //       source: ImageSource.gallery,
-      //       maxHeight: 1000,
-      //       maxWidth: 1000,
-      //       //imageQuality: 80,
-      //     );
-      // log("image $image");
       return;
     }
 
@@ -3525,6 +3518,50 @@ class _WebViewContainerState extends State<WebViewContainer>
       ),
     );
   }
+
+  _performImageSearch(image, path) async {
+    // final snackBar = SnackBar(
+    //   content: Text("image $image"),
+    //   duration: const Duration(seconds: 3),
+    // );
+    // ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    log("image search 1");
+    if (image != null) {
+      log("image search 2");
+
+      _updateCurrentImage(image);
+      log("image search 3");
+
+      EasyLoading.show(
+        // status: 'Perform Image Search',
+        status: "Searching on Google",
+      );
+
+      Map resultsGoogle = {}, resultsBing = {};
+      // var itemsGoogle;
+      resultsGoogle = await _imageSearchGoogle(image, path);
+      log("image search results Google: $resultsGoogle");
+
+      EasyLoading.show(
+        status: 'Searching on Bing',
+      );
+      resultsBing = await _imageSearchBing(image, path);
+      log("image search results Bing: $resultsBing");
+
+      EasyLoading.show(
+        status: 'Merging Results',
+      );
+      String keyword = resultsGoogle["bestGuessLabel"];
+      var results = _mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
+      log("image search results: $results");
+      await _updateURLs("replace", keyword, "Webpage", results, true);
+
+      await _updateCurrentURLs();
+      EasyLoading.dismiss();
+
+      await _moveSwiper(true);
+    }
+  }
 }
 
 // flutter pub run build_runner build
@@ -3580,7 +3617,7 @@ class Order {
   Order({required this.area, required this.description});
 }
 
-_imageSearchGoogle(src, path) async {
+_imageSearchGoogle(src, path, [type]) async {
   Directory dir = (await getApplicationDocumentsDirectory());
   bool fileExists = false;
   String filename = "credential.json";
@@ -3655,6 +3692,7 @@ _imageSearchGoogle(src, path) async {
         log("No words is detected");
         exit(1);
       }
+      log("entities: $entities");
 
       final acc = [0];
       int count = 0;
@@ -3827,7 +3865,13 @@ _imageSearchGoogle(src, path) async {
     }
 
     //BingVisualSearch(img64, path, name);
-    var webResults = webSearch(img64);
+    var webResults;
+    if (type == "text_detection") {
+      webResults = textDetection(img64);
+    } else {
+      webResults = webSearch(img64);
+    }
+
     // textDetection(img64);
     // logoDetection(img64);
 
