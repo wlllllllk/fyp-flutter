@@ -57,6 +57,7 @@ class _SettingsPageState extends State<SettingsPage> {
       },
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.white,
           title: Container(
             child: const Text("Settings"),
           ),
