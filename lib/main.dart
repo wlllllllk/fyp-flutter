@@ -508,6 +508,19 @@ class _WebViewContainerState extends State<WebViewContainer>
               )
             : null;
         break;
+      case 'Bing Video':
+        response = !_gg
+            ? await http.get(
+                Uri.parse(
+                    'https://api.bing.microsoft.com/v7.0/videos/search?q=$value&count=100&offset=0'),
+                // Send authorization headers to the backend.
+                headers: {
+                  'Ocp-Apim-Subscription-Key':
+                      "d24c91d7b0f04d9aad0b07d22a2d9155",
+                },
+              )
+            : null;
+        break;
       case 'YouTube':
         uri = Uri.https('www.googleapis.com', '/youtube/v3/search', {
           'key': "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw",
@@ -604,6 +617,21 @@ class _WebViewContainerState extends State<WebViewContainer>
               items.add({"title": result['name'], "link": result['url']});
             }
             break;
+          case 'Bing Video':
+            var results = jsonResponse['value'] != null
+                ? jsonResponse['value'] as List<dynamic>
+                : [];
+
+            for (var result in results) {
+              items.add({
+                "title": result['name'],
+                "link": result['hostPageUrl'],
+                "description": result['description'],
+                "date": result['datePublished'],
+                "viewCount": result['viewCount'],
+              });
+            }
+            break;
           case 'YouTube':
             items = jsonResponse['items'] != null
                 ? jsonResponse['items'] as List<dynamic>
@@ -612,6 +640,8 @@ class _WebViewContainerState extends State<WebViewContainer>
               var videoId = item['id']['videoId'];
               var videoUrl = "https://www.youtube.com/watch?v=$videoId";
               item['title'] = item['snippet']['title'];
+              item['description'] = item['snippet']['description'];
+              item['date'] = item['snippet']['publishedAt'];
               item['link'] = videoUrl;
             }
             break;
@@ -2222,7 +2252,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         platforms = {"Google": {}, "Bing": {}};
         break;
       case "Video":
-        platforms = {"YouTube": {}};
+        platforms = {"YouTube": {}, "Bing Video": {}};
         break;
       case "SNS":
         platforms = {
