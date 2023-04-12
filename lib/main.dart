@@ -337,8 +337,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                         window.flutter_inappwebview.callHandler('getDrillText', centre.innerText);
                       """);
         if (_webpageContent == null || _webpageContent == "") {
-          query = (await _currentWebViewController!.getTitle())!;
-          // query = "";
+          // query = (await _currentWebViewController!.getTitle())!;
+          query = "";
         } else {
           // log(rake.rank(_webpageContent, minChars: 5, minFrequency: 2));
           query = _webpageContent;
@@ -508,6 +508,27 @@ class _WebViewContainerState extends State<WebViewContainer>
               )
             : null;
         break;
+
+      case 'DuckDuckGo':
+        response = !_gg
+            ? await http.get(
+                Uri.parse(
+                    'https://api.duckduckgo.com?q=$value&format=json&no_html=1'),
+
+                // // Send authorization headers to the backend.
+                // headers: {
+                //   'Ocp-Apim-Subscription-Key':
+                //       "d24c91d7b0f04d9aad0b07d22a2d9155",
+                // },
+              )
+            : null;
+
+        log("ddg response: $response");
+
+        // uri = Uri.https(
+        //     'https://api.duckduckgo.com/q=$value&format=json&no_html=1');
+        // response = !_gg ? await http.get(uri) : null;
+        break;
       case 'YouTube':
         uri = Uri.https('www.googleapis.com', '/youtube/v3/search', {
           'key': "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw",
@@ -517,6 +538,32 @@ class _WebViewContainerState extends State<WebViewContainer>
           'q': value,
         });
         response = !_gg ? await http.get(uri) : null;
+        break;
+      case 'Bing Video':
+        response = !_gg
+            ? await http.get(
+                Uri.parse(
+                    'https://api.bing.microsoft.com/v7.0/videos/search?q=$value&count=100&offset=0'),
+                // Send authorization headers to the backend.
+                headers: {
+                  'Ocp-Apim-Subscription-Key':
+                      "d24c91d7b0f04d9aad0b07d22a2d9155",
+                },
+              )
+            : null;
+        break;
+      case 'Vimeo':
+        response = !_gg
+            ? await http.get(
+                Uri.parse(
+                    'https://api.vimeo.com/videos?page=1&per_page=100&query=$value&sort=relevant'),
+                // Send authorization headers to the backend.
+                headers: {
+                  'Authorization': "bearer 721697e9ac433826e98951bd7e250647",
+                },
+              )
+            : null;
+        log("vimeo response: $response");
         break;
       // TODO: replace with Twitter API
       case 'Twitter':
@@ -569,7 +616,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         var jsonResponse =
             convert.jsonDecode(response.body) as Map<String, dynamic>;
 
-        // log(jsonResponse.toString());
+        log("jsonResponse.toString(): ${jsonResponse.toString()}");
         // log(jsonResponse['items']);
 
         var items = [];
@@ -613,6 +660,50 @@ class _WebViewContainerState extends State<WebViewContainer>
               var videoUrl = "https://www.youtube.com/watch?v=$videoId";
               item['title'] = item['snippet']['title'];
               item['link'] = videoUrl;
+            }
+            break;
+          case "DuckDuckGo":
+            log("ddg jsonResponse['RelatedTopics']: ${jsonResponse['RelatedTopics']}");
+            // for (var result in jsonResponse["RelatedTopics"]) {
+            //   final title = result["FirstURL"]
+            //       .replaceFirst("https://", "")
+            //       .replaceFirst("http://", ""); // Extract title from URL
+            //   final link = result["FirstURL"];
+            //   items.add({"title": title, "link": link});
+            // }
+
+            items.add({
+              "title": jsonResponse['Heading'],
+              "link": jsonResponse['AbstractURL']
+            });
+
+            log("ddg results: ${items}");
+
+            break;
+          case 'Bing Video':
+            var results = jsonResponse['value'] != null
+                ? jsonResponse['value'] as List<dynamic>
+                : [];
+
+            for (var result in results) {
+              items.add({
+                "title": result['name'],
+                "link": result['hostPageUrl'],
+                "description": result['description'],
+                "date": result['datePublished'],
+                "viewCount": result['viewCount'],
+              });
+            }
+            break;
+          case 'Vimeo':
+            items = jsonResponse['data'] != null
+                ? jsonResponse['data'] as List<dynamic>
+                : [];
+            for (var item in items) {
+              item['title'] = item['name'];
+              item['description'] = item['description'];
+              item['date'] = item['created_time'];
+              item['link'] = item['link'];
             }
             break;
           case 'Twitter':
@@ -947,27 +1038,29 @@ class _WebViewContainerState extends State<WebViewContainer>
   final TextEditingController _searchFieldController = TextEditingController();
 
   void _pushSearchPage() async {
-    // String url = "http://www.cuhk.edu.hk";
+    // String url = "https://en.wikipedia.org/wiki/CUHK";
+    // String url =
+    //     "https://en.m.wikipedia.org/wiki/Chinese_University_of_Hong_Kong";
     // var response = await http.get(Uri.parse(url));
     // log("hash0: ${response.statusCode}");
     // if (response.statusCode == 200) {
     //   // Parse the HTML content
     //   var document = parse(response.body);
-    //   // log("document: ${document.outerHtml}");
+    //   log("document: ${document.outerHtml}");
 
     //   // Inspect the meta-refresh tag
-    //   var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
-    //   log("metaRefreshTag: $metaRefreshTag");
-    //   if (metaRefreshTag != null) {
-    //     // Extract the "content" attribute value, which contains the redirect URL
-    //     var content = metaRefreshTag.attributes['content'];
+    //   // var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
+    //   // log("metaRefreshTag: $metaRefreshTag");
+    //   // if (metaRefreshTag != null) {
+    //   //   // Extract the "content" attribute value, which contains the redirect URL
+    //   //   var content = metaRefreshTag.attributes['content'];
 
-    //     // Extract the URL from the "content" attribute value
-    //     var redirectUrl = content?.split(';')[1].trim().substring(4);
+    //   //   // Extract the URL from the "content" attribute value
+    //   //   var redirectUrl = content?.split(';')[1].trim().substring(4);
 
-    //     // The web page is being client-side redirected
-    //     print('Redirect URL: $redirectUrl');
-    //   }
+    //   //   // The web page is being client-side redirected
+    //   //   print('Redirect URL: $redirectUrl');
+    //   // }
 
     //   // Convert the content to string
     //   String content = utf8.decode(response.bodyBytes);
@@ -976,6 +1069,8 @@ class _WebViewContainerState extends State<WebViewContainer>
     //   // Generate an MD5 hash of the content
     //   var hash = md5.convert(utf8.encode(content));
     //   log("hash2: $hash");
+    //   //e37dba5df01a95de7bfdf4d9a1e83d68
+    //   //7bcdf7f1d970b3146aa54bef2aaff7d4
 
     //   // Return the hexadecimal representation of the hash
     //   // return hash.toString();
@@ -1203,7 +1298,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         log("path $path");
         image.saveTo(path);
         log("image $image");
-        EasyLoading.show(status: "Searching...");
+        // EasyLoading.show(status: "Searching...");
         // Map results = await _imageSearchBing(image, path);
 
         // text detection
@@ -1211,17 +1306,33 @@ class _WebViewContainerState extends State<WebViewContainer>
         //     await _imageSearchGoogle(image, path, "text_detection");
         // log("detectedText: $detectedText");
 
-        await _performImageSearch(image, path);
+        // await _performImageSearch(image, path);
+
+        EasyLoading.show(
+          // status: 'Perform Image Search',
+          status: "Performing OCR",
+        );
+
+        // try OCR first
+        var resultsOCR =
+            await _imageSearchGoogle(image, path, "text_detection");
+        log("OCR:$resultsOCR");
+        // log("OCR toString: :${resultsOCR.toString()}");
+
+        log("image search 4");
+
+        // var keywords = await _extractKeywords(resultsOCR.join(' ').toString());
+        keyword = resultsOCR;
+        log("OCR extracted: $keyword");
+
         // Map results = await _imageSearchGoogle(image, path);
         EasyLoading.dismiss();
         // log("results google $results");
 
         // remove the screenshot
         // await file.delete();
-        return;
+        // return;
       });
-
-      return;
     }
 
     keyword = keyword.trim();
@@ -2219,10 +2330,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     Map platforms = {};
     switch (type) {
       case "Webpage":
-        platforms = {"Google": {}, "Bing": {}};
+        platforms = {"Google": {}, "Bing": {}, "DuckDuckGo": {}};
         break;
       case "Video":
-        platforms = {"YouTube": {}};
+        platforms = {"YouTube": {}, "Bing Video": {}, "Vimeo": {}};
         break;
       case "SNS":
         platforms = {
@@ -3529,23 +3640,40 @@ class _WebViewContainerState extends State<WebViewContainer>
     if (image != null) {
       log("image search 2");
 
-      _updateCurrentImage(image);
-      log("image search 3");
+      // // _updateCurrentImage(image);
+      // log("image search 3");
 
       EasyLoading.show(
-        // status: 'Perform Image Search',
-        status: "Searching on Google",
+        status: 'Perform Image Search',
       );
 
-      Map resultsGoogle = {}, resultsBing = {};
-      // var itemsGoogle;
-      resultsGoogle = await _imageSearchGoogle(image, path);
+      // // try OCR first
+      // var resultsOCR = await _imageSearchGoogle(image, path, "text_detection");
+      // log("OCR:$resultsOCR");
+      // // log("OCR toString: :${resultsOCR.toString()}");
+
+      // log("image search 4");
+
+      // // EasyLoading.show(
+      // //   // status: 'Perform Image Search',
+      // //   status: "Searching on Google",
+      // // );
+
+      // var keywords = _extractKeywords(resultsOCR.toString());
+      // log("OCR extracted: $keywords");
+
+      // return;
+
+      var resultsGoogle, resultsBing;
+      resultsGoogle = await _imageSearchGoogle(image, path, "text_detection");
+      log("image search 5");
       log("image search results Google: $resultsGoogle");
 
       EasyLoading.show(
         status: 'Searching on Bing',
       );
       resultsBing = await _imageSearchBing(image, path);
+      log("image search 6");
       log("image search results Bing: $resultsBing");
 
       EasyLoading.show(
@@ -3677,6 +3805,7 @@ _imageSearchGoogle(src, path, [type]) async {
             "features": [
               {
                 "type": "TEXT_DETECTION",
+                // "type": "DOCUMENT_TEXT_DETECTION",
               }
             ]
           }
@@ -3692,7 +3821,16 @@ _imageSearchGoogle(src, path, [type]) async {
         log("No words is detected");
         exit(1);
       }
-      log("entities: $entities");
+      // log("entities1: $entities");
+      List ocr = [];
+      for (int i = 0; i < entities!.length; i++) {
+        ocr.add(entities![i].description?.trim());
+      }
+
+      // log("ocr concat: ${ocr}");
+      // log("ocr concat: ${ocr.join(' ').replaceAll('\n', '')}");
+
+      return ocr.join(' ').replaceAll('\n', '');
 
       final acc = [0];
       int count = 0;
@@ -3726,8 +3864,8 @@ _imageSearchGoogle(src, path, [type]) async {
         var length_y = max_y - min_y!;
         var area = length_x * length_y;
 
-        log("$image");
-        log("$entities![j].description");
+        // log("image $image");
+        // log("entities![j].description ${entities![j].description}");
         acc.insert(j, area);
         original.insert(j, entities![j].description);
       }
