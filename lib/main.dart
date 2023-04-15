@@ -103,11 +103,13 @@ List<String> SearchPlatformList = [
 
 enum Theme { Light, Dark, Auto }
 
-const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
+const API_KEY = "AIzaSyDv7P0-TmysPp39vKIe5syLoQNoCs9yfp4"; // self
+// const API_KEY = "AIzaSyDMa-bYzmjOHJEZdXxHOyJA55gARPpqOGw";
 // const API_KEY = "AIzaSyD48Vtn0yJnAIU6SyoIkPJQg3xWKax48dw"; //old
 // const API_KEY = "AIzaSyD3D4sYkKkWOsSdFxTywO-0VX5GIfJSBZc"; //old
-const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
-const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
+// const SEARCH_ENGINE_ID_GOOGLE = "35fddaf2d5efb4668";
+const SEARCH_ENGINE_ID_GOOGLE = "55379d2db84314f83"; // self
+// const SEARCH_ENGINE_ID_YOUTUBE = "07e66762eb98c40c8";
 const SEARCH_ENGINE_ID_TWITTER = "d0444b9b194124097";
 const SEARCH_ENGINE_ID_FACEBOOK = "a48841f7c9ed94dd6";
 const SEARCH_ENGINE_ID_INSTAGRAM = "a74dea74df886441a";
@@ -195,6 +197,10 @@ class _WebViewContainerState extends State<WebViewContainer>
   bool _menuShown = false;
   bool _isFetching = false;
   var _currentImage;
+
+  //regex
+  var containNonEnglish = RegExp(r'^\w+');
+  var endsWithSlash = RegExp(r'\/$');
 
   // positions
   double _hoverX = 0.0, _hoverY = 0.0;
@@ -342,6 +348,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         } else {
           // log(rake.rank(_webpageContent, minChars: 5, minFrequency: 2));
           query = _webpageContent;
+          log("_webpageContent: $_webpageContent");
         }
         break;
       case "New Mode":
@@ -499,35 +506,54 @@ class _WebViewContainerState extends State<WebViewContainer>
         response = !_gg
             ? await http.get(
                 Uri.parse(
-                    'https://api.bing.microsoft.com/v7.0/search?q=$value&count=100&offset=0'),
+                    // 'https://api.bing.microsoft.com/v7.0/search?q=$value&count=100&offset=0&customconfig=6c099879-5079-4eb0-be77-694fffc16ddc&mkt=en-US'),
+                    'https://api.bing.microsoft.com/v7.0/custom/search?q=$value&customconfig=6c099879-5079-4eb0-be77-694fffc16ddc&mkt=en-US'),
                 // Send authorization headers to the backend.
                 headers: {
+                  // 'Ocp-Apim-Subscription-Key':
+                  // "d24c91d7b0f04d9aad0b07d22a2d9155",
+
                   'Ocp-Apim-Subscription-Key':
-                      "d24c91d7b0f04d9aad0b07d22a2d9155",
+                      'f22755e26efb48f9ad6fa930df61f1cc' // self
                 },
               )
             : null;
         break;
 
       case 'DuckDuckGo':
-        response = !_gg
-            ? await http.get(
-                Uri.parse(
-                    'https://api.duckduckgo.com?q=$value&format=json&no_html=1'),
+        // String getActualUrl(String url) {
+        //   // String realUrl = Uri.decodeFull(url.toString());
+        //   // Extract the actual URL from the intermediate URL
+        //   final start = url.indexOf('/l/?uddg=') + '/l/?uddg='.length;
+        //   final end = url.indexOf('&rut=');
+        //   return Uri.decodeFull(url.substring(start, end));
+        // }
 
-                // // Send authorization headers to the backend.
-                // headers: {
-                //   'Ocp-Apim-Subscription-Key':
-                //       "d24c91d7b0f04d9aad0b07d22a2d9155",
-                // },
-              )
-            : null;
+        response =
+            await http.get(Uri.parse('https://duckduckgo.com/html/?q=$value'));
+
+        // response = !_gg
+        //     ? await http.get(
+        //         Uri.parse(
+        //             'https://api.duckduckgo.com?q=$value&format=json&no_html=1'),
+
+        //         // // Send authorization headers to the backend.
+        //         // headers: {
+        //         //   'Ocp-Apim-Subscription-Key':
+        //         //       "d24c91d7b0f04d9aad0b07d22a2d9155",
+        //         // },
+        //       )
+        //     : null;
 
         log("ddg response: $response");
 
         // uri = Uri.https(
         //     'https://api.duckduckgo.com/q=$value&format=json&no_html=1');
         // response = !_gg ? await http.get(uri) : null;
+        break;
+      case 'Yahoo':
+        response = await http
+            .get(Uri.parse('https://search.yahoo.com/search?p=$value'));
         break;
       case 'YouTube':
         uri = Uri.https('www.googleapis.com', '/youtube/v3/search', {
@@ -611,12 +637,26 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     log("response: $response");
 
+    String cleanUrl(String url) {
+      String cleaned = url;
+      // url.replaceFirst("http://", "https://").replaceFirst("https://", "");
+      if (endsWithSlash.hasMatch(cleaned)) {
+        cleaned = cleaned.substring(0, cleaned.length - 1);
+      }
+      return cleaned;
+    }
+
     if (response != null) {
       if (response.statusCode == 200) {
-        var jsonResponse =
-            convert.jsonDecode(response.body) as Map<String, dynamic>;
+        var jsonResponse;
+        try {
+          jsonResponse =
+              convert.jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (error) {
+          log("error: $error");
+        }
 
-        log("jsonResponse.toString(): ${jsonResponse.toString()}");
+        // log("jsonResponse.toString(): ${jsonResponse.toString()}");
         // log(jsonResponse['items']);
 
         var items = [];
@@ -626,30 +666,177 @@ class _WebViewContainerState extends State<WebViewContainer>
                 ? jsonResponse['items'] as List<dynamic>
                 : [];
 
-            for (var result in results) {
-              items.add({"title": result['title'], "link": result['link']});
+            for (int i = 0; i < results.length; i++) {
+              items.add({
+                "title": results[i]['title'],
+                "link": cleanUrl(results[i]['link'].toString()),
+                "rank": i + 1,
+              });
             }
+
+            log("google items: $items");
             break;
           case 'Bing':
-            var results = jsonResponse['webPages'] != null
-                ? jsonResponse['webPages']['value'][0]['deepLinks'] != null
-                    ? jsonResponse['webPages']['value'][0]['deepLinks']
-                        as List<dynamic>
-                    : jsonResponse['webPages']['value'] as List<dynamic>
-                : [];
+            int rank = 1;
+            // var results = jsonResponse['webPages'] != null
+            //     ? jsonResponse['webPages']['value'][0]['deepLinks'] != null
+            //         ? jsonResponse['webPages']['value'][0]['deepLinks']
+            //             as List<dynamic>
+            //         : jsonResponse['webPages']['value'] as List<dynamic>
+            //     : [];
 
-            items = jsonResponse['webPages']['value'][0]['deepLinks'] != null
-                ? [
-                    {
-                      "title": jsonResponse['webPages']['value'][0]['name'],
-                      "link": jsonResponse['webPages']['value'][0]['url']
-                    },
-                  ]
-                : [];
+            log("bing0: ${jsonResponse['webPages']}");
 
-            for (var result in results) {
-              items.add({"title": result['name'], "link": result['url']});
+            // if (jsonResponse['webPages']['value'][0]['deepLinks'] != null) {
+            items.add({
+              "title": jsonResponse['webPages']['value'][0]['name'],
+              "link":
+                  cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
+              "rank": 1,
+            });
+
+            rank++;
+
+            log("bing1: ${items}");
+            // }
+
+            // ! NO displayUrl for deep links
+            if (jsonResponse['webPages']['value'][0]['deepLinks'] != null) {
+              for (int i = 0;
+                  i < jsonResponse['webPages']['value'][0]['deepLinks'].length;
+                  i++) {
+                var current =
+                    jsonResponse['webPages']['value'][0]['deepLinks'][i];
+                items.add({
+                  "title": current['name'],
+                  "link": cleanUrl(current['url']),
+                  "rank": rank,
+                });
+                rank++;
+
+                if (current['deepLinks'] != null) {
+                  for (int j = 0; j < current['deepLinks'].length; j++) {
+                    var currentDeeper = current['deepLinks'][j];
+                    items.add({
+                      "title": currentDeeper['name'],
+                      "link": cleanUrl(currentDeeper['url']),
+                      "rank": rank,
+                    });
+                    rank++;
+                  }
+                }
+              }
             }
+
+            log("bing2: ${items}");
+
+            // items = jsonResponse['webPages']['value'][0]['deepLinks'] != null
+            //     ? [
+            //         {
+            //           "title": jsonResponse['webPages']['value'][0]['name'],
+            //           "link": jsonResponse['webPages']['value'][0]['displayUrl']
+            //         },
+            //       ]
+            //     : [];
+
+            // for (var result in results) {
+            //   items.add({"title": result['name'], "link": result['url']});
+            // }
+            break;
+          case "DuckDuckGo":
+            String getActualUrl(String url) {
+              // String realUrl = Uri.decodeFull(url.toString());
+              // Extract the actual URL from the intermediate URL
+              final start = url.indexOf('/l/?uddg=') + '/l/?uddg='.length;
+              final end = url.indexOf('&rut=');
+              return Uri.decodeFull(url.substring(start, end));
+            }
+            // Parse the HTML response
+            final document = parse(response.body);
+
+            // Extract title and URL elements
+            final titleElements = document.querySelectorAll('.result__title');
+            final urlElements = document.querySelectorAll('.result__url');
+
+            // Extract title and URL data
+            final titles = titleElements
+                .map((element) => element.text.toString().trim())
+                .toList();
+            final urls = urlElements
+                .map((element) =>
+                    getActualUrl(element.attributes['href'].toString()))
+                .toList();
+
+            // Print extracted data
+            for (int i = 0; i < titles.length; i++) {
+              // log('Title: ${titles[i]} | URL: ${urls[i]}');
+              items.add({
+                "title": titles[i],
+                "link": cleanUrl(urls[i]),
+                "rank": i + 1
+              });
+            }
+
+            // log("ddg jsonResponse['RelatedTopics']: ${jsonResponse['RelatedTopics']}");
+            // // for (var result in jsonResponse["RelatedTopics"]) {
+            // //   final title = result["FirstURL"]
+            // //       .replaceFirst("https://", "")
+            // //       .replaceFirst("http://", ""); // Extract title from URL
+            // //   final link = result["FirstURL"];
+            // //   items.add({"title": title, "link": link});
+            // // }
+
+            // if (jsonResponse['AbstractURL'] != "") {
+            //   items.add({
+            //     "title": jsonResponse['Heading'],
+            //     "link": jsonResponse['AbstractURL']
+            //   });
+            // }
+
+            log("ddg results: ${items}");
+
+            break;
+          case 'Yahoo':
+            log("Yahoo");
+
+            // Parse the HTML response
+            final document = parse(response.body);
+
+            // Extract title and URL data
+            final titles = document
+                .querySelectorAll('.title a')
+                .map((element) => element.text)
+                .toList();
+            final urls = document
+                .querySelectorAll('.title a')
+                .map((element) => element.attributes['href']!)
+                .toList();
+
+            // Filter out unwanted results
+            final filteredTitles = <String>[];
+            final filteredUrls = <String>[];
+            for (int i = 0; i < titles.length; i++) {
+              // Exclude results that do not have a valid URL or contain specific keywords
+              if (urls[i] != null &&
+                  !titles[i].contains('See all results for this question')) {
+                // Clean up the extracted title
+                String cleanedTitle = titles[i]
+                    .trim()
+                    .replaceAll(RegExp(r'\s{2,}'), ' '); // Remove extra spaces
+                cleanedTitle = cleanedTitle.replaceAll(
+                    RegExp(r'\u200B'), ''); // Remove zero-width space
+                filteredTitles.add(cleanedTitle);
+                filteredUrls.add(urls[i]!);
+              }
+            }
+
+            // Print extracted data
+            for (int i = 0; i < filteredTitles.length; i++) {
+              log('Title: ${filteredTitles[i]} | URL: ${urls[i]}');
+              items
+                  .add({"title": filteredTitles[i], "link": cleanUrl(urls[i])});
+            }
+
             break;
           case 'YouTube':
             items = jsonResponse['items'] != null
@@ -662,24 +849,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               item['link'] = videoUrl;
             }
             break;
-          case "DuckDuckGo":
-            log("ddg jsonResponse['RelatedTopics']: ${jsonResponse['RelatedTopics']}");
-            // for (var result in jsonResponse["RelatedTopics"]) {
-            //   final title = result["FirstURL"]
-            //       .replaceFirst("https://", "")
-            //       .replaceFirst("http://", ""); // Extract title from URL
-            //   final link = result["FirstURL"];
-            //   items.add({"title": title, "link": link});
-            // }
 
-            items.add({
-              "title": jsonResponse['Heading'],
-              "link": jsonResponse['AbstractURL']
-            });
-
-            log("ddg results: ${items}");
-
-            break;
           case 'Bing Video':
             var results = jsonResponse['value'] != null
                 ? jsonResponse['value'] as List<dynamic>
@@ -707,69 +877,98 @@ class _WebViewContainerState extends State<WebViewContainer>
             }
             break;
           case 'Twitter':
-            items = jsonResponse['items'] != null
+            // items = jsonResponse['items'] != null
+            //     ? jsonResponse['items'] as List<dynamic>
+            //     : [];
+
+            var results = jsonResponse['items'] != null
                 ? jsonResponse['items'] as List<dynamic>
                 : [];
+
+            for (var result in results) {
+              items.add({"title": result['title'], "link": result['link']});
+            }
             break;
           case 'Facebook':
-            items = jsonResponse['items'] != null
+            // items = jsonResponse['items'] != null
+            //     ? jsonResponse['items'] as List<dynamic>
+            //     : [];
+            var results = jsonResponse['items'] != null
                 ? jsonResponse['items'] as List<dynamic>
                 : [];
+
+            for (var result in results) {
+              items.add({"title": result['title'], "link": result['link']});
+            }
             break;
           case 'Instagram':
-            items = jsonResponse['items'] != null
+            // items = jsonResponse['items'] != null
+            //     ? jsonResponse['items'] as List<dynamic>
+            //     : [];
+            var results = jsonResponse['items'] != null
                 ? jsonResponse['items'] as List<dynamic>
                 : [];
+
+            for (var result in results) {
+              items.add({"title": result['title'], "link": result['link']});
+            }
             break;
           case 'LinkedIn':
-            items = jsonResponse['items'] != null
+            // items = jsonResponse['items'] != null
+            //     ? jsonResponse['items'] as List<dynamic>
+            //     : [];
+            var results = jsonResponse['items'] != null
                 ? jsonResponse['items'] as List<dynamic>
                 : [];
+
+            for (var result in results) {
+              items.add({"title": result['title'], "link": result['link']});
+            }
             break;
         }
 
         // var items = jsonResponse['items'] != null
         //     ? jsonResponse['items'] as List<dynamic>
         //     : [];
-        log("items: ${items}");
+        // log("items: ${items}");
 
-        if (items.isEmpty) {
-          // setState(() {
-          //   _gg = true;
-          // });
-          log("no results found | _currentSearchPlatform: $_currentSearchPlatform | _prevSearchPlatform: $_prevSearchPlatform");
+        // if (items.isEmpty) {
+        //   // setState(() {
+        //   //   _gg = true;
+        //   // });
+        //   log("no results found | _currentSearchPlatform: $_currentSearchPlatform | _prevSearchPlatform: $_prevSearchPlatform");
 
-          // ignore: use_build_context_synchronously
-          await showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text("No results found"),
-                  content: const Text("Please try to change the search query"),
-                  actions: [
-                    TextButton(
-                      child: const Text("OK"),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    )
-                  ],
-                );
-              });
+        //   // ignore: use_build_context_synchronously
+        //   await showDialog(
+        //       context: context,
+        //       builder: (BuildContext context) {
+        //         return AlertDialog(
+        //           title: const Text("No results found"),
+        //           content: const Text("Please try to change the search query"),
+        //           actions: [
+        //             TextButton(
+        //               child: const Text("OK"),
+        //               onPressed: () {
+        //                 Navigator.of(context).pop();
+        //               },
+        //             )
+        //           ],
+        //         );
+        //       });
 
-          setState(() {
-            _searchHistory.remove(_searchText);
-            _searchText = _prevSearchText;
-          });
+        //   setState(() {
+        //     _searchHistory.remove(_searchText);
+        //     _searchText = _prevSearchText;
+        //   });
 
-          _changeSearchPlatform(_prevSearchPlatform);
-          return null;
-        } else {
-          setState(() {
-            _prevSearchText = _searchText;
-            _prevSearchPlatform = _currentSearchPlatform;
-          });
-        }
+        //   _changeSearchPlatform(_prevSearchPlatform);
+        //   return null;
+        // } else {
+        setState(() {
+          _prevSearchText = _searchText;
+          _prevSearchPlatform = _currentSearchPlatform;
+        });
+        // }
 
         return items;
       } else {
@@ -822,7 +1021,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     keyword = keyword.toString();
     platform = platform.toString();
-    log("searchText: $_searchText | keyword: $keyword | list length: ${list}");
+    // log("searchText: $_searchText | keyword: $keyword | list length: ${list}");
 
     if (imageSearch) {
       log("from image search");
@@ -1039,8 +1238,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   void _pushSearchPage() async {
     // String url = "https://en.wikipedia.org/wiki/CUHK";
-    // String url =
-    //     "https://en.m.wikipedia.org/wiki/Chinese_University_of_Hong_Kong";
+    // // String url =
+    // //     "https://en.m.wikipedia.org/wiki/Chinese_University_of_Hong_Kong";
     // var response = await http.get(Uri.parse(url));
     // log("hash0: ${response.statusCode}");
     // if (response.statusCode == 200) {
@@ -1049,20 +1248,20 @@ class _WebViewContainerState extends State<WebViewContainer>
     //   log("document: ${document.outerHtml}");
 
     //   // Inspect the meta-refresh tag
-    //   // var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
-    //   // log("metaRefreshTag: $metaRefreshTag");
-    //   // if (metaRefreshTag != null) {
-    //   //   // Extract the "content" attribute value, which contains the redirect URL
-    //   //   var content = metaRefreshTag.attributes['content'];
+    //   var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
+    //   log("metaRefreshTag: $metaRefreshTag");
+    //   if (metaRefreshTag != null) {
+    //     // Extract the "content" attribute value, which contains the redirect URL
+    //     var content = metaRefreshTag.attributes['content'];
 
-    //   //   // Extract the URL from the "content" attribute value
-    //   //   var redirectUrl = content?.split(';')[1].trim().substring(4);
+    //     // Extract the URL from the "content" attribute value
+    //     var redirectUrl = content?.split(';')[1].trim().substring(4);
 
-    //   //   // The web page is being client-side redirected
-    //   //   print('Redirect URL: $redirectUrl');
-    //   // }
+    //     // The web page is being client-side redirected
+    //     print('Redirect URL: $redirectUrl');
+    //   }
 
-    //   // Convert the content to string
+    //   //   // Convert the content to string
     //   String content = utf8.decode(response.bodyBytes);
     //   log("hash1: $content");
 
@@ -1084,7 +1283,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
 
     _searchFieldController.text = _searchText;
-    log("_searchRecords: $_searchRecords");
+    // log("_searchRecords: $_searchRecords");
 
     Navigator.push(
       context,
@@ -1173,6 +1372,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   void _pushSettingsPage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
+    // ignore: use_build_context_synchronously
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1345,11 +1545,10 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     bool abort = false;
     // false = contain non-english character
-    var containNonEnglish = RegExp(r'^\w+');
     log("regex: ${containNonEnglish.hasMatch(keyword)}");
 
-    // auto keywords extraction if more than 10 words, or characters (non-english)
-    if (((!containNonEnglish.hasMatch(keyword) && keyword.length > 10) ||
+    // auto keywords extraction if more than 7 words, or characters (non-english)
+    if (((!containNonEnglish.hasMatch(keyword) && keyword.length > 7) ||
         keyword.split(' ').length > 10)) {
       var extracted = await _extractKeywords(keyword);
 
@@ -2222,19 +2421,19 @@ class _WebViewContainerState extends State<WebViewContainer>
         if (position + 1 >= _currentURLs.length) {
           log("reached end of list");
 
-          setState(() {
-            page++;
-            _start = (page - 1) * 10 + 1;
-          });
+          // setState(() {
+          //   page++;
+          //   _start = (page - 1) * 10 + 1;
+          // });
 
-          var items = await _performSearch(_searchText, _currentSearchPlatform);
-          log("items $items");
-          // update the URLs
-          await _updateURLs(
-              'extend', _searchText, _currentSearchPlatform, items);
+          // var items = await _performSearch(_searchText, _currentSearchPlatform);
+          // log("items $items");
+          // // update the URLs
+          // await _updateURLs(
+          //     'extend', _searchText, _currentSearchPlatform, items);
 
-          // update the current URLs
-          await _updateCurrentURLs();
+          // // update the current URLs
+          // await _updateCurrentURLs();
         }
       },
     );
@@ -2276,6 +2475,14 @@ class _WebViewContainerState extends State<WebViewContainer>
     while (mainCounter < maxLength) {
       for (int i = 0; i < itemsList.length; i++) {
         if (mainCounter < itemsList[i].length) {
+          // log("regex slash: ${itemsList[i][mainCounter]['link'].toString()} | ${endsWithSlash.hasMatch(itemsList[i][mainCounter]['link']).toString()}");
+
+          // remove the trailing "/"
+          if (endsWithSlash.hasMatch(itemsList[i][mainCounter]['link'])) {
+            itemsList[i][mainCounter]['link'] = itemsList[i][mainCounter]
+                    ['link']
+                .substring(0, itemsList[i][mainCounter]['link'].length - 1);
+          }
           results.add(itemsList[i][mainCounter]);
         }
       }
@@ -2330,17 +2537,26 @@ class _WebViewContainerState extends State<WebViewContainer>
     Map platforms = {};
     switch (type) {
       case "Webpage":
-        platforms = {"Google": {}, "Bing": {}, "DuckDuckGo": {}};
+        platforms = {
+          "Google": {},
+          "Bing": {},
+          "DuckDuckGo": {},
+          // "Yahoo": {},
+        };
         break;
       case "Video":
-        platforms = {"YouTube": {}, "Bing Video": {}, "Vimeo": {}};
+        platforms = {
+          "YouTube": {},
+          "Bing Video": {},
+          "Vimeo": {},
+        };
         break;
       case "SNS":
         platforms = {
           "Twitter": {},
           "Facebook": {},
           "Instagram": {},
-          "LinkedIn": {}
+          "LinkedIn": {},
         };
         break;
     }
@@ -2357,13 +2573,44 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (items.length < minLength) {
         minLength = items.length;
       }
-      log('smart: ${platforms.keys.elementAt(i).toString()} | ${items}');
+      log('smart: ${platforms.keys.elementAt(i).toString()} | ${items.length} | ${items}');
       results.addAll(items);
       platforms[platforms.keys.elementAt(i).toString()] = items;
     }
 
     log("smart length: $minLength | results: $results");
 
+    // no result on all platforms
+    if (results.isEmpty) {
+      // ignore: use_build_context_synchronously
+      await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("No results found"),
+              content: const Text(
+                  "Please try to change the search query or platform"),
+              actions: [
+                TextButton(
+                  child: const Text("OK"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                )
+              ],
+            );
+          });
+
+      setState(() {
+        _searchHistory.remove(_searchText);
+        _searchText = _prevSearchText;
+      });
+
+      _changeSearchPlatform(_prevSearchPlatform);
+    }
+
+    // log("platforms.values.toList(): ${platforms.values.toList()}");
+    // ! PROBLEM: results are merged alphabetically (platform name), not in sequence as declared
     var mergedResults = _mergeResults(platforms.values.toList());
 
     Map webpageHashes = {};
@@ -2417,6 +2664,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     log("finalSortedList: $finalSortedList");
+
+    // TODO: algorithm to sort
+    // rank + frequency
 
     // return mergedResults;
     return finalSortedList;
@@ -2595,7 +2845,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           contentPadding:
               EdgeInsets.only(top: position == 0 ? 0 : 15, left: 20),
           title: Text(
-              "${key.toString()}, ${lastViewedPlatform}, ${lastViewedIndex}"),
+              "${key.toString()} ($lastViewedPlatform #${lastViewedIndex + 1})"),
           visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
         ));
       }
@@ -2616,7 +2866,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             color: Colors.black87,
           ),
           title: Text(
-              "${key.toString()}, ${lastViewedPlatform}, ${lastViewedIndex}"),
+              "${key.toString()} ($lastViewedPlatform #${lastViewedIndex + 1})"),
         ));
       }
 
@@ -2638,7 +2888,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       case "Video":
         return const Icon(BoxIcons.bx_video, size: 24);
       case "SNS":
-        return const Icon(BoxIcons.bx_message, size: 24);
+        return const Icon(Icons.connect_without_contact, size: 24);
 
       case "Google":
         return const Icon(BoxIcons.bxl_google, size: 24);
@@ -2713,7 +2963,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         var entities = jsonResponse['entities'] != null
             ? jsonResponse['entities'] as List<dynamic>
             : [];
-        log("entities: ${entities}");
+        // log("entities: ${entities}");
 
         var names = entities.map((e) => e['name']).toList();
         List results = [];
@@ -3209,33 +3459,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       size: 20,
                                                     ),
                                                   ),
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     log("up platform");
-
-                                                  //     await _preloadPlatformController
-                                                  //         .previousPage(
-                                                  //             duration: const Duration(
-                                                  //                 milliseconds: 300),
-                                                  //             curve: Curves.easeIn);
-                                                  //   },
-                                                  //   icon: const Icon(
-                                                  //       Icons.keyboard_arrow_up_rounded,
-                                                  //       size: 35),
-                                                  // ),
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     log("down platform");
-                                                  //     await _preloadPlatformController
-                                                  //         .nextPage(
-                                                  //             duration: const Duration(
-                                                  //                 milliseconds: 300),
-                                                  //             curve: Curves.easeIn);
-                                                  //   },
-                                                  //   icon: const Icon(
-                                                  //       Icons.keyboard_arrow_down_rounded,
-                                                  //       size: 35),
-                                                  // ),
                                                   IconButton(
                                                     onPressed: () async {
                                                       if (_currentURLIndex >
@@ -3257,52 +3480,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       size: 20,
                                                     ),
                                                   ),
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     if (_currentURLIndex >
-                                                  //         0) {
-                                                  //       log("decrease");
-
-                                                  //       // await _currentPreloadPageController
-                                                  //       await _testPreloadPageController
-                                                  //           .previousPage(
-                                                  //               duration:
-                                                  //                   const Duration(
-                                                  //                       milliseconds:
-                                                  //                           300),
-                                                  //               curve: Curves
-                                                  //                   .easeIn);
-                                                  //     }
-                                                  //   },
-                                                  //   icon: const FaIcon(
-                                                  //       FontAwesomeIcons
-                                                  //           .angleLeft,
-                                                  //       size: 20),
-                                                  // ),
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     if (_currentURLIndex <
-                                                  //         _currentURLs.length -
-                                                  //             1) {
-                                                  //       // await _currentPreloadPageController
-                                                  //       // await _testPreloadPageController
-                                                  //       //     .nextPage(
-                                                  //       //         duration:
-                                                  //       //             const Duration(
-                                                  //       //                 milliseconds:
-                                                  //       //                     300),
-                                                  //       //         curve: Curves
-                                                  //       //             .easeIn);
-                                                  //       log(
-                                                  //           "_testPreloadPageController ${_testPreloadPageController}");
-                                                  //     }
-                                                  //   },
-                                                  //   icon: const FaIcon(
-                                                  //       FontAwesomeIcons
-                                                  //           .angleRight,
-                                                  //       size: 20),
-                                                  // ),
-
                                                   IconButton(
                                                     onPressed: () async {
                                                       await _currentWebViewController!
@@ -3400,67 +3577,46 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         : null,
                                   ),
                                   stick: GestureDetector(
-                                    onTap: () {
-                                      // unshrink joystick
-                                      setState(() {
-                                        _joystickWidth = 100;
-                                        _joystickHeight = 100;
-                                        // _joystickBottom = 45;
-                                        // _joystickLeft =
-                                        //     (MediaQuery.of(context).size.width /
-                                        //             2) -
-                                        //         (_joystickWidth / 2);
-                                      });
+                                    onDoubleTap: () {
+                                      log("joystick double tapped");
+                                      if (_joystickBottom == 45) {
+                                        setState(() {
+                                          _joystickBottom = 20;
+                                          _joystickHeight = 40;
+                                          _joystickWidth = 40;
+                                          _joystickLeft =
+                                              (MediaQuery.of(context)
+                                                          .size
+                                                          .width /
+                                                      2) -
+                                                  (_joystickWidth / 2);
+                                        });
+                                      } else {
+                                        setState(() {
+                                          _joystickBottom = 45;
+                                          _joystickHeight = 100;
+                                          _joystickWidth = 100;
+                                          _joystickLeft =
+                                              (MediaQuery.of(context)
+                                                          .size
+                                                          .width /
+                                                      2) -
+                                                  (_joystickWidth / 2);
+                                        });
+                                      }
                                     },
-                                    child: GestureDetector(
-                                      onDoubleTap: () {
-                                        log("joystick double tapped");
-                                        if (_joystickBottom == 45) {
-                                          setState(() {
-                                            _joystickBottom = 0;
-                                          });
-                                        } else {
-                                          setState(() {
-                                            _joystickBottom = 45;
-                                          });
-                                        }
-                                      },
-                                      child: Container(
-                                        width: 45,
-                                        height: 45,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(50),
-                                          color: Colors.grey.withOpacity(0.5),
-                                          backgroundBlendMode:
-                                              BlendMode.multiply,
-                                        ),
-                                        // child: GestureDetector(
-                                        //   onTap: () {
-                                        //     log("switch platform");
-                                        //     // _changeSearchPlatform();
-
-                                        //     // // count down 1 seconds
-                                        //     // if (_autoSwitchPlatform == 1) {
-                                        //     //   if (_platformActivationTimer ==
-                                        //     //       null) {
-                                        //     //     _platformActivationTimer =
-                                        //     //         RestartableTimer(
-                                        //     //             const Duration(
-                                        //     //                 milliseconds: 1500),
-                                        //     //             () async {
-                                        //     //       _normalSearch();
-                                        //     //     });
-                                        //     //   } else {
-                                        //     //     _platformActivationTimer!.reset();
-                                        //     //   }
-                                        //     // }
-                                        //   },
-                                        child: _togglePlatformMode
-                                            ? null
-                                            : _platformIconBuilder(
-                                                _currentSearchPlatform),
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                        color: Colors.grey.withOpacity(0.5),
+                                        backgroundBlendMode: BlendMode.multiply,
                                       ),
+                                      child: _togglePlatformMode
+                                          ? null
+                                          : _platformIconBuilder(
+                                              _currentSearchPlatform),
                                     ),
                                   ),
                                   period: const Duration(milliseconds: 150),
@@ -3500,44 +3656,24 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         _joystickY = details.y;
                                         _togglePlatformMode = true;
 
-                                        if (_joystickBottom == 0) {
+                                        if (_joystickBottom == 20) {
                                           setState(() {
                                             _joystickBottom = 45;
+                                            _joystickHeight = 100;
+                                            _joystickWidth = 100;
+                                            _joystickLeft =
+                                                (MediaQuery.of(context)
+                                                            .size
+                                                            .width /
+                                                        2) -
+                                                    (_joystickWidth / 2);
                                           });
                                         }
-
-                                        // if (_joystickBottom == 0) {
-                                        //   // unshrink joystick
-                                        //   setState(() {
-                                        //     _joystickWidth = 100;
-                                        //     _joystickHeight = 100;
-                                        //     // _joystickBottom = 45;
-                                        //     // _joystickLeft =
-                                        //     //     (MediaQuery.of(context)
-                                        //     //                 .size
-                                        //     //                 .width /
-                                        //     //             2) -
-                                        //     //         (_joystickWidth / 2);
-                                        //   });
-                                        // }
 
                                         _joystickHeight =
                                             SearchPlatformList.length * 70;
                                       });
                                     }
-                                    // else if (details.y > 0 &&
-                                    //     !_togglePlatformMode) {
-                                    //   // shrink joystick
-                                    //   // setState(() {
-                                    //   //   _joystickWidth = 45;
-                                    //   //   _joystickHeight = 45;
-                                    //   //   _joystickBottom = 15;
-                                    //   //   _joystickLeft =
-                                    //   //       (MediaQuery.of(context).size.width /
-                                    //   //               2) -
-                                    //   //           (_joystickWidth / 2);
-                                    //   // });
-                                    // }
                                   },
                                   onStickDragEnd: () {
                                     if (_togglePlatformMode) {
