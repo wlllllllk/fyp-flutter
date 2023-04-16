@@ -1211,7 +1211,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   void _updateSearchText(searchText) {
     setState(() {
       _searchText = searchText;
-      _currentSearchPlatform = "Google";
+      // _currentSearchPlatform = "Google";
     });
   }
 
@@ -1307,6 +1307,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             imageSearchBing: _imageSearchBing,
             mergeResults: _mergeResults,
             updateCurrentImage: _updateCurrentImage,
+            mergeSearch: _mergeSearch,
           );
         },
       ),
@@ -3766,66 +3767,66 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
-  _performImageSearch(image, path) async {
-    // final snackBar = SnackBar(
-    //   content: Text("image $image"),
-    //   duration: const Duration(seconds: 3),
-    // );
-    // ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    log("image search 1");
-    if (image != null) {
-      log("image search 2");
+//   _performImageSearch(image, path) async {
+//     // final snackBar = SnackBar(
+//     //   content: Text("image $image"),
+//     //   duration: const Duration(seconds: 3),
+//     // );
+//     // ScaffoldMessenger.of(context).showSnackBar(snackBar);
+//     log("image search 1");
+//     if (image != null) {
+//       log("image search 2");
 
-      // // _updateCurrentImage(image);
-      // log("image search 3");
+//       // // _updateCurrentImage(image);
+//       // log("image search 3");
 
-      EasyLoading.show(
-        status: 'Perform Image Search',
-      );
+//       EasyLoading.show(
+//         status: 'Perform Image Search',
+//       );
 
-      // // try OCR first
-      // var resultsOCR = await _imageSearchGoogle(image, path, "text_detection");
-      // log("OCR:$resultsOCR");
-      // // log("OCR toString: :${resultsOCR.toString()}");
+//       // // try OCR first
+//       // var resultsOCR = await _imageSearchGoogle(image, path, "text_detection");
+//       // log("OCR:$resultsOCR");
+//       // // log("OCR toString: :${resultsOCR.toString()}");
 
-      // log("image search 4");
+//       // log("image search 4");
 
-      // // EasyLoading.show(
-      // //   // status: 'Perform Image Search',
-      // //   status: "Searching on Google",
-      // // );
+//       // // EasyLoading.show(
+//       // //   // status: 'Perform Image Search',
+//       // //   status: "Searching on Google",
+//       // // );
 
-      // var keywords = _extractKeywords(resultsOCR.toString());
-      // log("OCR extracted: $keywords");
+//       // var keywords = _extractKeywords(resultsOCR.toString());
+//       // log("OCR extracted: $keywords");
 
-      // return;
+//       // return;
 
-      var resultsGoogle, resultsBing;
-      resultsGoogle = await _imageSearchGoogle(image, path, "text_detection");
-      log("image search 5");
-      log("image search results Google: $resultsGoogle");
+//       var resultsGoogle, resultsBing;
+//       resultsGoogle = await _imageSearchGoogle(image, path, "text_detection");
+//       log("image search 5");
+//       log("image search results Google: $resultsGoogle");
 
-      EasyLoading.show(
-        status: 'Searching on Bing',
-      );
-      resultsBing = await _imageSearchBing(image, path);
-      log("image search 6");
-      log("image search results Bing: $resultsBing");
+//       EasyLoading.show(
+//         status: 'Searching on Bing',
+//       );
+//       resultsBing = await _imageSearchBing(image, path);
+//       log("image search 6");
+//       log("image search results Bing: $resultsBing");
 
-      EasyLoading.show(
-        status: 'Merging Results',
-      );
-      String keyword = resultsGoogle["bestGuessLabel"];
-      var results = _mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
-      log("image search results: $results");
-      await _updateURLs("replace", keyword, "Webpage", results, true);
+//       EasyLoading.show(
+//         status: 'Merging Results',
+//       );
+//       String keyword = resultsGoogle["bestGuessLabel"];
+//       var results = _mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
+//       log("image search results: $results");
+//       await _updateURLs("replace", keyword, "Webpage", results, true);
 
-      await _updateCurrentURLs();
-      EasyLoading.dismiss();
+//       await _updateCurrentURLs();
+//       EasyLoading.dismiss();
 
-      await _moveSwiper(true);
-    }
-  }
+//       await _moveSwiper(true);
+//     }
+//   }
 }
 
 // flutter pub run build_runner build
@@ -4168,62 +4169,222 @@ _imageSearchBing(src, path) async {
   final bytes = File(path).readAsBytesSync();
   String img64 = base64Encode(bytes);
 
-  Future BingSearch(String imgpath, String img64) async {
-    final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
-    final imageData = base64.encode(File(imgpath).readAsBytesSync());
+  // Future BingSearch(String imgpath, String img64) async {
+  //   final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
+  //   final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
-    var uri =
-        Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
+  //   var uri =
+  //       Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
+  //   var headers = {
+  //     'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
+  //   };
+
+  //   var request = http.MultipartRequest('POST', uri)
+  //     ..headers.addAll(headers)
+  //     ..files.add(await http.MultipartFile.fromPath('image', imgpath,
+  //         filename: 'myfile'));
+  //   var response = await request.send();
+  //   // Convert the base64 image to bytes
+
+  //   final String responseString = await response.stream.bytesToString();
+
+  //   log(responseString);
+
+  //   Map out = {};
+  //   List results = [];
+  //   // Convert the base64 image to bytes
+
+  //   if (response.statusCode == 200) {
+  //     final responseJson = jsonDecode(responseString);
+  //     final elements = responseJson['tags'][0]['actions'];
+  //     var bingVisualObject;
+
+  //     log("response code ${response.statusCode}");
+  //     elements.forEach((data) => {
+  //           if (data['actionType'] == "VisualSearch")
+  //             {bingVisualObject = data['data']['value']}
+  //         });
+
+  //     log("bingVisualObject $bingVisualObject");
+
+  //     if (bingVisualObject == null) {
+  //       log("bing search result null");
+  //       // return null;
+  //     } else {
+  //       bingVisualObject.forEach((value) {
+  //         log("Website name: ${value['name']}");
+  //         log("website: ${value['hostPageUrl']}");
+  //         results.add({
+  //           'title': value['name'].toString(),
+  //           'link': value['hostPageUrl'].toString(),
+  //         });
+  //       });
+  //     }
+  //   } else {
+  //     log('Failed to upload image. Error code: ${response.statusCode}');
+  //   }
+  //   out.addAll({'urls': results});
+  //   return out;
+  // }
+
+  List bestGuessLabel = [];
+  Future<Map> BingSearch(String imgpath, String img64,
+      [String imgURL = ""]) async {
+    final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
+    // final imageData = base64.encode(File(imgpath).readAsBytesSync());
+
+    //?mkt=zh-HK&setLang=EN
+    var uri = Uri.parse(
+        'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=en-US');
     var headers = {
-      'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
+      'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
     };
 
-    var request = http.MultipartRequest('POST', uri)
-      ..headers.addAll(headers)
-      ..files.add(await http.MultipartFile.fromPath('image', imgpath,
+    final knowledgeRequest = {
+      "invokedSkills": ["SimilarImages"],
+      "invokedSkillsRequestData": {"enableEntityData": "true"}
+    };
+
+    var request = http.MultipartRequest('POST', uri);
+    var imageToken = '';
+
+    request.fields
+        .addAll({"invokedSkills": "SimilarImages", 'enableEntityData': 'true'});
+
+    request.headers.addAll(headers);
+
+    //URL OR IMG64
+    if (imgURL == "") {
+      request.files.add(await http.MultipartFile.fromPath('image', imgpath,
           filename: 'myfile'));
+    } else {}
+
     var response = await request.send();
     // Convert the base64 image to bytes
 
     final String responseString = await response.stream.bytesToString();
 
-    log(responseString);
+    print(responseString);
 
-    Map out = {};
-    List results = [];
+    List Result = [];
+    List PageIncludedImage = [];
+
+    Map results = {"bestGuessLabel": bestGuessLabel};
     // Convert the base64 image to bytes
 
     if (response.statusCode == 200) {
       final responseJson = jsonDecode(responseString);
+      imageToken = responseJson['image']['imageInsightsToken'];
+
       final elements = responseJson['tags'][0]['actions'];
       var bingVisualObject;
+      var bingVisualQuery = null;
+      var bingIncludedPage = null;
+      var bingBestRepresentation = null;
+      var bingIncludedName = null;
 
-      log("response code ${response.statusCode}");
+      print("response code ${response.statusCode}");
       elements.forEach((data) => {
             if (data['actionType'] == "VisualSearch")
               {bingVisualObject = data['data']['value']}
           });
+      elements.forEach((data) => {
+            if (data['actionType'] == "RelatedSearches")
+              {bingVisualQuery = data['data']['value']}
+          });
+      elements.forEach((data) => {
+            if (data['actionType'] == "PagesIncluding")
+              {bingIncludedPage = data['data']['value']}
+          });
+      elements.forEach((data) => {
+            if (data['actionType'] == "BestRepresentativeQuery")
+              {bingBestRepresentation = data['displayName']}
+          });
+      print("Bing gust: ${bingBestRepresentation}");
 
-      log("bingVisualObject $bingVisualObject");
+      if (bingIncludedPage.length != 0) {
+        bingIncludedName = bingIncludedPage[0]['name'].toString();
+        bingIncludedPage.forEach((value) async {
+          // final isShopping = isShoppingWebsite(value['hostPageUrl']);
+          // if (isShopping) {
+          //   shoppingResult.add(value['hostPageUrl']);
+          // }
 
-      if (bingVisualObject == null) {
-        log("bing search result null");
-        // return null;
-      } else {
-        bingVisualObject.forEach((value) {
-          log("Website name: ${value['name']}");
-          log("website: ${value['hostPageUrl']}");
-          results.add({
+          Result.add({
             'title': value['name'].toString(),
             'link': value['hostPageUrl'].toString(),
           });
+          PageIncludedImage.add({
+            'title': value['name'].toString(),
+            'thumbnail': value['thumbnailUrl'].toString(),
+            'website': value['hostPageUrl'].toString(),
+          });
         });
       }
+
+      bingVisualObject.forEach((value) async {
+        // print("fetch URL: ==============");
+        //  print("Website name: ${value['name']}");
+        // print("website: ${value['hostPageUrl']}");
+
+        // final isShopping = isShoppingWebsite(value['hostPageUrl']);
+        // if (isShopping) {
+        //   shoppingResult.add(value['hostPageUrl']);
+        // }
+        // print('Is the URL a shopping website? $isShopping');
+
+        Result.add({
+          'title': value['name'].toString(),
+          'link': value['hostPageUrl'].toString(),
+        });
+      });
+
+      List bestGuessList = [];
+
+      if (bingVisualQuery != null) {
+        bingVisualQuery.forEach((value) async {
+          // print("Query name: ${value['text']}");
+          //bestGuessLabel.add(value['text']);
+
+          bestGuessList.add({
+            'bestGuessLabel': value['text'],
+            'urls': value['thumbnail']['url'],
+          });
+        });
+
+        if (PageIncludedImage.length > 0) {
+          bestGuessLabel.add(bingIncludedName);
+        } else {
+          // print("NULL bestGuessLabel");
+          if (bingBestRepresentation != null) {
+            bestGuessLabel.add(bingBestRepresentation);
+          } else {
+            bestGuessLabel.add(bingVisualQuery[0]['displaytext']);
+            // results.addAll({'BestGuessList': bestGuessList});
+          }
+
+          // if (bestGuessLabel == null) {
+          //    bestGuessLabel.add(bingBestRepresentation);
+          //  }
+        }
+
+        print(bestGuessLabel);
+        results.addAll({'bestGuessList': bestGuessList});
+        print(bestGuessList);
+      }
     } else {
-      log('Failed to upload image. Error code: ${response.statusCode}');
+      print('Failed to upload image. Error code: ${response.statusCode}');
     }
-    out.addAll({'urls': results});
-    return out;
+
+    // print("Bing: ${results['bestGuessLabel']}");
+
+    // print("results ${shoppingResult}");
+    // if (PageIncludedImage != null) {
+    //   results.addAll({'urls': PageIncludedImage});
+    // }
+    results.addAll({'urls': Result});
+
+    return results;
   }
 
   var bingVisualResult = BingSearch(path, img64);

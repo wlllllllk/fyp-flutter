@@ -33,6 +33,7 @@ import 'package:typed_data/typed_data.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:menu_button/menu_button.dart';
+import 'package:multi_select_flutter/multi_select_flutter.dart';
 
 // class CredentialsProvider {
 //   CredentialsProvider();
@@ -78,6 +79,7 @@ class SearchPage extends StatefulWidget {
     required this.imageSearchBing,
     required this.mergeResults,
     required this.updateCurrentImage,
+    required this.mergeSearch,
   }) : super(key: key);
 
   final String realSearchText;
@@ -97,6 +99,7 @@ class SearchPage extends StatefulWidget {
   final imageSearchBing;
   final mergeResults;
   final updateCurrentImage;
+  final mergeSearch;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -214,22 +217,22 @@ class _SearchPageState extends State<SearchPage> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
     if (image != null) {
-      widget.updateCurrentImage(image);
+      // widget.updateCurrentImage(image);
       _imageSearchPlatform = "";
       // await _choosePlatform();
       // if (_imageSearchPlatform == "") {
       //   return;
       // } else {
 
-      EasyLoading.show(
-        // status: 'Perform Image Search',
-        status: "Searching on Google",
-      );
+      // EasyLoading.show(
+      //   // status: 'Perform Image Search',
+      //   status: "Searching on Google",
+      // );
 
       Map resultsGoogle = {}, resultsBing = {};
       // var itemsGoogle;
-      resultsGoogle = await widget.imageSearchGoogle(image, image.path);
-      log("image search results Google: $resultsGoogle");
+      // resultsGoogle = await widget.imageSearchGoogle(image, image.path);
+      // log("image search results Google: $resultsGoogle");
 
       // EasyLoading.dismiss();
 
@@ -237,17 +240,229 @@ class _SearchPageState extends State<SearchPage> {
         status: 'Searching on Bing',
       );
       resultsBing = await widget.imageSearchBing(image, image.path);
-      log("image search results Bing: $resultsBing");
+      log("image search results Bing1: $resultsBing");
+
+      List test = resultsBing["bestGuessList"];
+      log("image search results Bing2: ${test}");
+      log("image search results Bing3: ${test.toList()}");
+
+      List keywords = resultsBing["bestGuessList"];
+      // for (var i = 0; i < resultsBing["bestGuessList"].length; i++) {
+      //   keywords.add(MultiSelectItem(
+      //       "https://tse4.mm.bing.net/th?q=Keeby+Kirby&pid=Api&mkt=en-US&cc=US&setlang=en&adlt=moderate",
+      //       resultsBing["bestGuessList"][i]["bestGuessLabel"]));
+      // }
+
+      List<MultiSelectItem> platforms = [];
+      for (var i = 0; i < SearchPlatformList.length; i++) {
+        platforms
+            .add(MultiSelectItem(SearchPlatformList[i], SearchPlatformList[i]));
+      }
+
+      EasyLoading.dismiss();
+
+      List selectedKeyword = [];
+      String selectedPlatform = "";
+      bool abort = false;
+      // String selectedKeyword = "";
+      // GlobalKey<FormFieldState<dynamic>> selectKey = GlobalKey();
+
+      // ignore: use_build_context_synchronously
+      await showDialog<String>(
+        barrierDismissible: false,
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          scrollable: true,
+          title: const Text('Are you looking for one of these?'),
+          content: Column(
+            children: <Widget>[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: MultiSelectChipField(
+                  // key: selectKey,
+                  title: const Text(
+                    "Suggested Items",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  decoration: const BoxDecoration(
+                    border: null,
+                  ),
+                  items: keywords
+                      .map((keyword) => MultiSelectItem(
+                            keyword["urls"],
+                            keyword["bestGuessLabel"],
+                          ))
+                      .toList(),
+                  itemBuilder: (item, state) {
+                    return InkWell(
+                      onTap: () {
+                        log("selected: ${item.label}");
+                        if (selectedKeyword.contains(item.label)) {
+                          selectedKeyword.clear();
+                        } else {
+                          selectedKeyword.clear();
+                          selectedKeyword.add(item.label);
+                        }
+
+                        log("selectedKeyword: ${selectedKeyword}");
+
+                        state.didChange(selectedKeyword);
+                        // selectKey.currentState?.validate();
+                      },
+                      child: ClipRRect(
+                        // borderRadius: BorderRadius.circular(10),
+                        child: AnimatedContainer(
+                          // width: 100,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            color: selectedKeyword.contains(item.label)
+                                ? const Color.fromRGBO(158, 158, 158, 0.475)
+                                : Colors.transparent,
+                          ),
+                          duration: const Duration(milliseconds: 300),
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Opacity(
+                                  opacity: selectedKeyword.contains(item.label)
+                                      ? 0.5
+                                      : 1,
+                                  child: Image.network(
+                                    item.value.toString(),
+                                    // height: 100,
+                                    // width: 100,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                item.label,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(width: 10),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                    // return GestureDetector(
+                    //   onTap: () {
+                    //     // log("selected: ${item.label}");
+                    //   },
+                    //   child: Container(
+                    //     padding: const EdgeInsets.all(10),
+                    //     child: Column(
+                    //       children: [
+                    //         ClipRRect(
+                    //           borderRadius: BorderRadius.circular(10),
+                    //           child: Image.network(
+                    //             item.value.toString(),
+                    //             // height: 50,
+                    //             // width: 50,
+                    //           ),
+                    //         ),
+                    //         const SizedBox(width: 10),
+                    //         Text(
+                    //           item.label,
+                    //           style: const TextStyle(fontSize: 16),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // );
+                  },
+                  showHeader: false,
+                  scroll: false,
+                  // validator: (value) {
+                  //   log("value: $value");
+                  // },
+                  // onTap: (values) {
+                  //   log("selected: $values");
+                  //   // selectedKeywords = values.join(" ").trim();
+                  //   // log("updated $selectedKeywords");
+                  // },
+                ),
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: MultiSelectChipField(
+                  title: const Text(
+                    "Look for",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  items: platforms,
+                  showHeader: true,
+                  scroll: false,
+                  validator: (value) {
+                    log("validating $value");
+                  },
+                  onTap: (values) {
+                    log("selected: $values");
+                    selectedPlatform = values.isNotEmpty
+                        ? values[values.length - 1].toString()
+                        : "";
+                    log("updated $selectedPlatform");
+                  },
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, 'Cancel');
+                abort = true;
+              },
+              child: const Text('Cancel'),
+            ),
+            // TextButton(
+            //   onPressed: () {
+            //     Navigator.pop(context, 'ALL');
+            //   },
+            //   child: const Text('Drill ALL'),
+            // ),
+            TextButton(
+              onPressed: () {
+                log("final selected keywords: $selectedKeyword");
+                if (selectedKeyword.isEmpty) {
+                  return;
+                }
+                Navigator.pop(context, 'OK');
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+
+      // widget.updateSearchText(selectedKeyword[0]);
+      // await widget.mergeSearch(selectedPlatform);
+      if (!abort) {
+        await widget.handleSearch(selectedKeyword[0],
+            selectedPlatform == "" ? widget.currentPlatform : selectedPlatform);
+      }
+      // await widget.mergeSearch(selectedPlatform);
 
       // EasyLoading.dismiss();
-      EasyLoading.show(
-        status: 'Merging Results',
-      );
-      String keyword = resultsGoogle["bestGuessLabel"];
-      var results =
-          widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
-      log("image search results: $results");
-      await widget.updateURLs("replace", keyword, "Webpage", results, true);
+      // EasyLoading.show(
+      //   status: 'Merging Results',
+      // );
+      // String keyword = resultsGoogle["bestGuessLabel"];
+      // var results =
+      //     widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
+      // log("image search results: $results");
+      // await widget.updateURLs("replace", keyword, "Webpage", results, true);
+
       // Map results = {};
       // if (_imageSearchPlatform == "Google") {
       //   var items;
@@ -283,7 +498,7 @@ class _SearchPageState extends State<SearchPage> {
 
       // log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
 
-      await widget.updateCurrentURLs();
+      // await widget.updateCurrentURLs();
       EasyLoading.dismiss();
       // EasyLoading.showToast('results length ${results['urls'].length}');
 
@@ -293,7 +508,7 @@ class _SearchPageState extends State<SearchPage> {
       // );
       // ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-      await widget.moveSwiper(true);
+      // await widget.moveSwiper(true);
       // }
     }
     // } catch (e) {
