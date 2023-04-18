@@ -34,6 +34,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 // class CredentialsProvider {
 //   CredentialsProvider();
@@ -80,6 +81,7 @@ class SearchPage extends StatefulWidget {
     required this.mergeResults,
     required this.updateCurrentImage,
     required this.mergeSearch,
+    required this.isTutorial,
   }) : super(key: key);
 
   final String realSearchText;
@@ -100,6 +102,7 @@ class SearchPage extends StatefulWidget {
   final mergeResults;
   final updateCurrentImage;
   final mergeSearch;
+  final isTutorial;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -110,6 +113,15 @@ class _SearchPageState extends State<SearchPage> {
   // String _realSearchText = "";
   String _platform = "", _imageSearchPlatform = "";
   List _searchRecords = [];
+
+  // key
+  final _textFieldKey = GlobalKey();
+  final _cameraKey = GlobalKey();
+  final _libraryKey = GlobalKey();
+  final _platformsKey = GlobalKey();
+
+  // tutorial
+  List<TargetFocus> targets = [];
 
   @override
   void initState() {
@@ -133,61 +145,184 @@ class _SearchPageState extends State<SearchPage> {
       ..userInteractions = true
       ..maskType = EasyLoadingMaskType.black
       ..dismissOnTap = true;
+
+    targets.add(
+      TargetFocus(
+        identify: "Platforms",
+        keyTarget: _platformsKey,
+        enableOverlayTab: true,
+        shape: ShapeLightFocus.RRect,
+        contents: [
+          TargetContent(
+            align: ContentAlign.bottom,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const <Widget>[
+                Text(
+                  "First, select what you are looking for",
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 20.0),
+                ),
+                // Padding(
+                //   padding: EdgeInsets.only(top: 10.0),
+                //   child: Text(
+                //     "This is where you access the settings page as well as showing this tutorial again.",
+                //     style: TextStyle(color: Colors.white),
+                //   ),
+                // )
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+
+    if (widget.isTutorial) {
+      targets.add(
+        TargetFocus(
+          identify: "Text Field",
+          keyTarget: _textFieldKey,
+          enableOverlayTab: true,
+          shape: ShapeLightFocus.RRect,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Then, input your search query here",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "This is where you access the settings page as well as showing this tutorial again.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targets.add(
+        TargetFocus(
+          identify: "Camera Button",
+          keyTarget: _cameraKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "You can also take a photo",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "This is where you access the settings page as well as showing this tutorial again.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targets.add(
+        TargetFocus(
+          identify: "Library Button",
+          keyTarget: _libraryKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Or upload an image from your device",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "This is where you access the settings page as well as showing this tutorial again.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      _showTutorial();
+    }
   }
 
-  // _platformIconBuilder(String platform) {
-  //   switch (platform) {
-  //     case "Google":
-  //       return Icon(BoxIcons.bxl_google);
-  //     case "YouTube":
-  //       return Icon(BoxIcons.bxl_youtube);
-  //     case "Twitter":
-  //       return Icon(BoxIcons.bxl_twitter);
-  //     case "Facebook":
-  //       return Icon(BoxIcons.bxl_facebook);
-  //     case "Instagram":
-  //       return Icon(BoxIcons.bxl_instagram);
-  //     case "LinkedIn":
-  //       return Icon(BoxIcons.bxl_linkedin);
-  //     case "Bing":
-  //       return Icon(BoxIcons.bxl_bing);
-  //     case "Yahoo":
-  //       return Icon(BoxIcons.bxl_yahoo);
-  //     case "Baidu":
-  //       return Icon(BoxIcons.bxl_baidu);
-  //   }
-  // }
+  void _showTutorial() async {
+    await Future.delayed(const Duration(milliseconds: 300), () {});
 
-  // _choosePlatform() {
-  //   return showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text("Choose Platform"),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () {
-  //             Navigator.pop(context);
-  //           },
-  //           child: const Text("Cancel"),
-  //         ),
-  //         TextButton(
-  //           onPressed: () {
-  //             _imageSearchPlatform = "Google";
-  //             Navigator.pop(context);
-  //           },
-  //           child: const Text("Google"),
-  //         ),
-  //         TextButton(
-  //           onPressed: () {
-  //             _imageSearchPlatform = "Bing";
-  //             Navigator.pop(context);
-  //           },
-  //           child: const Text("Bing"),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+    TutorialCoachMark tutorial = TutorialCoachMark(
+        targets: targets, // List<TargetFocus>
+        colorShadow: Colors.blue, // DEFAULT Colors.black
+        // alignSkip: Alignment.bottomRight,
+        // textSkip: "SKIP",
+        // paddingFocus: 10,
+        // focusAnimationDuration: Duration(milliseconds: 500),
+        // unFocusAnimationDuration: Duration(milliseconds: 500),
+        // pulseAnimationDuration: Duration(milliseconds: 500),
+        // pulseVariation: Tween(begin: 1.0, end: 0.99),
+        // showSkipInLastTarget: false,
+        onFinish: () {
+          print("finish");
+        },
+        onClickTargetWithTapPosition: (target, tapDetails) {
+          print("target: $target");
+          print(
+              "clicked at position local: ${tapDetails.localPosition} - global: ${tapDetails.globalPosition}");
+        },
+        onClickTarget: (target) {
+          print(target);
+          // if (target.identify == "Search Button") {
+          //   _pushSearchPage();
+          // }
+        },
+        onSkip: () {
+          print("skip");
+        })
+      ..show(context: context);
+
+    // tutorial.skip();
+    // tutorial.finish();
+    // tutorial.next(); // call next target programmatically
+    // tutorial.previous(); // call previous target programmatically
+  }
 
   _performImageSearch(source) async {
     log("picking...");
@@ -532,6 +667,7 @@ class _SearchPageState extends State<SearchPage> {
             // ),
             children: <Widget>[
               TextField(
+                key: _textFieldKey,
                 textInputAction: TextInputAction.search,
                 autofocus: true,
                 decoration: InputDecoration(
@@ -573,12 +709,14 @@ class _SearchPageState extends State<SearchPage> {
                             icon: const Icon(Icons.clear),
                           ),
                           IconButton(
+                            key: _cameraKey,
                             onPressed: () async {
                               _performImageSearch("camera");
                             },
                             icon: const Icon(Icons.photo_camera),
                           ),
                           IconButton(
+                            key: _libraryKey,
                             onPressed: () async {
                               _performImageSearch("gallery");
                             },
@@ -614,6 +752,7 @@ class _SearchPageState extends State<SearchPage> {
                 padding: const EdgeInsets.only(
                     left: 16.0, right: 16.0, bottom: 16.0),
                 child: SegmentedButton(
+                  key: _platformsKey,
                   segments: SearchPlatformList.map((e) => ButtonSegment(
                       value: e,
                       label: Text(e),
@@ -634,7 +773,7 @@ class _SearchPageState extends State<SearchPage> {
               ..._searchRecords.map((record) {
                 return ListTile(
                   title: Text(record.searchText,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                       )),
                   trailing: IconButton(

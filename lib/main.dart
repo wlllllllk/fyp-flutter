@@ -33,6 +33,7 @@ import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:crypto/crypto.dart';
 import 'package:html/parser.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
@@ -69,12 +70,12 @@ void main() async {
 // enum SearchAlgorithm { Title, ClickContent, TitleWithClickContent }
 // Map SearchAlgorithm = {"Title": 0, "ClickContent": 1, "TitleWithClickContent": 2};
 List<String> SearchAlgorithmList = [
-  "Title",
-  "Webpage Content",
-  "Title With Webpage Content",
+  // "Title",
+  // "Webpage Content",
+  // "Title With Webpage Content",
   "Hovered Webpage Content",
-  "New Mode",
-  "TEST HIGHLIGHT"
+  // "New Mode",
+  // "TEST HIGHLIGHT"
 ];
 
 // ignore: non_constant_identifier_names
@@ -139,7 +140,17 @@ class _WebViewContainerState extends State<WebViewContainer>
   final _preloadPageKeys = [];
   var _currentPreloadPageKey;
   final _preloadPlatformKey = GlobalKey();
+  final _searchButtonKey = GlobalKey();
+  final _drawerKey = GlobalKey();
+  final _joyStickKey = GlobalKey();
+  final _drillButtonKey = GlobalKey();
+  final _historiesButtonKey = GlobalKey();
+  final _firstResultButtonKey = GlobalKey();
+  final _backButtonKey = GlobalKey();
+  final _shareButtonKey = GlobalKey();
 
+  // tutorial
+  List<TargetFocus> targets = [], targetsAfter = [];
   // controllers
   InAppWebViewController? _currentWebViewController;
   Map _webViewControllers = {};
@@ -197,6 +208,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   bool _menuShown = false;
   bool _isFetching = false;
   var _currentImage;
+  bool _isTutorial = false;
 
   //regex
   var containNonEnglish = RegExp(r'^\w+');
@@ -268,6 +280,8 @@ class _WebViewContainerState extends State<WebViewContainer>
     //           await _refreshController!.endRefreshing();
     //         },
     //       );
+
+    _initTutorial("before");
   }
 
   @override
@@ -277,6 +291,274 @@ class _WebViewContainerState extends State<WebViewContainer>
     _init();
   }
 
+  void _initTutorial(String status) {
+    if (status == "before") {
+      targets.add(
+        TargetFocus(
+          identify: "Menu",
+          keyTarget: _drawerKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Click to open the menu",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 10.0),
+                    child: Text(
+                      "This is where you access the settings page as well as showing this tutorial again.",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targets.add(
+        TargetFocus(
+          identify: "Search Button",
+          keyTarget: _searchButtonKey,
+          unFocusAnimationDuration: Duration(milliseconds: 100),
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Click here to start searching",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+    } else if (status == "after") {
+      targetsAfter.add(
+        TargetFocus(
+          identify: "Joystick",
+          keyTarget: _joyStickKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Browse through results with the joystick",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 10.0),
+                    child: Text(
+                      "Swipe horizontally to switch result, vertically to switch platform.",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targetsAfter.add(
+        TargetFocus(
+          identify: "Drill Button",
+          keyTarget: _drillButtonKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Drag-and-drop this button to drill on anything",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targetsAfter.add(
+        TargetFocus(
+          identify: "Histories Button",
+          keyTarget: _historiesButtonKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Click to see the search records in this search session",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targetsAfter.add(
+        TargetFocus(
+          identify: "First Result Button",
+          keyTarget: _firstResultButtonKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Click to go back to the first result",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targetsAfter.add(
+        TargetFocus(
+          identify: "Back Button",
+          keyTarget: _backButtonKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Click to go back",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      targetsAfter.add(
+        TargetFocus(
+          identify: "Share Button",
+          keyTarget: _shareButtonKey,
+          enableOverlayTab: true,
+          contents: [
+            TargetContent(
+              align: ContentAlign.top,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const <Widget>[
+                  Text(
+                    "Click to share the current result",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+    }
+  }
+
   // @override
   // void dispose() {
   //   // Clean up the controller when the widget is removed from the
@@ -284,6 +566,99 @@ class _WebViewContainerState extends State<WebViewContainer>
   //   _handleSearch.dispose();
   //   super.dispose();
   // }
+
+  void _showTutorial() {
+    setState(() {
+      _isTutorial = true;
+    });
+
+    TutorialCoachMark tutorial = TutorialCoachMark(
+        targets: targets, // List<TargetFocus>
+        colorShadow: Colors.blue, // DEFAULT Colors.black
+        // alignSkip: Alignment.bottomRight,
+        // textSkip: "SKIP",
+        // paddingFocus: 10,
+        // focusAnimationDuration: Duration(milliseconds: 500),
+        // unFocusAnimationDuration: Duration(milliseconds: 500),
+        // pulseAnimationDuration: Duration(milliseconds: 500),
+        // pulseVariation: Tween(begin: 1.0, end: 0.99),
+        // showSkipInLastTarget: false,
+        onFinish: () {
+          print("finish");
+        },
+        onClickTargetWithTapPosition: (target, tapDetails) {
+          print("target: $target");
+          print(
+              "clicked at position local: ${tapDetails.localPosition} - global: ${tapDetails.globalPosition}");
+        },
+        onClickTarget: (target) {
+          print(target);
+          if (target.identify == "Search Button") {
+            _pushSearchPage();
+          }
+        },
+        onSkip: () {
+          print("skip");
+        })
+      ..show(context: context);
+
+    // tutorial.skip();
+    // tutorial.finish();
+    // tutorial.next(); // call next target programmatically
+    // tutorial.previous(); // call previous target programmatically
+  }
+
+  void _showTutorialAfter() async {
+    log("tutorialing after 1");
+    await Future.delayed(const Duration(milliseconds: 3000), () {});
+    log("tutorialing after 2");
+
+    _initTutorial("after");
+
+    log("tutorialing after 3");
+
+    TutorialCoachMark tutorial = TutorialCoachMark(
+        targets: targetsAfter, // List<TargetFocus>
+        colorShadow: Colors.blue, // DEFAULT Colors.black
+        // alignSkip: Alignment.bottomRight,
+        // textSkip: "SKIP",
+        // paddingFocus: 10,
+        // focusAnimationDuration: Duration(milliseconds: 500),
+        // unFocusAnimationDuration: Duration(milliseconds: 500),
+        // pulseAnimationDuration: Duration(milliseconds: 500),
+        // pulseVariation: Tween(begin: 1.0, end: 0.99),
+        // showSkipInLastTarget: false,
+        onFinish: () {
+          print("finish");
+        },
+        onClickTargetWithTapPosition: (target, tapDetails) {
+          print("target: $target");
+          print(
+              "clicked at position local: ${tapDetails.localPosition} - global: ${tapDetails.globalPosition}");
+        },
+        onClickTarget: (target) {
+          print(target);
+          if (target.identify == "Search Button") {
+            _pushSearchPage();
+          }
+        },
+        onSkip: () {
+          print("skip");
+        })
+      ..show(context: context);
+
+    log("tutorialing after 4");
+
+    // tutorial.skip();
+    // tutorial.finish();
+    // tutorial.next(); // call next target programmatically
+    // tutorial.previous(); // call previous target programmatically
+
+    setState(() {
+      _isTutorial = false;
+    });
+    log("tutorialing after 5");
+  }
 
   final RestartableTimer _searchTimer = RestartableTimer(
     const Duration(seconds: 5),
@@ -1206,6 +1581,11 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
 
     log("_appBarColor $_appBarColor");
+
+    if (_isTutorial) {
+      log("tutorialing after");
+      _showTutorialAfter();
+    }
   }
 
   void _updateSearchText(searchText) {
@@ -1290,25 +1670,25 @@ class _WebViewContainerState extends State<WebViewContainer>
       MaterialPageRoute(
         builder: (context) {
           return SearchPage(
-            realSearchText: _searchText,
-            handleSearch: _handleSearch,
-            performSearch: _performSearch,
-            updateURLs: _updateURLs,
-            updateCurrentURLs: _updateCurrentURLs,
-            moveSwiper: _moveSwiper,
-            updateSearchText: _updateSearchText,
-            searchPlatformList: SearchPlatformList,
-            currentPlatform: _currentSearchPlatform,
-            setImageSearch: _setImageSearch,
-            searchRecords: _searchRecords,
-            updateSearchRecord: _updateSearchRecord,
-            platformIconBuilder: _platformIconBuilder,
-            imageSearchGoogle: _imageSearchGoogle,
-            imageSearchBing: _imageSearchBing,
-            mergeResults: _mergeResults,
-            updateCurrentImage: _updateCurrentImage,
-            mergeSearch: _mergeSearch,
-          );
+              realSearchText: _searchText,
+              handleSearch: _handleSearch,
+              performSearch: _performSearch,
+              updateURLs: _updateURLs,
+              updateCurrentURLs: _updateCurrentURLs,
+              moveSwiper: _moveSwiper,
+              updateSearchText: _updateSearchText,
+              searchPlatformList: SearchPlatformList,
+              currentPlatform: _currentSearchPlatform,
+              setImageSearch: _setImageSearch,
+              searchRecords: _searchRecords,
+              updateSearchRecord: _updateSearchRecord,
+              platformIconBuilder: _platformIconBuilder,
+              imageSearchGoogle: _imageSearchGoogle,
+              imageSearchBing: _imageSearchBing,
+              mergeResults: _mergeResults,
+              updateCurrentImage: _updateCurrentImage,
+              mergeSearch: _mergeSearch,
+              isTutorial: _isTutorial);
         },
       ),
     );
@@ -3032,7 +3412,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               //   },
               // ),
               ListTile(
-                trailing: _selectedPageIndex == 3
+                trailing: _selectedPageIndex == 1
                     ? Icon(Icons.settings, color: Colors.blue[900])
                     : const Icon(Icons.settings_outlined),
                 title: const Text('Settings'),
@@ -3040,6 +3420,15 @@ class _WebViewContainerState extends State<WebViewContainer>
                   _onItemTapped(3);
                   Navigator.pop(context);
                   _pushSettingsPage();
+                },
+              ),
+              ListTile(
+                trailing: const Icon(BoxIcons.bx_chalkboard),
+                title: const Text('Tutorial'),
+                onTap: () {
+                  // _onItemTapped(3);
+                  Navigator.pop(context);
+                  _showTutorial();
                 },
               ),
             ],
@@ -3072,9 +3461,18 @@ class _WebViewContainerState extends State<WebViewContainer>
                     decelerationCurve: Curves.easeOut,
                   ),
                 ),
+          leading: Builder(
+            builder: (ctx) => IconButton(
+              key: _drawerKey,
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+            ),
+          ),
           actions: <Widget>[
             IconButton(
-                icon: const Icon(Icons.search), onPressed: _pushSearchPage)
+                key: _searchButtonKey,
+                icon: const Icon(Icons.search),
+                onPressed: _pushSearchPage)
           ],
         ),
         floatingActionButton: _searchResult.isNotEmpty
@@ -3083,42 +3481,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                     ? const Alignment(1, 0.95)
                     : const Alignment(1, 0.88),
                 child: GestureDetector(
+                  key: _drillButtonKey,
                   onLongPress: () {
                     log("fab long pressed");
                     _normalSearch(false, true);
                   },
-                  // onLongPress: () async {
-                  //   if (!_activatedSearchPlatforms
-                  //       .containsKey(_currentSearchPlatform)) {
-                  //     setState(() {
-                  //       // _activatedSearchPlatforms.add(_currentSearchPlatform);
-                  //       _activatedSearchPlatforms
-                  //           .addAll({_currentSearchPlatform: GlobalKey()});
-                  //     });
-                  //   }
-
-                  //   if (URLs[_searchText][_currentSearchPlatform] == null) {
-                  //     // do search only if it has not been done before
-                  //     var items = await _performSearch(
-                  //         _searchText, _currentSearchPlatform);
-                  //     await _updateURLs('replace', _searchText,
-                  //         _currentSearchPlatform, items);
-                  //   }
-
-                  //   await _updateCurrentURLs();
-                  //   await _moveSwiper();
-
-                  //   // log(
-                  //   //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
-                  //   await _preloadPlatformController.animateToPage(
-                  //       // _activatedSearchPlatforms
-                  //       //     .indexOf(_currentSearchPlatform),
-                  //       _activatedSearchPlatforms.keys
-                  //           .toList()
-                  //           .indexOf(_currentSearchPlatform),
-                  //       duration: const Duration(milliseconds: 300),
-                  //       curve: Curves.easeIn);
-                  // },
                   child: Draggable(
                     feedback: Container(
                       width: 30,
@@ -3411,6 +3778,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   IconButton(
+                                                    key: _historiesButtonKey,
                                                     onPressed: () async {
                                                       log("stairs of drill");
                                                       showModalBottomSheet(
@@ -3437,7 +3805,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                                 children: [
                                                                   const ListTile(
                                                                     title: Text(
-                                                                      "Drill Histories (click to go back)",
+                                                                      "Search Histories (click to go back)",
                                                                       style:
                                                                           TextStyle(
                                                                         fontWeight:
@@ -3455,12 +3823,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         ),
                                                       );
                                                     },
-                                                    icon: const FaIcon(
+                                                    icon: FaIcon(
                                                       FontAwesomeIcons.stairs,
                                                       size: 20,
                                                     ),
                                                   ),
                                                   IconButton(
+                                                    key: _firstResultButtonKey,
                                                     onPressed: () async {
                                                       if (_currentURLIndex >
                                                           0) {
@@ -3482,6 +3851,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                     ),
                                                   ),
                                                   IconButton(
+                                                    key: _backButtonKey,
                                                     onPressed: () async {
                                                       await _currentWebViewController!
                                                           .goBack();
@@ -3492,6 +3862,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         size: 20),
                                                   ),
                                                   IconButton(
+                                                    key: _shareButtonKey,
                                                     onPressed: () async {
                                                       log("share");
                                                       String? title =
@@ -3524,6 +3895,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 bottom: _joystickBottom,
                                 left: _joystickLeft,
                                 child: Joystick(
+                                  key: _joyStickKey,
                                   mode: _togglePlatformMode
                                       ? JoystickMode.vertical
                                       : JoystickMode.horizontalAndVertical,
