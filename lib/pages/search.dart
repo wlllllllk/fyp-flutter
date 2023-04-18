@@ -157,7 +157,7 @@ class _SearchPageState extends State<SearchPage> {
             align: ContentAlign.bottom,
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: const <Widget>[
                 Text(
                   "First, select what you are looking for",
@@ -192,10 +192,10 @@ class _SearchPageState extends State<SearchPage> {
               align: ContentAlign.bottom,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: const <Widget>[
                   Text(
-                    "Then, input your search query here",
+                    "Then, type in what you want to search",
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -225,7 +225,7 @@ class _SearchPageState extends State<SearchPage> {
               align: ContentAlign.bottom,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
                     "You can also take a photo",
@@ -258,7 +258,7 @@ class _SearchPageState extends State<SearchPage> {
               align: ContentAlign.bottom,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
                     "Or upload an image from your device",

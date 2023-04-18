@@ -78,6 +78,12 @@ List<String> SearchAlgorithmList = [
   // "TEST HIGHLIGHT"
 ];
 
+List<String> MergeAlgorithmList = [
+  "ABAB",
+  "Frequency",
+  "Original Rank",
+];
+
 // ignore: non_constant_identifier_names
 List<String> SearchPlatformList = [
   // "SmartText",
@@ -132,7 +138,11 @@ class _WebViewContainerState extends State<WebViewContainer>
         ..repeat();
 
   // settings
-  var _searchAlgorithm, _preloadNumber, _autoSwitchPlatform, _theme;
+  var _searchAlgorithm,
+      _mergeAlgorithm,
+      _preloadNumber,
+      _autoSwitchPlatform,
+      _theme;
 
   // key
   var _marqueeKey = UniqueKey();
@@ -239,7 +249,11 @@ class _WebViewContainerState extends State<WebViewContainer>
     // final algorithm = await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
-    final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
+    final mergeAlgorithm =
+        await prefs.getString("mergeAlgorithm") ?? MergeAlgorithmList[0];
+    // final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
+    final preloadNumber = await prefs.getBool("preloadNumber") ?? true;
+
     final autoSwitchPlatform = await prefs.getInt("autoSwitchPlatform") ?? 0;
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
 
@@ -254,6 +268,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _currentSearchPlatform = "Webpage";
       _searchAlgorithm = algorithm;
+      _mergeAlgorithm = mergeAlgorithm;
       _preloadNumber = preloadNumber;
       _autoSwitchPlatform = autoSwitchPlatform;
       _theme = theme;
@@ -263,7 +278,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           (MediaQuery.of(context).size.width / 2) - (_joystickWidth / 2);
     });
 
-    log("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
+    // log("_searchAlgorithm: $_searchAlgorithm | _theme: $_theme");
     // log(SearchAlgorithm.values[_searchAlgorithm].toString().split('.').last);
 
     // _refreshController = kIsWeb
@@ -306,7 +321,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const <Widget>[
                   Text(
-                    "Click to open the menu",
+                    "Menu",
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -315,7 +330,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                   Padding(
                     padding: EdgeInsets.only(top: 10.0),
                     child: Text(
-                      "This is where you access the settings page as well as showing this tutorial again.",
+                      "This is where you can access the settings page as well as revisiting this tutorial.",
                       style: TextStyle(color: Colors.white),
                     ),
                   )
@@ -336,22 +351,22 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.bottom,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
-                    "Click here to start searching",
+                    "Search",
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10.0),
+                    child: Text(
+                      "Now, click on it to start your first search.",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
                 ],
               ),
             )
@@ -369,7 +384,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: const <Widget>[
                   Text(
                     "Browse through results with the joystick",
@@ -402,7 +417,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
                     "Drag-and-drop this button to drill on anything",
@@ -435,10 +450,10 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
-                    "Click to see the search records in this search session",
+                    "Click to see the search records within the current search session",
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -501,7 +516,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
                     "Click to go back",
@@ -534,7 +549,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: const <Widget>[
                   Text(
                     "Click to share the current result",
@@ -1738,6 +1753,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  void _updateMergeAlgorithm(algorithm) {
+    setState(() {
+      _mergeAlgorithm = algorithm;
+    });
+  }
+
   void _updatePreloading(preloadNumber) {
     setState(() {
       _preloadNumber = preloadNumber;
@@ -1762,7 +1783,10 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSelectedPageIndex: _updateSelectedPageIndex,
             updateSearchAlgorithm: _updateSearchAlgorithm,
             searchAlgorithm: _searchAlgorithm,
+            updateMergeAlgorithm: _updateMergeAlgorithm,
+            mergeAlgorithm: _mergeAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
+            MergeAlgorithmList: MergeAlgorithmList,
             updatePreloading: _updatePreloading,
             preloadNumber: _preloadNumber,
             updateAutoSwitchPlatform: _updateAutoSwitchPlatform,
@@ -2722,7 +2746,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
     return PreloadPageView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      preloadPagesCount: _preloadNumber,
+      preloadPagesCount: _preloadNumber ? 1 : 0,
       // controller: _currentPreloadPageController,
       controller: platformPosition ==
               // _activatedSearchPlatforms.indexOf(

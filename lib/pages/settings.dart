@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:babstrap_settings_screen/babstrap_settings_screen.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
@@ -10,6 +11,9 @@ class SettingsPage extends StatefulWidget {
     required this.updateSearchAlgorithm,
     required this.searchAlgorithm,
     required this.SearchAlgorithmList,
+    required this.updateMergeAlgorithm,
+    required this.mergeAlgorithm,
+    required this.MergeAlgorithmList,
     required this.updatePreloading,
     required this.preloadNumber,
     required this.updateAutoSwitchPlatform,
@@ -20,11 +24,14 @@ class SettingsPage extends StatefulWidget {
   final updateSelectedPageIndex;
   final updateSearchAlgorithm;
   final searchAlgorithm;
+  final updateMergeAlgorithm;
+  final mergeAlgorithm;
   final updatePreloading;
-  final int preloadNumber;
+  final bool preloadNumber;
   final updateAutoSwitchPlatform;
   final int autoSwitchPlatform;
   final List<String> SearchAlgorithmList;
+  final List<String> MergeAlgorithmList;
   final SharedPreferences prefs;
 
   @override
@@ -32,8 +39,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // int _selectedPageIndex = selectedPageIndex;
   var _searchAlgorithm;
+  var _mergeAlgorithm;
   var _preloadNumber;
   var _autoSwitchPlatform;
 
@@ -41,6 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _searchAlgorithm = widget.searchAlgorithm;
+    _mergeAlgorithm = widget.mergeAlgorithm;
     _preloadNumber = widget.preloadNumber;
     _autoSwitchPlatform = widget.autoSwitchPlatform;
   }
@@ -49,9 +57,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () {
-        // setState(() {
-        //   _selectedPageIndex = 0;
-        // });
         widget.updateSelectedPageIndex(0);
         return Future.value(true);
       },
@@ -64,9 +69,6 @@ class _SettingsPageState extends State<SettingsPage> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new),
             onPressed: () {
-              // setState(() => {
-              //       _selectedPageIndex = 0,
-              //     }),
               widget.updateSelectedPageIndex(0);
               Navigator.of(context).pop();
             },
@@ -78,9 +80,50 @@ class _SettingsPageState extends State<SettingsPage> {
             alignment: Alignment.center,
             child: ListView(
               children: [
+                SettingsGroup(
+                  items: [
+                    // SettingsItem(
+                    //   onTap: () {},
+                    //   icons: CupertinoIcons.pencil_outline,
+                    //   iconStyle: IconStyle(),
+                    //   title: 'Appearance',
+                    //   subtitle: "Make Ziar'App yours",
+                    // ),
+                    SettingsItem(
+                      onTap: () {},
+                      backgroundColor: Colors.black,
+                      icons: Icons.next_plan,
+                      iconStyle: IconStyle(
+                        iconsColor: Colors.white,
+                        withBackground: true,
+                        backgroundColor: Colors.blue,
+                      ),
+                      title: 'Result Preloading',
+                      subtitle: "Restart the app to take effect.",
+                      trailing: Switch.adaptive(
+                        value: _preloadNumber,
+                        onChanged: (value) async {
+                          print("_preloadNumber $value");
+
+                          widget.updatePreloading(value);
+
+                          setState(() {
+                            _preloadNumber = value;
+                          });
+
+                          await widget.prefs.setBool(
+                            "preloadNumber",
+                            value,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
                 ListTile(
                   title: const Text("Search Algorithm"),
-                  subtitle: const Text("How the drill-down is performed."),
+                  subtitle:
+                      const Text("How the drill-down content is obtained."),
                   trailing: DropdownButton<String>(
                     value: _searchAlgorithm,
                     icon: const Icon(Icons.arrow_downward),
@@ -115,11 +158,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 ListTile(
-                  title: const Text("Result Preloading"),
+                  title: const Text("Merge Algorithm"),
                   subtitle: const Text(
-                      "Number of results to be preloaded. More may increase data usage. Need to restart the app to take effect."),
-                  trailing: DropdownButton<int>(
-                    value: _preloadNumber,
+                      "How the results from different platforms are merged."),
+                  trailing: DropdownButton<String>(
+                    value: _mergeAlgorithm,
                     icon: const Icon(Icons.arrow_downward),
                     elevation: 16,
                     // style: const TextStyle(color: Colors.deepPurple),
@@ -127,67 +170,105 @@ class _SettingsPageState extends State<SettingsPage> {
                       height: 2,
                       // color: _appBarColor,
                     ),
-                    onChanged: (int? value) async {
-                      print("_preloadNumber $value");
+                    onChanged: (String? value) async {
+                      print("value $value");
 
-                      widget.updatePreloading(value);
+                      widget.updateMergeAlgorithm(value);
 
                       setState(() {
-                        _preloadNumber = value;
+                        _mergeAlgorithm = value;
                       });
 
-                      await widget.prefs.setInt(
-                        "preloadNumber",
+                      await widget.prefs.setString(
+                        "mergeAlgorithm",
                         value!,
                       );
                     },
-                    items: [0, 1].asMap().entries.map(
+                    items: widget.MergeAlgorithmList.asMap().entries.map(
                       (entry) {
-                        return DropdownMenuItem<int>(
+                        return DropdownMenuItem<String>(
                           value: entry.value,
-                          child: Text(entry.value.toString()),
+                          child: Text(entry.value),
                         );
                       },
                     ).toList(),
                   ),
                 ),
-                ListTile(
-                  title: const Text("Auto Switch Platform"),
-                  subtitle: const Text(
-                      "Switch platform automatically when a new onw is selected."),
-                  trailing: DropdownButton<int>(
-                    value: _autoSwitchPlatform,
-                    icon: const Icon(Icons.arrow_downward),
-                    elevation: 16,
-                    // style: const TextStyle(color: Colors.deepPurple),
-                    underline: Container(
-                      height: 2,
-                      // color: _appBarColor,
-                    ),
-                    onChanged: (int? value) async {
-                      print("autoSwitchPlatform $value");
+                // ListTile(
+                //   title: const Text("Result Preloading"),
+                //   subtitle: const Text(
+                //       "Number of results to be preloaded. More may increase data usage. Need to restart the app to take effect."),
+                //   trailing: DropdownButton<int>(
+                //     value: _preloadNumber,
+                //     icon: const Icon(Icons.arrow_downward),
+                //     elevation: 16,
+                //     // style: const TextStyle(color: Colors.deepPurple),
+                //     underline: Container(
+                //       height: 2,
+                //       // color: _appBarColor,
+                //     ),
+                //     onChanged: (int? value) async {
+                //       print("_preloadNumber $value");
 
-                      widget.updateAutoSwitchPlatform(value);
+                //       widget.updatePreloading(value);
 
-                      setState(() {
-                        _autoSwitchPlatform = value;
-                      });
+                //       setState(() {
+                //         _preloadNumber = value;
+                //       });
 
-                      await widget.prefs.setInt(
-                        "autoSwitchPlatform",
-                        value!,
-                      );
-                    },
-                    items: [0, 1].asMap().entries.map(
-                      (entry) {
-                        return DropdownMenuItem<int>(
-                          value: entry.value,
-                          child: Text(entry.value.toString()),
-                        );
-                      },
-                    ).toList(),
-                  ),
-                ),
+                //       await widget.prefs.setInt(
+                //         "preloadNumber",
+                //         value!,
+                //       );
+                //     },
+                //     items: [0, 1].asMap().entries.map(
+                //       (entry) {
+                //         return DropdownMenuItem<int>(
+                //           value: entry.value,
+                //           child: Text(entry.value.toString()),
+                //         );
+                //       },
+                //     ).toList(),
+                //   ),
+                // ),
+
+                // ListTile(
+                //   title: const Text("Auto Switch Platform"),
+                //   subtitle: const Text(
+                //       "Switch platform automatically when a new onw is selected."),
+                //   trailing: DropdownButton<int>(
+                //     value: _autoSwitchPlatform,
+                //     icon: const Icon(Icons.arrow_downward),
+                //     elevation: 16,
+                //     // style: const TextStyle(color: Colors.deepPurple),
+                //     underline: Container(
+                //       height: 2,
+                //       // color: _appBarColor,
+                //     ),
+                //     onChanged: (int? value) async {
+                //       print("autoSwitchPlatform $value");
+
+                //       widget.updateAutoSwitchPlatform(value);
+
+                //       setState(() {
+                //         _autoSwitchPlatform = value;
+                //       });
+
+                //       await widget.prefs.setInt(
+                //         "autoSwitchPlatform",
+                //         value!,
+                //       );
+                //     },
+                //     items: [0, 1].asMap().entries.map(
+                //       (entry) {
+                //         return DropdownMenuItem<int>(
+                //           value: entry.value,
+                //           child: Text(entry.value.toString()),
+                //         );
+                //       },
+                //     ).toList(),
+                //   ),
+                // ),
               ],
             ),
             // SettingsList(
