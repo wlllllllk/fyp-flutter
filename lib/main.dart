@@ -59,9 +59,9 @@ void main() async {
   runApp(
     MaterialApp(
       theme: ThemeData(
-          // colorSchemeSeed: Color.fromARGB(255, 49, 83, 97),
+          colorSchemeSeed: const Color.fromARGB(255, 74, 137, 164),
           useMaterial3: true),
-      home: WebViewContainer(),
+      home: const WebViewContainer(),
       builder: EasyLoading.init(),
     ),
   );
@@ -3015,66 +3015,69 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     // log("platforms.values.toList(): ${platforms.values.toList()}");
-    // ! PROBLEM: results are merged alphabetically (platform name), not in sequence as declared
+    // ! PROBLEM(?): results are merged alphabetically (platform name), not in sequence as declared
+    // merge the results (ABAB)
     var mergedResults = _mergeResults(platforms.values.toList());
 
-    Map webpageHashes = {};
-    Map webpageFrequency = {};
-    for (int i = 0; i < mergedResults.length; i++) {
-      // var hash = await _getWebpageHash(mergedResults[i]["link"]);
-      // log("smart hash: $hash");
-      // if (webpageHashes[hash] == null) {
-      //   webpageHashes[hash] = 1;
-      // } else {
-      //   webpageHashes[hash] += 1;
-      // }
-      if (webpageFrequency[mergedResults[i]["link"]] == null) {
-        webpageFrequency[mergedResults[i]["link"]] = 1;
-      } else {
-        webpageFrequency[mergedResults[i]["link"]] += 1;
-      }
-    }
-
-    // Convert the map entries to a list
-    List<MapEntry> entries = webpageFrequency.entries.toList();
-
-    // Sort the list based on the values in ascending order
-    entries.sort((a, b) => b.value.compareTo(a.value));
-
-    // Create a new map from the sorted list
-    Map sortedWebpageFrequency = Map.fromEntries(entries);
+    // Map webpageHashes = {};
 
     // log("webpageHashes: $webpageHashes");
     // log("mergedResults: $mergedResults");
-    log("webpageFrequency: $webpageFrequency");
-    log("sortedWebpageFrequency: $sortedWebpageFrequency");
 
     log("mergedResults.toList(): ${mergedResults.toList()}");
-    // var test = mergedResults.firstWhere(
-    //     (element) => element["title"] == "The University of Hong Kong (HKU)");
-    // log("test: ${test}");
-
-    List finalSortedList = [];
-    List links = sortedWebpageFrequency.keys.toList();
-    // log("keys: ${links}");
-
-    for (int i = 0; i < sortedWebpageFrequency.length; i++) {
-      log("keys[i]: ${links[i]}");
-
-      finalSortedList.add({
-        "title": mergedResults
-            .firstWhere((element) => element["link"] == links[i])["title"],
-        "link": links[i]
-      });
-    }
-
-    log("finalSortedList: $finalSortedList");
 
     // TODO: algorithm to sort
     // rank + frequency
+    switch (_mergeAlgorithm) {
+      case "ABAB":
+        return mergedResults;
+      case "Frequency":
+        // merge identical (similar?) results
+        Map webpageFrequency = {};
+        for (int i = 0; i < mergedResults.length; i++) {
+          // var hash = await _getWebpageHash(mergedResults[i]["link"]);
+          // log("smart hash: $hash");
+          // if (webpageHashes[hash] == null) {
+          //   webpageHashes[hash] = 1;
+          // } else {
+          //   webpageHashes[hash] += 1;
+          // }
+          if (webpageFrequency[mergedResults[i]["link"]] == null) {
+            webpageFrequency[mergedResults[i]["link"]] = 1;
+          } else {
+            webpageFrequency[mergedResults[i]["link"]] += 1;
+          }
+        }
+
+        List<MapEntry> entries = webpageFrequency.entries.toList();
+        entries.sort(
+            (a, b) => b.value.compareTo(a.value)); // sort in ascending order
+        Map sortedWebpageFrequency = Map.fromEntries(entries);
+
+        log("webpageFrequency: $webpageFrequency");
+        log("sortedWebpageFrequency: $sortedWebpageFrequency");
+
+        List finalSortedList = [];
+        List links = sortedWebpageFrequency.keys.toList();
+
+        for (int i = 0; i < sortedWebpageFrequency.length; i++) {
+          // log("keys[i]: ${links[i]}");
+
+          finalSortedList.add({
+            "title": mergedResults
+                .firstWhere((element) => element["link"] == links[i])["title"],
+            "link": links[i]
+          });
+        }
+
+        log("finalSortedList: $finalSortedList");
+
+        return finalSortedList;
+      case "Original Rank":
+        return mergedResults;
+    }
 
     // return mergedResults;
-    return finalSortedList;
 
     // List test = [];
     // int i = 0;
