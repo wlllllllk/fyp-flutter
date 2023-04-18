@@ -95,7 +95,7 @@ List<String> SearchPlatformList = [
   // "Instagram",
   // "LinkedIn",
   // "SmartImage",
-  "Webpage",
+  "General",
   "Video",
   "SNS",
 ];
@@ -266,7 +266,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     //     await Isar.open([SearchRecordSchema], name: "SearchRecord");
 
     setState(() {
-      _currentSearchPlatform = "Webpage";
+      _currentSearchPlatform = "General";
       _searchAlgorithm = algorithm;
       _mergeAlgorithm = mergeAlgorithm;
       _preloadNumber = preloadNumber;
@@ -2941,7 +2941,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   _mergeSearch(String type) async {
     Map platforms = {};
     switch (type) {
-      case "Webpage":
+      case "General":
         platforms = {
           "Google": {},
           "Bing": {},
@@ -3286,7 +3286,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   _platformIconBuilder(String platform) {
     switch (platform) {
-      case "Webpage":
+      case "General":
         // return const Icon(
         //   FontAwesome.wand_magic_sparkles,
         //   size: 24,
