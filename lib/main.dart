@@ -34,6 +34,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:crypto/crypto.dart';
 import 'package:html/parser.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
@@ -98,6 +99,12 @@ List<String> SearchPlatformList = [
   "General",
   "Video",
   "SNS",
+];
+
+List<String> GeneralResultType = [
+  "All",
+  "Duplicated",
+  "Unique",
 ];
 
 // // ignore: non_constant_identifier_names
@@ -188,7 +195,8 @@ class _WebViewContainerState extends State<WebViewContainer>
       _currentSearchPlatform = "",
       _prevSearchPlatform = "",
       _webpageContent = "",
-      _currentWebViewTitle = "";
+      _currentWebViewTitle = "",
+      _generalResultType = GeneralResultType[0];
   bool _isSearching = false, _gg = false, _isImageSearch = false;
   List _currentURLs = [];
   int _currentURLIndex = 0,
@@ -219,6 +227,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   bool _isFetching = false;
   var _currentImage;
   bool _isTutorial = false;
+  var _isDialOpen = ValueNotifier<bool>(false);
 
   //regex
   var containNonEnglish = RegExp(r'^\w+');
@@ -1030,6 +1039,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     String cleanUrl(String url) {
       String cleaned = url;
       // url.replaceFirst("http://", "https://").replaceFirst("https://", "");
+      // ! REAL GOOD?
+      cleaned = cleaned.replaceFirst(RegExp(r'^(http:\/\/)'), "https://");
+      // log("cleaned: $cleaned");
       if (endsWithSlash.hasMatch(cleaned)) {
         cleaned = cleaned.substring(0, cleaned.length - 1);
       }
@@ -1081,7 +1093,8 @@ class _WebViewContainerState extends State<WebViewContainer>
             items.add({
               "title": jsonResponse['webPages']['value'][0]['name'],
               "link":
-                  cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
+                  // cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
+                  cleanUrl(jsonResponse['webPages']['value'][0]['url']),
               "rank": 1,
             });
 
@@ -1940,7 +1953,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       });
     }
 
-    keyword = keyword.trim();
+    keyword = "$currentSearchText ${keyword.trim()}";
     log("drilling... 2| $keyword");
 
     log("keyword length: ${keyword.split(' ').length}, ${keyword.length}");
@@ -2938,6 +2951,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
+  _toggleGeneralResults(String type) {
+    log("type: $type |${URLs[_searchText][_currentSearchPlatform]}");
+  }
+
   _mergeSearch(String type) async {
     Map platforms = {};
     switch (type) {
@@ -3026,58 +3043,185 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     log("mergedResults.toList(): ${mergedResults.toList()}");
 
-    // TODO: algorithm to sort
-    // rank + frequency
-    switch (_mergeAlgorithm) {
-      case "ABAB":
-        return mergedResults;
-      case "Frequency":
-        // merge identical (similar?) results
-        Map webpageFrequency = {};
-        for (int i = 0; i < mergedResults.length; i++) {
-          // var hash = await _getWebpageHash(mergedResults[i]["link"]);
-          // log("smart hash: $hash");
-          // if (webpageHashes[hash] == null) {
-          //   webpageHashes[hash] = 1;
-          // } else {
-          //   webpageHashes[hash] += 1;
-          // }
-          if (webpageFrequency[mergedResults[i]["link"]] == null) {
-            webpageFrequency[mergedResults[i]["link"]] = 1;
-          } else {
-            webpageFrequency[mergedResults[i]["link"]] += 1;
+    if (type == "General") {
+      switch (_mergeAlgorithm) {
+        case "ABAB":
+          return mergedResults;
+        case "Frequency":
+          // merge identical (similar?) results
+          Map webpageFrequency = {};
+          for (int i = 0; i < mergedResults.length; i++) {
+            // var hash = await _getWebpageHash(mergedResults[i]["link"]);
+            // log("smart hash: $hash");
+            // if (webpageHashes[hash] == null) {
+            //   webpageHashes[hash] = 1;
+            // } else {
+            //   webpageHashes[hash] += 1;
+            // }
+            if (webpageFrequency[mergedResults[i]["link"]] == null) {
+              webpageFrequency[mergedResults[i]["link"]] = 1;
+            } else {
+              webpageFrequency[mergedResults[i]["link"]] += 1;
+            }
           }
-        }
 
-        List<MapEntry> entries = webpageFrequency.entries.toList();
-        entries.sort(
-            (a, b) => b.value.compareTo(a.value)); // sort in ascending order
-        Map sortedWebpageFrequency = Map.fromEntries(entries);
+          List<MapEntry> entries = webpageFrequency.entries.toList();
+          entries.sort(
+              (a, b) => b.value.compareTo(a.value)); // sort in descending order
+          Map sortedWebpageFrequency = Map.fromEntries(entries);
 
-        log("webpageFrequency: $webpageFrequency");
-        log("sortedWebpageFrequency: $sortedWebpageFrequency");
+          log("webpageFrequency: $webpageFrequency");
+          log("sortedWebpageFrequency: $sortedWebpageFrequency");
 
-        List finalSortedList = [];
-        List links = sortedWebpageFrequency.keys.toList();
+          List finalSortedList = [];
+          List links = sortedWebpageFrequency.keys.toList();
 
-        for (int i = 0; i < sortedWebpageFrequency.length; i++) {
-          // log("keys[i]: ${links[i]}");
+          for (int i = 0; i < sortedWebpageFrequency.length; i++) {
+            // log("keys[i]: ${links[i]}");
 
-          finalSortedList.add({
-            "title": mergedResults
-                .firstWhere((element) => element["link"] == links[i])["title"],
-            "link": links[i]
-          });
-        }
+            finalSortedList.add({
+              "title": mergedResults.firstWhere(
+                  (element) => element["link"] == links[i])["title"],
+              "link": links[i]
+            });
+          }
 
-        log("finalSortedList: $finalSortedList");
+          log("finalSortedList: $finalSortedList");
+          log("merged: ${finalSortedList.length / mergedResults.length}");
 
-        return finalSortedList;
-      case "Original Rank":
-        return mergedResults;
+          final snackBar = SnackBar(
+            content: Text(
+                "From ${mergedResults.length} to ${finalSortedList.length} | ${finalSortedList.length / mergedResults.length}"),
+            duration: const Duration(seconds: 3),
+          );
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+          return finalSortedList;
+        case "Original Rank":
+          /*
+        base score: no. of all results / no. of platforms
+        score per result: base score / rank
+        */
+
+          Map webpageScore = {};
+          double baseScore = mergedResults.length / platforms.length;
+          log("baseScore: $baseScore");
+
+          // for every appearance, score will be added
+          for (int i = 0; i < mergedResults.length; i++) {
+            if (webpageScore[mergedResults[i]["link"]] == null) {
+              webpageScore[mergedResults[i]["link"]] = {
+                "rank": [mergedResults[i]["rank"]],
+                "score": baseScore / mergedResults[i]["rank"]
+              };
+            } else {
+              // webpageScore[mergedResults[i]["link"]] +=
+              //     baseScore / mergedResults[i]["rank"];
+              webpageScore[mergedResults[i]["link"]] = {
+                "rank": [
+                  ...webpageScore[mergedResults[i]["link"]]["rank"],
+                  mergedResults[i]["rank"]
+                ],
+                "score": webpageScore[mergedResults[i]["link"]]["score"] +
+                    (baseScore / mergedResults[i]["rank"])
+              };
+            }
+          }
+
+          Iterable keys = webpageScore.keys;
+
+          log("test $keys");
+
+          for (int i = 0; i < keys.length; i++) {
+            var current = keys.elementAt(i);
+            log("current $current");
+            for (int j = i + 1; j < webpageScore.length; j++) {
+              var compare = keys.elementAt(j);
+              log("compare $compare");
+              if (webpageScore[current]['rank'][0] ==
+                  webpageScore[compare]['rank'][0]) {
+                log("real same $current(${webpageScore[current]}) is substring of $compare(${webpageScore[compare]})");
+
+                // keep the longerone (longest prefix match)
+                if (compare.contains(current)) {
+                  log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+
+                  webpageScore[compare] = {
+                    "rank": [
+                      ...webpageScore[current]["rank"],
+                      ...webpageScore[compare]["rank"]
+                    ],
+                    "score": webpageScore[current]["score"] +
+                        webpageScore[compare]["score"]
+                  };
+                  webpageScore[current] = {
+                    "rank": [0],
+                    "score": 0
+                  };
+                } else if (current.contains(compare)) {
+                  log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+
+                  webpageScore[compare] = {
+                    "rank": [
+                      ...webpageScore[current]["rank"],
+                      ...webpageScore[compare]["rank"],
+                    ],
+                    "score": webpageScore[current]["score"] +
+                        webpageScore[compare]["score"]
+                  };
+                  webpageScore[current] = {
+                    "rank": [0],
+                    "score": 0
+                  };
+                }
+              }
+            }
+          }
+
+          // remove the duplicate results as it has been merged above
+          webpageScore.removeWhere((key, value) => value["rank"][0] == 0);
+
+          List<MapEntry> entries = webpageScore.entries.toList();
+          entries.sort((a, b) => b.value["score"]
+              .compareTo(a.value["score"])); // sort in descending order
+          Map sortedWebpageScore = Map.fromEntries(entries);
+
+          List links = sortedWebpageScore.keys.toList();
+
+          log("webpageScore: $webpageScore");
+          log("sortedWebpageScore: $sortedWebpageScore");
+
+          List finalSortedList = [];
+
+          for (int i = 0; i < sortedWebpageScore.length; i++) {
+            // log("keys[i]: ${links[i]}");
+
+            finalSortedList.add({
+              "title": mergedResults.firstWhere(
+                  (element) => element["link"] == links[i])["title"],
+              "link": links[i],
+              "unique": sortedWebpageScore[links[i]]["rank"].length == 1
+                  ? true
+                  : false,
+            });
+          }
+
+          log("finalSortedList: $finalSortedList");
+          log("merged: ${finalSortedList.length / mergedResults.length}");
+
+          final snackBar = SnackBar(
+            content: Text(
+                "From ${mergedResults.length} to ${finalSortedList.length} | ${finalSortedList.length / mergedResults.length}"),
+            duration: const Duration(seconds: 3),
+          );
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          return finalSortedList;
+      }
     }
 
-    // return mergedResults;
+    return mergedResults;
 
     // List test = [];
     // int i = 0;
@@ -3633,41 +3777,86 @@ class _WebViewContainerState extends State<WebViewContainer>
                       // _hoverY >= 0 ? await _getSearchQuery() : log("cancel");
                       _hoverY >= 0 ? _performDrill() : log("cancel");
                     },
-                    child: FloatingActionButton(
-                      onPressed: () {
-                        log("fab tapped");
-                        // _changeSearchPlatform();
+                    child:
+                        // FloatingActionButton(
+                        //   onPressed: () {
+                        //     log("fab tapped");
+                        //     // _changeSearchPlatform();
 
-                        // // count down 5 seconds
-                        // if (_autoSwitchPlatform == 1) {
-                        //   if (_platformActivationTimer == null) {
-                        //     _platformActivationTimer = RestartableTimer(
-                        //         const Duration(seconds: 2), () async {
-                        //       _normalSearch();
-                        //     });
-                        //   } else {
-                        //     _platformActivationTimer!.reset();
-                        //   }
-                        // }
-                      },
-                      // label: Text(_currentSearchPlatform),
-                      backgroundColor: _fabColor,
-                      splashColor: Colors.amber[100],
-                      child: const Icon(MyFlutterApp.drill),
-                      // child: AnimatedBuilder(
-                      //   animation: _drillingAnimationController,
-                      //   builder: (_, child) {
-                      //     return Transform.rotate(
-                      //       angle: _drilling
-                      //           ? _drillingAnimationController.value *
-                      //               2 *
-                      //               math.pi
-                      //           : 0.0,
-                      //       child: child,
-                      //     );
-                      //   },
-                      //   child: const Icon(MyFlutterApp.drill),
-                      // ),
+                        //     // // count down 5 seconds
+                        //     // if (_autoSwitchPlatform == 1) {
+                        //     //   if (_platformActivationTimer == null) {
+                        //     //     _platformActivationTimer = RestartableTimer(
+                        //     //         const Duration(seconds: 2), () async {
+                        //     //       _normalSearch();
+                        //     //     });
+                        //     //   } else {
+                        //     //     _platformActivationTimer!.reset();
+                        //     //   }
+                        //     // }
+                        //   },
+                        //   // label: Text(_currentSearchPlatform),
+                        //   backgroundColor: _fabColor,
+                        //   splashColor: Colors.amber[100],
+                        //   child: const Icon(MyFlutterApp.drill),
+                        //   // child: AnimatedBuilder(
+                        //   //   animation: _drillingAnimationController,
+                        //   //   builder: (_, child) {
+                        //   //     return Transform.rotate(
+                        //   //       angle: _drilling
+                        //   //           ? _drillingAnimationController.value *
+                        //   //               2 *
+                        //   //               math.pi
+                        //   //           : 0.0,
+                        //   //       child: child,
+                        //   //     );
+                        //   //   },
+                        //   //   child: const Icon(MyFlutterApp.drill),
+                        //   // ),
+                        // ),
+                        SpeedDial(
+                      spacing: 10,
+                      spaceBetweenChildren: 10,
+                      openCloseDial: _isDialOpen,
+                      // icon: Icons.add,
+                      icon: MyFlutterApp.drill,
+                      // onOpen: () => debugPrint('OPENING DIAL'),
+                      // onClose: () => debugPrint('DIAL CLOSED'),
+                      children: _currentSearchPlatform == "General"
+                          ? [
+                              SpeedDialChild(
+                                child: const Icon(BoxIcons.bx_border_all),
+                                backgroundColor: Colors.indigo,
+                                foregroundColor: Colors.white,
+                                label: 'All',
+                                onTap: () {
+                                  debugPrint('FIRST CHILD LONG PRESS');
+                                  _toggleGeneralResults("All");
+                                },
+                              ),
+                              SpeedDialChild(
+                                child: const Icon(BoxIcons.bx_duplicate),
+                                backgroundColor: Colors.indigo,
+                                foregroundColor: Colors.white,
+                                label: 'Duplicated',
+                                onTap: () {
+                                  debugPrint('SECOND CHILD');
+                                  _toggleGeneralResults("Duplicated");
+                                },
+                              ),
+                              SpeedDialChild(
+                                child: const Icon(FontAwesome.fingerprint),
+                                backgroundColor: Colors.indigo,
+                                foregroundColor: Colors.white,
+                                label: 'Unique',
+                                // visible: true,
+                                onTap: () {
+                                  debugPrint('SECOND CHILD');
+                                  _toggleGeneralResults("Unique");
+                                },
+                              ),
+                            ]
+                          : [],
                     ),
                   ),
                 ),
@@ -3694,16 +3883,54 @@ class _WebViewContainerState extends State<WebViewContainer>
                               //   },
 
                               // TODO: show currently searching image
-                              if (_currentImage != null)
-                                Positioned(
-                                  top: 0,
-                                  child: Image.file(
-                                    File(_currentImage.path),
-                                    fit: BoxFit.cover,
-                                    width: MediaQuery.of(context).size.width,
-                                    height: MediaQuery.of(context).size.height,
-                                  ),
-                                ),
+                              // if (_currentImage != null)
+                              //   Positioned(
+                              //     top: 0,
+                              //     child: Image.file(
+                              //       File(_currentImage.path),
+                              //       fit: BoxFit.cover,
+                              //       width: MediaQuery.of(context).size.width,
+                              //       height: MediaQuery.of(context).size.height,
+                              //     ),
+                              //   ),
+
+                              // TabBar(
+                              //   tabs: [
+                              //     Tab(icon: Icon(Icons.directions_car)),
+                              //     Tab(icon: Icon(Icons.directions_transit)),
+                              //     Tab(icon: Icon(Icons.directions_bike)),
+                              //   ],
+                              // ),
+                              // Positioned(
+                              //   top: 0,
+                              //   width: MediaQuery.of(context).size.width,
+                              //   child: Padding(
+                              //     padding: const EdgeInsets.only(
+                              //         left: 16.0, right: 16.0, bottom: 16.0),
+                              //     child: SegmentedButton(
+                              //       // key: _platformsKey,
+                              //       segments: GeneralResultType.map(
+                              //         (e) => ButtonSegment(
+                              //           value: e,
+                              //           label: Text(e),
+                              //           // icon: widget.platformIconBuilder(e),
+                              //         ),
+                              //       ).toList(),
+                              //       selected: {_generalResultType},
+                              //       onSelectionChanged: (newSelection) {
+                              //         log("newSelection $newSelection");
+
+                              //         setState(() {
+                              //           // By default there is only a single segment that can be
+                              //           // selected at one time, so its value is always the first
+                              //           // item in the selected set.
+                              //           _generalResultType =
+                              //               newSelection.first.toString();
+                              //         });
+                              //       },
+                              //     ),
+                              //   ),
+                              // ),
 
                               // Title Bar
                               Positioned(
