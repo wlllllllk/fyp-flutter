@@ -393,13 +393,18 @@ _imageSearch(src, path, name) async {
           }
         ]
       }));
+
       List<vision.EntityAnnotation> entities;
       var logoOutput;
+
       _response.responses?.forEach((data) {
-        entities = data.logoAnnotations as List<vision.EntityAnnotation>;
-        logoOutput = entities[0].description;
+        if (_response.responses != null) {
+          entities = data.logoAnnotations as List<vision.EntityAnnotation>;
+          logoOutput = entities[0].description;
+        }
       });
       print(logoOutput);
+      return logoOutput;
     }
 
     Future TextDetection(String image) async {
@@ -422,7 +427,9 @@ _imageSearch(src, path, name) async {
       List<vision.EntityAnnotation>? entities;
 
       _response.responses?.forEach((data) {
-        entities = data.textAnnotations as List<vision.EntityAnnotation>?;
+        if (_response.responses != null) {
+          entities = data.textAnnotations as List<vision.EntityAnnotation>?;
+        }
       });
       if (entities == null) {
         print("No words is detected");
@@ -605,7 +612,7 @@ _imageSearch(src, path, name) async {
 
       //?mkt=zh-HK&setLang=EN
       var uri = Uri.parse(
-          'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=en-US');
+          'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=zh-HK&setLang=EN');
       var headers = {
         'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
       };
@@ -692,23 +699,6 @@ _imageSearch(src, path, name) async {
           });
         }
 
-        bingVisualObject.forEach((value) async {
-          // print("fetch URL: ==============");
-          //  print("Website name: ${value['name']}");
-          // print("website: ${value['hostPageUrl']}");
-
-          final isShopping = isShoppingWebsite(value['hostPageUrl']);
-          if (isShopping) {
-            shoppingResult.add(value['hostPageUrl']);
-          }
-          print('Is the URL a shopping website? $isShopping');
-
-          Result.add({
-            'title': value['name'].toString(),
-            'link': value['hostPageUrl'].toString(),
-          });
-        });
-
         List bestGuessList = [];
 
         if (bingVisualQuery != null) {
@@ -729,18 +719,34 @@ _imageSearch(src, path, name) async {
             if (bingBestRepresentation != null) {
               bestGuessLabel.add(bingBestRepresentation);
             } else {
-              bestGuessLabel.add(bingVisualQuery[0]['displaytext']);
+              bestGuessLabel.add(bingVisualObject[0]['name']);
               // results.addAll({'BestGuessList': bestGuessList});
             }
-
-            // if (bestGuessLabel == null) {
-            //    bestGuessLabel.add(bingBestRepresentation);
-            //  }
           }
 
           print(bestGuessLabel);
           results.addAll({'bestGuessList': bestGuessList});
           print(bestGuessList);
+        }
+
+        bingVisualObject.forEach((value) async {
+          // print("fetch URL: ==============");
+          //  print("Website name: ${value['name']}");
+          // print("website: ${value['hostPageUrl']}");
+
+          final isShopping = isShoppingWebsite(value['hostPageUrl']);
+          if (isShopping) {
+            shoppingResult.add(value['hostPageUrl']);
+          }
+          print('Is the URL a shopping website? $isShopping');
+
+          Result.add({
+            'title': value['name'].toString(),
+            'link': value['hostPageUrl'].toString(),
+          });
+        });
+        if (bestGuessLabel.length <= 0) {
+          bestGuessLabel.add(bingVisualObject[0]['name']);
         }
       } else {
         print('Failed to upload image. Error code: ${response.statusCode}');
@@ -757,63 +763,10 @@ _imageSearch(src, path, name) async {
       return results;
     }
 
-    Future<void> reverseImageSearch(String base64Image) async {
-      final String apiKey =
-          '49otMRRr4phoMsDZhG20FzEgCL4mFZxL5cgcKwjPrvGNSCN4hd2XaB2J';
-      final String apiUrl = 'https://api.pexels.com/v1/search';
-
-      try {
-        final response = await http.post(
-          Uri.parse(apiUrl),
-          headers: {
-            'Authorization': apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: json.encode({
-            'image': base64Image,
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          print('Search results: $data');
-        } else {
-          print('Failed to search image: ${response.statusCode}');
-        }
-      } catch (e) {
-        print('Error: $e');
-      }
-    }
-
-    /*Future RealTimeLens(String imgpath, String img64) async {
-      final Map<String, String> headers = {
-        "X-RapidAPI-Key": "57fb476aadmshaeb10df1eff1d43p1ba1a8jsn49e56a4ae5eb",
-        "X-RapidAPI-Host": "real-time-lens-data.p.rapidapi.com",
-      };
-      final mimeType = lookupMimeType(img64);
-      final base64DataUrl = 'data:$mimeType;base64,$img64';
-      final response = await http.get(
-        Uri.parse(
-            'https://real-time-lens-data.p.rapidapi.com/search?url=data:image/png;base64,$img64'),
-        headers: {
-          'X-RapidAPI-Key':
-              'a14d6ef5d5mshbe6ff49de86cc26p1239e6jsn6135f7ad61b7',
-          'X-RapidAPI-Host': 'real-time-lens-data.p.rapidapi.com',
-        },
-      );
-      if (response.statusCode == 200) {
-        print("Success Real Time");
-        print(response.body);
-      } else {
-        print("failed");
-      }
-    }*/
-
     //  print(await RealTimeLens(path, img64));
 
     var imgURI = "";
-    var Pexel = reverseImageSearch(img64);
-    //var RealTime = await RealTimeLens(path, img64);
+
     var bingVisualResult = BingSearch(path, img64, imgURI);
 
     //print(text['bestGuessLabel']);
@@ -830,14 +783,22 @@ _imageSearch(src, path, name) async {
     final keyGoogle = Google.keys.toList();
 
     Map output = {};
+    List bingBestGuessList = [];
     String bestguessBing = bing["bestGuessLabel"][0];
-    List bingBestGuessList = bing["bestGuessList"];
+    if (bing["bestGuessList"] != null) {
+      bingBestGuessList = bing["bestGuessList"];
+    }
+
     String bestguessGoogle = Google["bestGuessLabel"];
+    List textOCR = await TextDetection(img64);
+    String logoDetect = await logoDetection(img64);
 
     Map<dynamic, dynamic> outputMerge = {
       "bestGuessLabel1": bestguessBing,
       "bestGuessLabel2": bestguessGoogle,
       "bestGuessList": bingBestGuessList,
+      "OCRtextList": textOCR,
+      "LogoDetect": logoDetect,
     };
     var bingCount = 0;
     var GoogleCount = 0;
@@ -864,9 +825,6 @@ _imageSearch(src, path, name) async {
     outputMerge.addAll({'urls': mergeList});
 
     print("Merge List ${outputMerge}");
-
-    // TextDetection(img64);
-    // logoDetection(img64);
 
     // print("results = ${await Future.value(results)}");
 
