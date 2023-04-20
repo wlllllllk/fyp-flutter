@@ -148,6 +148,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _searchAlgorithm,
       _mergeAlgorithm,
       _preloadNumber,
+      _reverseJoystick,
       _autoSwitchPlatform,
       _theme;
 
@@ -262,7 +263,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         await prefs.getString("mergeAlgorithm") ?? MergeAlgorithmList[0];
     // final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final preloadNumber = await prefs.getBool("preloadNumber") ?? true;
-
+    final reverseJoystick = await prefs.getBool("reverseJoystick") ?? false;
     final autoSwitchPlatform = await prefs.getInt("autoSwitchPlatform") ?? 0;
     final theme = await prefs.getInt("theme") ?? Theme.Light.index;
 
@@ -279,6 +280,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       _searchAlgorithm = algorithm;
       _mergeAlgorithm = mergeAlgorithm;
       _preloadNumber = preloadNumber;
+      _reverseJoystick = reverseJoystick;
       _autoSwitchPlatform = autoSwitchPlatform;
       _theme = theme;
       _isar = isar!;
@@ -1038,13 +1040,18 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     String cleanUrl(String url) {
       String cleaned = url;
-      // url.replaceFirst("http://", "https://").replaceFirst("https://", "");
+      // cleaned.replaceFirst("http://", "https://").replaceFirst("https://", "");
       // ! REAL GOOD?
-      cleaned = cleaned.replaceFirst(RegExp(r'^(http:\/\/)'), "https://");
-      // log("cleaned: $cleaned");
-      if (endsWithSlash.hasMatch(cleaned)) {
-        cleaned = cleaned.substring(0, cleaned.length - 1);
-      }
+      // cleaned = cleaned.replaceFirst(RegExp(r'^(http:\/\/)'), "https://");
+      // cleaned = cleaned
+      //     .replaceFirst(RegExp(r'^(http:\/\/)'), "")
+      //     .replaceFirst(RegExp(r'^(https:\/\/)'), "");
+
+      log("cleaned: $cleaned");
+
+      // if (endsWithSlash.hasMatch(cleaned)) {
+      //   cleaned = cleaned.substring(0, cleaned.length - 1);
+      // }
       return cleaned;
     }
 
@@ -1072,6 +1079,10 @@ class _WebViewContainerState extends State<WebViewContainer>
               items.add({
                 "title": results[i]['title'],
                 "link": cleanUrl(results[i]['link'].toString()),
+                "snippet": results[i]['snippet']
+                    .toString()
+                    .trim()
+                    .replaceAll(RegExp(r'(\.\.\.)$'), ""),
                 "rank": i + 1,
               });
             }
@@ -1095,6 +1106,10 @@ class _WebViewContainerState extends State<WebViewContainer>
               "link":
                   // cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
                   cleanUrl(jsonResponse['webPages']['value'][0]['url']),
+              "snippet": jsonResponse['webPages']['value'][0]['snippet']
+                  .toString()
+                  .trim()
+                  .replaceAll(RegExp(r'(\.\.\.)$'), ""),
               "rank": 1,
             });
 
@@ -1113,6 +1128,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                 items.add({
                   "title": current['name'],
                   "link": cleanUrl(current['url']),
+                  "snippet": current['snippet']
+                      .toString()
+                      .trim()
+                      .replaceAll(RegExp(r'(\.\.\.)$'), ""),
                   "rank": rank,
                 });
                 rank++;
@@ -1123,6 +1142,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                     items.add({
                       "title": currentDeeper['name'],
                       "link": cleanUrl(currentDeeper['url']),
+                      "snippet": currentDeeper['snippet']
+                          .toString()
+                          .trim()
+                          .replaceAll(RegExp(r'(\.\.\.)$'), ""),
                       "rank": rank,
                     });
                     rank++;
@@ -1160,6 +1183,8 @@ class _WebViewContainerState extends State<WebViewContainer>
             // Extract title and URL elements
             final titleElements = document.querySelectorAll('.result__title');
             final urlElements = document.querySelectorAll('.result__url');
+            final snippetElements =
+                document.querySelectorAll('.result__snippet');
 
             // Extract title and URL data
             final titles = titleElements
@@ -1169,6 +1194,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                 .map((element) =>
                     getActualUrl(element.attributes['href'].toString()))
                 .toList();
+            final snippets = snippetElements
+                .map((element) => element.text.toString().trim())
+                .toList();
 
             // Print extracted data
             for (int i = 0; i < titles.length; i++) {
@@ -1176,6 +1204,10 @@ class _WebViewContainerState extends State<WebViewContainer>
               items.add({
                 "title": titles[i],
                 "link": cleanUrl(urls[i]),
+                "snippet": snippets[i]
+                    .toString()
+                    .trim()
+                    .replaceAll(RegExp(r'(\.\.\.)$'), ""),
                 "rank": i + 1
               });
             }
@@ -1698,25 +1730,26 @@ class _WebViewContainerState extends State<WebViewContainer>
       MaterialPageRoute(
         builder: (context) {
           return SearchPage(
-              realSearchText: _searchText,
-              handleSearch: _handleSearch,
-              performSearch: _performSearch,
-              updateURLs: _updateURLs,
-              updateCurrentURLs: _updateCurrentURLs,
-              moveSwiper: _moveSwiper,
-              updateSearchText: _updateSearchText,
-              searchPlatformList: SearchPlatformList,
-              currentPlatform: _currentSearchPlatform,
-              setImageSearch: _setImageSearch,
-              searchRecords: _searchRecords,
-              updateSearchRecord: _updateSearchRecord,
-              platformIconBuilder: _platformIconBuilder,
-              imageSearchGoogle: _imageSearchGoogle,
-              imageSearchBing: _imageSearchBing,
-              mergeResults: _mergeResults,
-              updateCurrentImage: _updateCurrentImage,
-              mergeSearch: _mergeSearch,
-              isTutorial: _isTutorial);
+            realSearchText: _searchText,
+            handleSearch: _handleSearch,
+            performSearch: _performSearch,
+            updateURLs: _updateURLs,
+            updateCurrentURLs: _updateCurrentURLs,
+            moveSwiper: _moveSwiper,
+            updateSearchText: _updateSearchText,
+            searchPlatformList: SearchPlatformList,
+            currentPlatform: _currentSearchPlatform,
+            setImageSearch: _setImageSearch,
+            searchRecords: _searchRecords,
+            updateSearchRecord: _updateSearchRecord,
+            platformIconBuilder: _platformIconBuilder,
+            imageSearchGoogle: _imageSearchGoogle,
+            imageSearchBing: _imageSearchBing,
+            mergeResults: _mergeResults,
+            updateCurrentImage: _updateCurrentImage,
+            mergeSearch: _mergeSearch,
+            isTutorial: _isTutorial,
+          );
         },
       ),
     );
@@ -1772,7 +1805,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  void _updatePreloading(preloadNumber) {
+  void _updatePreloadNumber(preloadNumber) {
     setState(() {
       _preloadNumber = preloadNumber;
     });
@@ -1781,6 +1814,12 @@ class _WebViewContainerState extends State<WebViewContainer>
   void _updateAutoSwitchPlatform(value) {
     setState(() {
       _autoSwitchPlatform = value;
+    });
+  }
+
+  void _updateReverseJoystick(value) {
+    setState(() {
+      _reverseJoystick = value;
     });
   }
 
@@ -1800,10 +1839,12 @@ class _WebViewContainerState extends State<WebViewContainer>
             mergeAlgorithm: _mergeAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
             MergeAlgorithmList: MergeAlgorithmList,
-            updatePreloading: _updatePreloading,
+            updatePreloadNumber: _updatePreloadNumber,
             preloadNumber: _preloadNumber,
             updateAutoSwitchPlatform: _updateAutoSwitchPlatform,
             autoSwitchPlatform: _autoSwitchPlatform,
+            updateReverseJoystick: _updateReverseJoystick,
+            reverseJoystick: _reverseJoystick,
             prefs: prefs,
           );
         },
@@ -3100,9 +3141,13 @@ class _WebViewContainerState extends State<WebViewContainer>
           return finalSortedList;
         case "Original Rank":
           /*
-        base score: no. of all results / no. of platforms
-        score per result: base score / rank
-        */
+          base score: no. of all results / no. of platforms
+          score per result: base score / rank
+
+          http://admission.cuhk.edu.hk: {snippet: Undergraduate Admissions - The Chinese University of Hong Kong (CUHK) 11. Professors Named. Most Highly Cited Researchers. 70 +. undergraduate. major programmes. No. 1. Asia Pacific's Most., rank: [3], score: 4.888888888888888},
+          https://admission.cuhk.edu.hk: {snippet: Getting Started · See Yourself in Us · Where Your Dream Can Be Found · A Day in CUHK · News and Activities., rank: [5], score: 2.933333333333333}
+
+          */
 
           Map webpageScore = {};
           double baseScore = mergedResults.length / platforms.length;
@@ -3112,13 +3157,13 @@ class _WebViewContainerState extends State<WebViewContainer>
           for (int i = 0; i < mergedResults.length; i++) {
             if (webpageScore[mergedResults[i]["link"]] == null) {
               webpageScore[mergedResults[i]["link"]] = {
+                "snippet": mergedResults[i]["snippet"],
                 "rank": [mergedResults[i]["rank"]],
                 "score": baseScore / mergedResults[i]["rank"]
               };
             } else {
-              // webpageScore[mergedResults[i]["link"]] +=
-              //     baseScore / mergedResults[i]["rank"];
               webpageScore[mergedResults[i]["link"]] = {
+                "snippet": mergedResults[i]["snippet"],
                 "rank": [
                   ...webpageScore[mergedResults[i]["link"]]["rank"],
                   mergedResults[i]["rank"]
@@ -3139,41 +3184,73 @@ class _WebViewContainerState extends State<WebViewContainer>
             for (int j = i + 1; j < webpageScore.length; j++) {
               var compare = keys.elementAt(j);
               log("compare $compare");
-              if (webpageScore[current]['rank'][0] ==
-                  webpageScore[compare]['rank'][0]) {
-                log("real same $current(${webpageScore[current]}) is substring of $compare(${webpageScore[compare]})");
 
-                // keep the longerone (longest prefix match)
-                if (compare.contains(current)) {
-                  log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+              // keep the longer one (longest prefix match)
+              if (compare.contains(current)) {
+                log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
 
-                  webpageScore[compare] = {
-                    "rank": [
-                      ...webpageScore[current]["rank"],
-                      ...webpageScore[compare]["rank"]
-                    ],
-                    "score": webpageScore[current]["score"] +
-                        webpageScore[compare]["score"]
-                  };
-                  webpageScore[current] = {
-                    "rank": [0],
-                    "score": 0
-                  };
-                } else if (current.contains(compare)) {
-                  log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+                if (webpageScore[current]['snippet'].toString().trim().contains(
+                        webpageScore[compare]['snippet'].toString().trim()) ||
+                    webpageScore[compare]['snippet'].toString().trim().contains(
+                        webpageScore[current]['snippet'].toString().trim())) {
+                  log("real same 1 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+                  log("real same 1.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
+                  log("real same 1.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
 
-                  webpageScore[compare] = {
-                    "rank": [
-                      ...webpageScore[current]["rank"],
-                      ...webpageScore[compare]["rank"],
-                    ],
-                    "score": webpageScore[current]["score"] +
-                        webpageScore[compare]["score"]
-                  };
-                  webpageScore[current] = {
-                    "rank": [0],
-                    "score": 0
-                  };
+                  webpageScore.update(
+                    compare,
+                    (value) => {
+                      "rank": [
+                        ...webpageScore[current]["rank"],
+                        ...webpageScore[compare]["rank"]
+                      ],
+                      "score": webpageScore[current]["score"] +
+                          webpageScore[compare]["score"],
+                      "snippet": webpageScore[compare]["snippet"],
+                    },
+                  );
+
+                  webpageScore.update(
+                    current,
+                    (value) => {
+                      "rank": [0],
+                      "score": 0,
+                      "snippet": webpageScore[current]["snippet"],
+                    },
+                  );
+                }
+              } else if (current.contains(compare)) {
+                log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+
+                if (webpageScore[current]['snippet'].toString().trim().contains(
+                        webpageScore[compare]['snippet'].toString().trim()) ||
+                    webpageScore[compare]['snippet'].toString().trim().contains(
+                        webpageScore[current]['snippet'].toString().trim())) {
+                  log("real same 2 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+                  log("real same 2.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
+                  log("real same 2.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
+
+                  webpageScore.update(
+                    current,
+                    (value) => {
+                      "rank": [
+                        ...webpageScore[current]["rank"],
+                        ...webpageScore[compare]["rank"]
+                      ],
+                      "score": webpageScore[current]["score"] +
+                          webpageScore[compare]["score"],
+                      "snippet": webpageScore[current]["snippet"],
+                    },
+                  );
+
+                  webpageScore.update(
+                    compare,
+                    (value) => {
+                      "rank": [0],
+                      "score": 0,
+                      "snippet": webpageScore[compare]["snippet"],
+                    },
+                  );
                 }
               }
             }
@@ -3182,21 +3259,18 @@ class _WebViewContainerState extends State<WebViewContainer>
           // remove the duplicate results as it has been merged above
           webpageScore.removeWhere((key, value) => value["rank"][0] == 0);
 
+          // sort in descending order
           List<MapEntry> entries = webpageScore.entries.toList();
-          entries.sort((a, b) => b.value["score"]
-              .compareTo(a.value["score"])); // sort in descending order
+          entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
           Map sortedWebpageScore = Map.fromEntries(entries);
-
-          List links = sortedWebpageScore.keys.toList();
 
           log("webpageScore: $webpageScore");
           log("sortedWebpageScore: $sortedWebpageScore");
 
+          // add them to final results
+          List links = sortedWebpageScore.keys.toList();
           List finalSortedList = [];
-
           for (int i = 0; i < sortedWebpageScore.length; i++) {
-            // log("keys[i]: ${links[i]}");
-
             finalSortedList.add({
               "title": mergedResults.firstWhere(
                   (element) => element["link"] == links[i])["title"],
@@ -3212,7 +3286,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
           final snackBar = SnackBar(
             content: Text(
-                "From ${mergedResults.length} to ${finalSortedList.length} | ${finalSortedList.length / mergedResults.length}"),
+                "Merged ${mergedResults.length - finalSortedList.length} results | ${((finalSortedList.length / mergedResults.length) * 100).toStringAsFixed(2)}%"),
             duration: const Duration(seconds: 3),
           );
           // ignore: use_build_context_synchronously
@@ -3820,10 +3894,22 @@ class _WebViewContainerState extends State<WebViewContainer>
                       openCloseDial: _isDialOpen,
                       // icon: Icons.add,
                       icon: MyFlutterApp.drill,
+                      activeIcon: Icons.close,
                       // onOpen: () => debugPrint('OPENING DIAL'),
                       // onClose: () => debugPrint('DIAL CLOSED'),
                       children: _currentSearchPlatform == "General"
                           ? [
+                              SpeedDialChild(
+                                child: const Icon(BoxIcons.bx_refresh),
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                label: 'Refresh',
+                                // visible: true,
+                                onTap: () {
+                                  log("fab pressed");
+                                  _normalSearch(false, true);
+                                },
+                              ),
                               SpeedDialChild(
                                 child: const Icon(BoxIcons.bx_border_all),
                                 backgroundColor: Colors.indigo,
@@ -4251,7 +4337,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     log("joystick:  ${details.x}, ${details.y}");
                                     // _joystickX = details.x;
                                     // _joystickY = details.y;
-                                    if (details.x > 0.5) {
+                                    var posX = _reverseJoystick
+                                        ? details.x * -1
+                                        : details.x;
+                                    if (posX > 0.5) {
                                       log("next");
                                       if (_currentURLIndex <
                                           _currentURLs.length - 1) {
@@ -4262,7 +4351,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                     milliseconds: 200),
                                                 curve: Curves.easeIn);
                                       }
-                                    } else if (details.x < -0.5) {
+                                    } else if (posX < -0.5) {
                                       log("prev");
                                       if (_currentURLIndex > 0) {
                                         log("decrease");

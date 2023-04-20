@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:icons_plus/icons_plus.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:babstrap_settings_screen/babstrap_settings_screen.dart';
@@ -14,8 +15,10 @@ class SettingsPage extends StatefulWidget {
     required this.updateMergeAlgorithm,
     required this.mergeAlgorithm,
     required this.MergeAlgorithmList,
-    required this.updatePreloading,
+    required this.updatePreloadNumber,
     required this.preloadNumber,
+    required this.updateReverseJoystick,
+    required this.reverseJoystick,
     required this.updateAutoSwitchPlatform,
     required this.autoSwitchPlatform,
     required this.prefs,
@@ -26,9 +29,11 @@ class SettingsPage extends StatefulWidget {
   final searchAlgorithm;
   final updateMergeAlgorithm;
   final mergeAlgorithm;
-  final updatePreloading;
+  final updatePreloadNumber;
   final bool preloadNumber;
   final updateAutoSwitchPlatform;
+  final bool reverseJoystick;
+  final updateReverseJoystick;
   final int autoSwitchPlatform;
   final List<String> SearchAlgorithmList;
   final List<String> MergeAlgorithmList;
@@ -42,6 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
   var _searchAlgorithm;
   var _mergeAlgorithm;
   var _preloadNumber;
+  var _reverseJoystick;
   var _autoSwitchPlatform;
 
   @override
@@ -50,6 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _searchAlgorithm = widget.searchAlgorithm;
     _mergeAlgorithm = widget.mergeAlgorithm;
     _preloadNumber = widget.preloadNumber;
+    _reverseJoystick = widget.reverseJoystick;
     _autoSwitchPlatform = widget.autoSwitchPlatform;
   }
 
@@ -105,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         onChanged: (value) async {
                           print("_preloadNumber $value");
 
-                          widget.updatePreloading(value);
+                          widget.updatePreloadNumber(value);
 
                           setState(() {
                             _preloadNumber = value;
@@ -113,6 +120,35 @@ class _SettingsPageState extends State<SettingsPage> {
 
                           await widget.prefs.setBool(
                             "preloadNumber",
+                            value,
+                          );
+                        },
+                      ),
+                    ),
+                    SettingsItem(
+                      onTap: () {},
+                      backgroundColor: Colors.black,
+                      icons: BoxIcons.bx_move_horizontal,
+                      iconStyle: IconStyle(
+                        iconsColor: Colors.white,
+                        withBackground: true,
+                        backgroundColor: Colors.blue,
+                      ),
+                      title: 'Reversed Joystick',
+                      // subtitle: "",
+                      trailing: Switch.adaptive(
+                        value: _reverseJoystick,
+                        onChanged: (value) async {
+                          print("_reverseJoystick $value");
+
+                          widget.updateReverseJoystick(value);
+
+                          setState(() {
+                            _reverseJoystick = value;
+                          });
+
+                          await widget.prefs.setBool(
+                            "reverseJoystick",
                             value,
                           );
                         },
