@@ -398,9 +398,11 @@ _imageSearch(src, path, name) async {
       var logoOutput;
 
       _response.responses?.forEach((data) {
-        if (_response.responses != null) {
+        if (data.logoAnnotations != null) {
           entities = data.logoAnnotations as List<vision.EntityAnnotation>;
           logoOutput = entities[0].description;
+        } else {
+          logoOutput = "NO Logo detected";
         }
       });
       print(logoOutput);
@@ -426,76 +428,82 @@ _imageSearch(src, path, name) async {
 
       List<vision.EntityAnnotation>? entities;
 
+      String? string_ent;
+
       _response.responses?.forEach((data) {
-        if (_response.responses != null) {
+        if (data.textAnnotations != null) {
           entities = data.textAnnotations as List<vision.EntityAnnotation>?;
+          string_ent = entities![0].description;
+        } else {
+          string_ent = "No text detected";
         }
       });
-      if (entities == null) {
-        print("No words is detected");
-        exit(1);
-      }
 
       final acc = [0];
       int count = 0;
 
       List<String?> str_arr = [''];
       List<String?> original = [''];
-      String? string_ent = entities![0].description;
+
       final separated = string_ent?.split('\n');
 
-      for (int j = 1; j < entities!.length; j++) {
-        var vertice = entities![j].boundingPoly!.vertices;
-        String? curString = entities![j].description;
-        //area of each words
-        var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
-        for (int i = 0; i < vertice!.length; i++) {
-          if (vertice[i].x! > max_x) {
-            max_x = vertice[i].x!;
+      if (entities != null) {
+        for (int j = 1; j < entities!.length; j++) {
+          var vertice = entities![j].boundingPoly!.vertices;
+          String? curString = entities![j].description;
+          //area of each words
+          var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
+          for (int i = 0; i < vertice!.length; i++) {
+            if (vertice[i].x! > max_x) {
+              max_x = vertice[i].x!;
+            }
+            if (vertice[i].y! > max_y) {
+              max_y = vertice[i].y!;
+            }
+            if (vertice[i].x! < min_x!) {
+              min_x = vertice[i].x!;
+            }
+            if (vertice[i].y! < min_y!) {
+              min_y = vertice[i].y!;
+            }
           }
-          if (vertice[i].y! > max_y) {
-            max_y = vertice[i].y!;
-          }
-          if (vertice[i].x! < min_x!) {
-            min_x = vertice[i].x!;
-          }
-          if (vertice[i].y! < min_y!) {
-            min_y = vertice[i].y!;
-          }
+
+          var length_x = max_x - min_x!;
+          var length_y = max_y - min_y!;
+          var area = length_x * length_y;
+
+          print(area);
+          print(entities![j].description);
+          acc.insert(j, area);
+          original.insert(j, entities![j].description);
         }
 
-        var length_x = max_x - min_x!;
-        var length_y = max_y - min_y!;
-        var area = length_x * length_y;
+        final stats = Stats.fromData(acc);
+        final numberArr = [0];
+        final Map<String, int> outputString = {};
 
-        print(area);
-        print(entities![j].description);
-        acc.insert(j, area);
-        original.insert(j, entities![j].description);
-      }
+        List<Order> orders = [];
 
-      final stats = Stats.fromData(acc);
-      final numberArr = [0];
-      final Map<String, int> outputString = {};
+        var countArr = 0;
 
-      List<Order> orders = [];
-
-      var countArr = 0;
-
-      for (int j = 0; j < separated!.length; j++) {
-        for (int i = 0; i < original.length; i++) {
-          if (separated[j].contains(original[i]!)) {
-            numberArr[countArr] += acc[i];
+        for (int j = 0; j < separated!.length; j++) {
+          for (int i = 0; i < original.length; i++) {
+            if (separated[j].contains(original[i]!)) {
+              numberArr[countArr] += acc[i];
+            }
           }
+          orders
+              .add(Order(area: numberArr[countArr], description: separated[j]));
+          countArr++;
+          numberArr.insert(countArr, 0);
         }
-        orders.add(Order(area: numberArr[countArr], description: separated[j]));
-        countArr++;
-        numberArr.insert(countArr, 0);
-      }
 
-      //print(numberArr);
-      orders.sort((a, b) => b.area.compareTo(a.area));
-      print("Ordered Output text: ${orders.map((order) => order.description)}");
+        //print(numberArr);
+        orders.sort((a, b) => b.area.compareTo(a.area));
+        print(
+            "Ordered Output text: ${orders.map((order) => order.description)}");
+        str_arr = orders.map((order) => order.description).toList();
+      }
 
       print("TEXT: $str_arr");
       return str_arr;
