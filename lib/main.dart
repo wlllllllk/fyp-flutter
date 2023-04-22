@@ -71,9 +71,9 @@ void main() async {
 // enum SearchAlgorithm { Title, ClickContent, TitleWithClickContent }
 // Map SearchAlgorithm = {"Title": 0, "ClickContent": 1, "TitleWithClickContent": 2};
 List<String> SearchAlgorithmList = [
-  // "Title",
-  // "Webpage Content",
-  // "Title With Webpage Content",
+  "Title",
+  "Webpage Content",
+  "Title With Webpage Content",
   "Hovered Webpage Content",
   // "New Mode",
   // "TEST HIGHLIGHT"
@@ -83,6 +83,7 @@ List<String> MergeAlgorithmList = [
   "ABAB",
   "Frequency",
   "Original Rank",
+  "Further Merge",
 ];
 
 // ignore: non_constant_identifier_names
@@ -892,7 +893,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("page: $page | _start: $_start");
 
     var response;
-    // different uri for different search engines
     switch (platform) {
       case 'Google':
         uri = Uri.https('www.googleapis.com', '/customsearch/v1', {
@@ -908,7 +908,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             ? await http.get(
                 Uri.parse(
                     // 'https://api.bing.microsoft.com/v7.0/search?q=$value&count=100&offset=0&customconfig=6c099879-5079-4eb0-be77-694fffc16ddc&mkt=en-US'),
-                    'https://api.bing.microsoft.com/v7.0/custom/search?q=$value&customconfig=6c099879-5079-4eb0-be77-694fffc16ddc&mkt=en-US'),
+                    'https://api.bing.microsoft.com/v7.0/custom/search?q=$value&customconfig=6c099879-5079-4eb0-be77-694fffc16ddc&mkt=zh-HK'),
                 // Send authorization headers to the backend.
                 headers: {
                   // 'Ocp-Apim-Subscription-Key':
@@ -922,35 +922,10 @@ class _WebViewContainerState extends State<WebViewContainer>
         break;
 
       case 'DuckDuckGo':
-        // String getActualUrl(String url) {
-        //   // String realUrl = Uri.decodeFull(url.toString());
-        //   // Extract the actual URL from the intermediate URL
-        //   final start = url.indexOf('/l/?uddg=') + '/l/?uddg='.length;
-        //   final end = url.indexOf('&rut=');
-        //   return Uri.decodeFull(url.substring(start, end));
-        // }
-
         response =
             await http.get(Uri.parse('https://duckduckgo.com/html/?q=$value'));
 
-        // response = !_gg
-        //     ? await http.get(
-        //         Uri.parse(
-        //             'https://api.duckduckgo.com?q=$value&format=json&no_html=1'),
-
-        //         // // Send authorization headers to the backend.
-        //         // headers: {
-        //         //   'Ocp-Apim-Subscription-Key':
-        //         //       "d24c91d7b0f04d9aad0b07d22a2d9155",
-        //         // },
-        //       )
-        //     : null;
-
-        log("ddg response: $response");
-
-        // uri = Uri.https(
-        //     'https://api.duckduckgo.com/q=$value&format=json&no_html=1');
-        // response = !_gg ? await http.get(uri) : null;
+        // log("ddg response: $response");
         break;
       case 'Yahoo':
         response = await http
@@ -1055,382 +1030,732 @@ class _WebViewContainerState extends State<WebViewContainer>
       return cleaned;
     }
 
-    if (response != null) {
-      if (response.statusCode == 200) {
-        var jsonResponse;
-        try {
-          jsonResponse =
-              convert.jsonDecode(response.body) as Map<String, dynamic>;
-        } catch (error) {
-          log("error: $error");
+    // if (response != null) {
+    //   if (response.statusCode == 200) {
+    var jsonResponse;
+    try {
+      jsonResponse = convert.jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (error) {
+      log("error: $error");
+    }
+
+    // log("jsonResponse.toString(): ${jsonResponse.toString()}");
+    // log(jsonResponse['items']);
+
+    var items = [];
+    switch (platform) {
+      case 'Google':
+        var results = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
+
+        for (int i = 0; i < results.length; i++) {
+          items.add({
+            "title": results[i]['title'],
+            "link": cleanUrl(results[i]['link'].toString()),
+            "snippet": results[i]['snippet']
+                .toString()
+                .trim()
+                .replaceAll(RegExp(r'(\.\.\.)$'), ""),
+            "rank": i + 1,
+          });
         }
 
-        // log("jsonResponse.toString(): ${jsonResponse.toString()}");
-        // log(jsonResponse['items']);
+        log("google items: $items");
 
-        var items = [];
-        switch (platform) {
-          case 'Google':
-            var results = jsonResponse['items'] != null
-                ? jsonResponse['items'] as List<dynamic>
-                : [];
+        // *test data
+        items = [
+          {
+            "title": "The Chinese University of Hong Kong",
+            "link": "https://www.cuhk.edu.hk/",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the ",
+            "rank": 1
+          },
+          {
+            "title": "Postgraduate Admissions - CUHK Graduate School",
+            "link": "https://www.gs.cuhk.edu.hk/admissions/",
+            "snippet":
+                "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, ",
+            "rank": 2
+          },
+          {
+            "title": "Chinese University of Hong Kong - Wikipedia",
+            "link":
+                "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by ",
+            "rank": 3
+          },
+          {
+            "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
+            "link": "https://www.bschool.cuhk.edu.hk/",
+            "snippet":
+                "CUHK Business School is a global institution in Hong Kong. We offer various business programmes that help students embrace innovation and nurture their ",
+            "rank": 4
+          },
+          {
+            "title":
+                "Undergraduate Admissions - The Chinese University of Hong Kong ...",
+            "link": "https://admission.cuhk.edu.hk/",
+            "snippet":
+                "Getting Started · See Yourself in Us · Where Your Dream Can Be Found · A Day in CUHK · News and Activities.",
+            "rank": 5
+          },
+          {
+            "title": "CUHK School of Architecture",
+            "link": "https://www.arch.cuhk.edu.hk/",
+            "snippet":
+                "CUHK School of Architecture. ... ALUMNA WINS CUHK YOUNG SCHOLARS THESIS AWARD 2021. PROJECTS. AWARDS. Hong Kong. Local Engagement.",
+            "rank": 6
+          },
+          {
+            "title": "CUHK LibrarySearch",
+            "link": "https://julac-cuhk.primo.exlibrisgroup.com/",
+            "snippet":
+                " LibrarySearch provides simple, one-stop searching for CUHK library books, e-resources, videos, articles, dissertations, undergraduate past exam papers, ",
+            "rank": 7
+          },
+          {
+            "title": "CUHK LAW - The Chinese University of Hong Kong",
+            "link": "https://www.law.cuhk.edu.hk/app/",
+            "snippet":
+                "Doing the CUHK JD Programme has been a truly rewarding and enjoyable experience. What I especially love about the Programme are the highly qualified and ",
+            "rank": 8
+          },
+          {
+            "title": "Career Opportunities @ CUHK - CUHK - HRO",
+            "link":
+                "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
+            "snippet":
+                "Career Opportunities @ CUHK ... Copyright @ 2023. All Rights Reserved. The Chinese University of Hong Kong. Web Accessibility Recognition Scheme Family Friendly ",
+            "rank": 9
+          },
+          {
+            "title":
+                "CUHK MBA: Top MBA Programme in Hong Kong | Full-time MBA ...",
+            "link": " https://mba.cuhk.edu.hk/",
+            "snippet":
+                "Fast-track learning with the full-time CUHK MBA or part-time MBA programme offers leadership training, and global learning opportunities, ",
+            "rank": 10
+          }
+        ];
+        break;
+      case 'Bing':
+        int rank = 1;
 
-            for (int i = 0; i < results.length; i++) {
+        log("bing0: ${jsonResponse['webPages']}");
+
+        if (jsonResponse['webPages'] != null) {
+          items.add({
+            "title": jsonResponse['webPages']['value'][0]['name'],
+            "link":
+                // cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
+                cleanUrl(jsonResponse['webPages']['value'][0]['url']),
+            "snippet": jsonResponse['webPages']['value'][0]['snippet']
+                .toString()
+                .trim()
+                .replaceAll(RegExp(r'(\.\.\.)$'), ""),
+            "rank": 1,
+          });
+
+          rank++;
+
+          log("bing1: ${items}");
+
+          if (jsonResponse['webPages']['value'] != null) {
+            for (int i = 0; i < jsonResponse['webPages']['value'].length; i++) {
               items.add({
-                "title": results[i]['title'],
-                "link": cleanUrl(results[i]['link'].toString()),
-                "snippet": results[i]['snippet']
+                "title": jsonResponse['webPages']['value'][i]['name'],
+                "link": cleanUrl(jsonResponse['webPages']['value'][i]['url']),
+                "snippet": jsonResponse['webPages']['value'][i]['snippet']
                     .toString()
                     .trim()
                     .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-                "rank": i + 1,
+                "rank": rank,
               });
-            }
+              rank++;
 
-            log("google items: $items");
-            break;
-          case 'Bing':
-            int rank = 1;
-            // var results = jsonResponse['webPages'] != null
-            //     ? jsonResponse['webPages']['value'][0]['deepLinks'] != null
-            //         ? jsonResponse['webPages']['value'][0]['deepLinks']
-            //             as List<dynamic>
-            //         : jsonResponse['webPages']['value'] as List<dynamic>
-            //     : [];
-
-            log("bing0: ${jsonResponse['webPages']}");
-
-            // if (jsonResponse['webPages']['value'][0]['deepLinks'] != null) {
-            items.add({
-              "title": jsonResponse['webPages']['value'][0]['name'],
-              "link":
-                  // cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
-                  cleanUrl(jsonResponse['webPages']['value'][0]['url']),
-              "snippet": jsonResponse['webPages']['value'][0]['snippet']
-                  .toString()
-                  .trim()
-                  .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-              "rank": 1,
-            });
-
-            rank++;
-
-            log("bing1: ${items}");
-            // }
-
-            // ! NO displayUrl for deep links
-            if (jsonResponse['webPages']['value'][0]['deepLinks'] != null) {
-              for (int i = 0;
-                  i < jsonResponse['webPages']['value'][0]['deepLinks'].length;
-                  i++) {
-                var current =
-                    jsonResponse['webPages']['value'][0]['deepLinks'][i];
-                items.add({
-                  "title": current['name'],
-                  "link": cleanUrl(current['url']),
-                  "snippet": current['snippet']
-                      .toString()
-                      .trim()
-                      .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-                  "rank": rank,
-                });
-                rank++;
-
-                if (current['deepLinks'] != null) {
-                  for (int j = 0; j < current['deepLinks'].length; j++) {
-                    var currentDeeper = current['deepLinks'][j];
-                    items.add({
-                      "title": currentDeeper['name'],
-                      "link": cleanUrl(currentDeeper['url']),
-                      "snippet": currentDeeper['snippet']
-                          .toString()
-                          .trim()
-                          .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-                      "rank": rank,
-                    });
-                    rank++;
-                  }
+              var deepLinks = jsonResponse['webPages']['value'][i]["deepLinks"];
+              if (deepLinks != null) {
+                for (int j = 0; j < deepLinks.length; j++) {
+                  items.add({
+                    "title": deepLinks[j]['name'],
+                    "link": cleanUrl(deepLinks[j]['url']),
+                    "snippet": deepLinks[j]['snippet']
+                        .toString()
+                        .trim()
+                        .replaceAll(RegExp(r'(\.\.\.)$'), ""),
+                    "rank": rank,
+                  });
+                  // deep links same rank as parent
+                  // rank++;
                 }
               }
             }
-
-            log("bing2: ${items}");
-
-            // items = jsonResponse['webPages']['value'][0]['deepLinks'] != null
-            //     ? [
-            //         {
-            //           "title": jsonResponse['webPages']['value'][0]['name'],
-            //           "link": jsonResponse['webPages']['value'][0]['displayUrl']
-            //         },
-            //       ]
-            //     : [];
-
-            // for (var result in results) {
-            //   items.add({"title": result['name'], "link": result['url']});
-            // }
-            break;
-          case "DuckDuckGo":
-            String getActualUrl(String url) {
-              // String realUrl = Uri.decodeFull(url.toString());
-              // Extract the actual URL from the intermediate URL
-              final start = url.indexOf('/l/?uddg=') + '/l/?uddg='.length;
-              final end = url.indexOf('&rut=');
-              return Uri.decodeFull(url.substring(start, end));
-            }
-            // Parse the HTML response
-            final document = parse(response.body);
-
-            // Extract title and URL elements
-            final titleElements = document.querySelectorAll('.result__title');
-            final urlElements = document.querySelectorAll('.result__url');
-            final snippetElements =
-                document.querySelectorAll('.result__snippet');
-
-            // Extract title and URL data
-            final titles = titleElements
-                .map((element) => element.text.toString().trim())
-                .toList();
-            final urls = urlElements
-                .map((element) =>
-                    getActualUrl(element.attributes['href'].toString()))
-                .toList();
-            final snippets = snippetElements
-                .map((element) => element.text.toString().trim())
-                .toList();
-
-            // Print extracted data
-            for (int i = 0; i < titles.length; i++) {
-              // log('Title: ${titles[i]} | URL: ${urls[i]}');
-              items.add({
-                "title": titles[i],
-                "link": cleanUrl(urls[i]),
-                "snippet": snippets[i]
-                    .toString()
-                    .trim()
-                    .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-                "rank": i + 1
-              });
-            }
-
-            // log("ddg jsonResponse['RelatedTopics']: ${jsonResponse['RelatedTopics']}");
-            // // for (var result in jsonResponse["RelatedTopics"]) {
-            // //   final title = result["FirstURL"]
-            // //       .replaceFirst("https://", "")
-            // //       .replaceFirst("http://", ""); // Extract title from URL
-            // //   final link = result["FirstURL"];
-            // //   items.add({"title": title, "link": link});
-            // // }
-
-            // if (jsonResponse['AbstractURL'] != "") {
-            //   items.add({
-            //     "title": jsonResponse['Heading'],
-            //     "link": jsonResponse['AbstractURL']
-            //   });
-            // }
-
-            log("ddg results: ${items}");
-
-            break;
-          case 'Yahoo':
-            log("Yahoo");
-
-            // Parse the HTML response
-            final document = parse(response.body);
-
-            // Extract title and URL data
-            final titles = document
-                .querySelectorAll('.title a')
-                .map((element) => element.text)
-                .toList();
-            final urls = document
-                .querySelectorAll('.title a')
-                .map((element) => element.attributes['href']!)
-                .toList();
-
-            // Filter out unwanted results
-            final filteredTitles = <String>[];
-            final filteredUrls = <String>[];
-            for (int i = 0; i < titles.length; i++) {
-              // Exclude results that do not have a valid URL or contain specific keywords
-              if (urls[i] != null &&
-                  !titles[i].contains('See all results for this question')) {
-                // Clean up the extracted title
-                String cleanedTitle = titles[i]
-                    .trim()
-                    .replaceAll(RegExp(r'\s{2,}'), ' '); // Remove extra spaces
-                cleanedTitle = cleanedTitle.replaceAll(
-                    RegExp(r'\u200B'), ''); // Remove zero-width space
-                filteredTitles.add(cleanedTitle);
-                filteredUrls.add(urls[i]!);
-              }
-            }
-
-            // Print extracted data
-            for (int i = 0; i < filteredTitles.length; i++) {
-              log('Title: ${filteredTitles[i]} | URL: ${urls[i]}');
-              items
-                  .add({"title": filteredTitles[i], "link": cleanUrl(urls[i])});
-            }
-
-            break;
-          case 'YouTube':
-            items = jsonResponse['items'] != null
-                ? jsonResponse['items'] as List<dynamic>
-                : [];
-            for (var item in items) {
-              var videoId = item['id']['videoId'];
-              var videoUrl = "https://www.youtube.com/watch?v=$videoId";
-              item['title'] = item['snippet']['title'];
-              item['link'] = videoUrl;
-            }
-            break;
-
-          case 'Bing Video':
-            var results = jsonResponse['value'] != null
-                ? jsonResponse['value'] as List<dynamic>
-                : [];
-
-            for (var result in results) {
-              items.add({
-                "title": result['name'],
-                "link": result['hostPageUrl'],
-                "description": result['description'],
-                "date": result['datePublished'],
-                "viewCount": result['viewCount'],
-              });
-            }
-            break;
-          case 'Vimeo':
-            items = jsonResponse['data'] != null
-                ? jsonResponse['data'] as List<dynamic>
-                : [];
-            for (var item in items) {
-              item['title'] = item['name'];
-              item['description'] = item['description'];
-              item['date'] = item['created_time'];
-              item['link'] = item['link'];
-            }
-            break;
-          case 'Twitter':
-            // items = jsonResponse['items'] != null
-            //     ? jsonResponse['items'] as List<dynamic>
-            //     : [];
-
-            var results = jsonResponse['items'] != null
-                ? jsonResponse['items'] as List<dynamic>
-                : [];
-
-            for (var result in results) {
-              items.add({"title": result['title'], "link": result['link']});
-            }
-            break;
-          case 'Facebook':
-            // items = jsonResponse['items'] != null
-            //     ? jsonResponse['items'] as List<dynamic>
-            //     : [];
-            var results = jsonResponse['items'] != null
-                ? jsonResponse['items'] as List<dynamic>
-                : [];
-
-            for (var result in results) {
-              items.add({"title": result['title'], "link": result['link']});
-            }
-            break;
-          case 'Instagram':
-            // items = jsonResponse['items'] != null
-            //     ? jsonResponse['items'] as List<dynamic>
-            //     : [];
-            var results = jsonResponse['items'] != null
-                ? jsonResponse['items'] as List<dynamic>
-                : [];
-
-            for (var result in results) {
-              items.add({"title": result['title'], "link": result['link']});
-            }
-            break;
-          case 'LinkedIn':
-            // items = jsonResponse['items'] != null
-            //     ? jsonResponse['items'] as List<dynamic>
-            //     : [];
-            var results = jsonResponse['items'] != null
-                ? jsonResponse['items'] as List<dynamic>
-                : [];
-
-            for (var result in results) {
-              items.add({"title": result['title'], "link": result['link']});
-            }
-            break;
+          }
         }
 
-        // var items = jsonResponse['items'] != null
+        log("bing2: ${items}");
+
+        // *test data
+        items = [
+          {
+            "title": "The Chinese University of Hong Kong",
+            "link": "https://www.cuhk.edu.hk/english/index.html",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West. CUHK 60 th anniversary Strategic Plan 2021—2025 Search for Senior Academic Appointments",
+            "rank": 1
+          },
+          {
+            "title": "MyCUHK",
+            "link": "http://portal.cuhk.edu.hk/",
+            "snippet": "portal.cuhk.edu.hk",
+            "rank": 2
+          },
+          {
+            "title": "Library",
+            "link": "https://www.lib.cuhk.edu.hk/en",
+            "snippet":
+                'CUHK Golden Jubilee Celestial Civilian Scholarship on Hong Kong Literature 2022/23 10:00 am - 11:00 pm 23 Mar 21 Apr "Chinese Classic Text Mining and Processing" Workshops (Mar-Apr 2023) 2:30 pm - 5:30 pm 23 Mar 21 Apr "Chinese Classic Text Mining ',
+            "rank": 2
+          },
+          {
+            "title": "CUHK A-Z",
+            "link": "https://www.cuhk.edu.hk/english/cuhk-information.html",
+            "snippet":
+                "Directory of CUHK's Academic Units, Colleges, Professional and Administrative Services Units, Research Units, Students Organizations and Staff Organizations. A - E | F - M | N - Z Academic and Quality Section Academic Links, Office of Accountancy, The School",
+            "rank": 2
+          },
+          {
+            "title": "Giving to CUHK",
+            "link": "https://www.cuhk.edu.hk/english/giving.html",
+            "snippet":
+                "Giving to CUHK Over the decades CUHK has benefitted from the goodwill and munificence of many of its friends, corporate allies and alumni. Such support, in various forms ranging from student scholarships, research sponsorships, endowed professorships to funding for infrastructural projects, has helped propel the University forward in its pursuit of excellence and the realization of its missions.",
+            "rank": 2
+          },
+          {
+            "title": "Shortcuts",
+            "link": "https://www.gs.cuhk.edu.hk/admissions/",
+            "snippet":
+                "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, MPhil to Taught Doctoral and Master's degrees, PG Diplomas and PG Certificate. CUHK offers a wide range of study ",
+            "rank": 2
+          },
+          {
+            "title": "Career Opportunities",
+            "link":
+                "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
+            "snippet":
+                "Career Opportunities @ CUHK Professoriate, Teaching & Research Academic Posts Administrative, Professional, Executive, Clerical, Technical & Research Posts Junior Posts Applications Forms and Personal Information Collection Statement Back to top ",
+            "rank": 2
+          },
+          {
+            "title": "Introducing CUHK",
+            "link":
+                "https://www.cuhk.edu.hk/english/aboutus/university-intro.html",
+            "snippet":
+                "Introducing CUHK. Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward-looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all around the world. CUHK graduates are connected worldwide ",
+            "rank": 2
+          },
+          {
+            "title": "往內容",
+            "link": "http://admission.cuhk.edu.hk/",
+            "snippet":
+                "WHY CUHK A Unique Learning Experience CUHK in Numbers Studying in Hong Kong Sharing EXPERIENCE CUHK Campus Environment Colleges All-Round Development Events PROGRAMMES New Programmes Individual Programmes CUHK (HK) and CUHK",
+            "rank": 2
+          },
+          {
+            "title": "香港中文大學 - Chinese University of Hong Kong",
+            "link": "https://www.cuhk.edu.hk/chinese/index.html",
+            "snippet":
+                "香港中文大學是一所研究型綜合大學，提供多類學士、碩士和博士課程。 香港中文大學60周年 策略計劃 2021–2025 高級教學人員徵聘 中大‧環球足跡 中大有晴 校長網誌 香港中文大學（深圳）",
+            "rank": 2
+          },
+          {
+            "title": "Chinese University of Hong Kong",
+            "link": "https://portal.cuhk.edu.hk/",
+            "snippet": "Chinese University of Hong Kong",
+            "rank": 3
+          },
+          {
+            "title":
+                "香港中文大學專業進修學院(CUSCS) - 短期課程, 學歷課程, 高級文憑課程, 研究生及學位銜接課程, 遙距課程及網 ...",
+            "link": "https://cms.scs.cuhk.edu.hk/tc",
+            "snippet":
+                "香港中文大學專業進修學院 (CUSCS): 短期課程, 兼讀制學歷課程, 全日制高級文憑課程, 研究生及學位銜接課程, 網上及遙距課程,持續進修基金課程",
+            "rank": 4
+          },
+          {
+            "title":
+                "Prospective Students | CUHK - Chinese University of Hong Kong",
+            "link":
+                "https://www.cuhk.edu.hk/english/university/prospective-students.html",
+            "snippet":
+                "Information about The Chinese University of Hong Kong for local and international prospective students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
+            "rank": 5
+          },
+          {
+            "title": "Students | CUHK - Chinese University of Hong Kong",
+            "link": "https://www.cuhk.edu.hk/english/university/students.html",
+            "snippet":
+                "Information about The Chinese University of Hong Kong for current CUHK students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
+            "rank": 6
+          }
+        ];
+
+        break;
+      case 'DuckDuckGo':
+        String getActualUrl(String url) {
+          // Extract the actual URL from the intermediate URL
+          final start = url.indexOf('/l/?uddg=') + '/l/?uddg='.length;
+          final end = url.indexOf('&rut=');
+          return Uri.decodeFull(url.substring(start, end));
+        }
+
+        // Parse the HTML response
+        final document = parse(response.body);
+
+        // Extract title and URL elements
+        final titleElements = document.querySelectorAll('.result__title');
+        final urlElements = document.querySelectorAll('.result__url');
+        final snippetElements = document.querySelectorAll('.result__snippet');
+
+        // Extract title and URL data
+        final titles = titleElements
+            .map((element) => element.text.toString().trim())
+            .toList();
+        final urls = urlElements
+            .map((element) =>
+                getActualUrl(element.attributes['href'].toString()))
+            .toList();
+        final snippets = snippetElements
+            .map((element) => element.text.toString().trim())
+            .toList();
+
+        for (int i = 0; i < titles.length; i++) {
+          items.add({
+            "title": titles[i],
+            "link": cleanUrl(urls[i]),
+            "snippet": snippets[i]
+                .toString()
+                .trim()
+                .replaceAll(RegExp(r'(\.\.\.)$'), ""),
+            "rank": i + 1
+          });
+        }
+
+        // *test data
+        items = [
+          {
+            "title": "The Chinese University of Hong Kong",
+            "link": "https://www.cuhk.edu.hk/english/index.html",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West.",
+            "rank": 1
+          },
+          {
+            "title":
+                "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK)",
+            "link": "http://admission.cuhk.edu.hk/",
+            "snippet":
+                "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK) 11. Professors Named. Most Highly Cited Researchers. 70 +. undergraduate. major programmes. No. 1. Asia Pacific's Most.",
+            "rank": 2
+          },
+          {
+            "title": "Chinese University of Hong Kong - Wikipedia",
+            "link":
+                "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by the Legislative Council of Hong Kong.It is the territory's second-oldest university and was founded as a federation of three existing colleges - Chung Chi College, New Asia College and United College - the oldest of which was founded in ",
+            "rank": 3
+          },
+          {
+            "title": "Home | CUHK-Shenzhen",
+            "link": "https://www.cuhk.edu.cn/en",
+            "snippet":
+                "CUHK-Shenzhen hosts world's leading scholars and cutting-edge research facilities, fostering an innovative research hub. Learn MORE Research News; Research Fields; Institutes and Laboratories; Scholars; Research Information System; Admissions. Admissions. As China's global university, CUHK-Shenzhen offers first-class education and life ",
+            "rank": 4
+          },
+          {
+            "title": "Faculty of Arts | Faculties | CUHK",
+            "link": "https://www.cuhk.edu.hk/english/faculties/arts.html",
+            "snippet":
+                "Faculty of Arts. Established in 1963, the same year the Chinese University of Hong Kong was founded, the Faculty of Arts has always been pivotal to CUHK's commitment to integrating Chinese and Western traditions, to bilingual education and innovative interdisciplinary research. Today, CUHK ARTS is the largest Faculty dedicated to humanities ",
+            "rank": 5
+          },
+          {
+            "title": "Chinese University of Hong Kong in Hong Kong - US News",
+            "link":
+                "https://www.usnews.com/education/best-global-universities/chinese-university-of-hong-kong-502973",
+            "snippet":
+                "Chinese University of Hong Kong Rankings. # 53. in Best Global Universities. # 5. in Best Global Universities in Asia. # 1. in Best Global Universities in Hong Kong.",
+            "rank": 6
+          },
+          {
+            "title": "The Chinese University of Hong Kong - LinkedIn",
+            "link":
+                "https://www.linkedin.com/school/the-chinese-university-of-hong-kong/",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence ",
+            "rank": 7
+          },
+          {
+            "title":
+                "The Chinese University of Hong Kong - CUHK's Tweets - Twitter",
+            "link": "https://twitter.com/cuhkofficial",
+            "snippet":
+                "The official twitter account for The Chinese University of Hong Kong Connect with us: linktr.ee/CUHK. Education Sha Tin District, Hong Kong cuhk.edu.hk Joined November 2017. 525 Following.",
+            "rank": 8
+          },
+          {
+            "title": "Chinese University of Hong Kong | UCEAP",
+            "link":
+                "https://uceap.universityofcalifornia.edu/programs/chinese-university-hong-kong",
+            "snippet":
+                "The CUHK mission is to combine tradition with modernity and bring together China and the West. With faculty and students from all around the world, CUHK is committed to bilingualism, biculturalism, and providing an international study experience. This forward-looking research university has an enviable reputation for quality research that ",
+            "rank": 9
+          },
+          {
+            "title": "Apply Now - The Chinese University of Hong Kong (CUHK)",
+            "link":
+                "http://admission.cuhk.edu.hk/international/application-details.html",
+            "snippet":
+                "To facilitate outstanding candidates in making informed decisions among all early offers they receive from various universities, candidates who apply to CUHK on or before 17 November 2022 will be considered for an advance offer. In this round, successful applicants may be given a firm or conditional offer depending on individual merits, and ",
+            "rank": 10
+          },
+          {
+            "title": "Chinese University of Hong Kong, Shenzhen - Wikipedia",
+            "link":
+                "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong,_Shenzhen",
+            "snippet":
+                "The Chinese University of Hong Kong, Shenzhen (CUHK-Shenzhen) is a campus of the public research university, the Chinese University of Hong Kong.Located in Shenzhen, on the southern coast of China near Hong Kong, it is a joint venture between the Chinese University of Hong Kong and Shenzhen University, as the local partner. CUHK-Shenzhen was officially founded on 11 October 2012, and approved ",
+            "rank": 11
+          },
+          {
+            "title": "The Chinese University of Hong Kong (CUHK)",
+            "link":
+                "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk",
+            "snippet":
+                "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
+            "rank": 12
+          },
+          {
+            "title": "Chinese University of Hong Kong | Global Experiences",
+            "link": "https://www.abroad.pitt.edu/cuhk",
+            "snippet":
+                "THIS PROGRAM IS TEMPORARILY UNAVAILABLE. The Chinese University of Hong Kong (CUHK) (香港中文大學) was founded in 1963 with a mission to combine tradition with modernity and to bring together China and the West.As a comprehensive institution, CUHK has been consistently ranked as one of the top 50 universities in the world by QS World University Ranking as well as one top instituions in Asia.",
+            "rank": 13
+          },
+          {
+            "title": "CUHK MBA Programmes - CUHK MBA",
+            "link": "https://mba.cuhk.edu.hk/eng/",
+            "snippet":
+                "CUHK Business School was the first in Hong Kong and in the region to offer BBA, MBA and EMBA programmes, with over 40,000 alumni worldwide. We are a global institution that embraces innovation, nurtures an entrepreneurial mindset and promotes social responsibility.",
+            "rank": 14
+          },
+          {
+            "title": "MY CUHK - Chinese University of Hong Kong",
+            "link":
+                "https://portal.cuhk.edu.hk/psp/EPPRD/?cmd=login&languageCd=ENG&",
+            "snippet":
+                "Sign in with your organizational account. User Account. Password",
+            "rank": 15
+          },
+          {
+            "title": "The Chinese University of Hong Kong 香港中文大學 - CUHK",
+            "link": "https://www.facebook.com/CUHKofficial/",
+            "snippet":
+                "The Chinese University of Hong Kong 香港中文大學 - CUHK. 71,637 likes · 29,401 talking about this · 101,944 were here. The official Facebook page of The Chinese University of Hong Kong - CUHK.",
+            "rank": 16
+          },
+          {
+            "title": "CUHK - HRO - Career Opportunities @ CUHK",
+            "link":
+                "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
+            "snippet":
+                "Career Opportunities @ CUHK. Senior Academic Appointments. Vice-Chancellor Early Career Professorship Scheme. Working @ CUHK. Positivity and Staff Wellness. Other Appointments.",
+            "rank": 17
+          },
+          {
+            "title": "About Us | CUHK-Shenzhen",
+            "link": "https://www.cuhk.edu.cn/en/about-us",
+            "snippet":
+                "About Us. The Chinese University of Hong Kong, Shenzhen （CUHK-Shenzhen）was founded in accordance with the Regulations of the People's Republic of China on Chinese-foreign Cooperation in Running Schools upon approval by the Ministry of Education. The University is committed to providing top-quality higher education that features an ",
+            "rank": 18
+          },
+          {
+            "title": "Application | Office of Academic Links",
+            "link": "https://www.oal.cuhk.edu.hk/application/",
+            "snippet":
+                'Send the personal particulars page of your passport with your application no. to iasp@cuhk.edu.hk and request for an online debit note by email. The processing time is normally 3 working days. After 3 working days, login to your online application form, view your debit note under "My Task" and pay online.',
+            "rank": 19
+          },
+          {
+            "title":
+                "Chinese University of Hong Kong | World University Rankings | THE",
+            "link":
+                "https://www.timeshighereducation.com/world-university-rankings/chinese-university-hong-kong",
+            "snippet":
+                "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
+            "rank": 20
+          },
+          {
+            "title":
+                "The Chinese University of Hong Kong Online Courses | Coursera",
+            "link": "https://www.coursera.org/cuhk",
+            "snippet":
+                "Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all corners of the world.",
+            "rank": 21
+          },
+          {
+            "title": "Academic Staff Directory - CUHK Business School",
+            "link": "https://www.bschool.cuhk.edu.hk/staff/",
+            "snippet":
+                "Honorary Professor of CUHK Business School BCT Distinghished Research Fellow, Institute of Global Economics and Finance. igef@cuhk.edu.hk +852 3943 1660",
+            "rank": 22
+          },
+          {
+            "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
+            "link": "https://www.bschool.cuhk.edu.hk/cuhk-business-school/",
+            "snippet":
+                "Accreditation. CUHK Business School is one of the first two business schools in Asia accredited by The Association to Advance Collegiate Schools of Business (AACSB). CUHK Business School is accredited by The Association of MBAs (AMBA) for its programmes including EMBA, JD/MBA, MBA, MBA in Finance and MSc in Management.",
+            "rank": 23
+          },
+          {
+            "title": "CUHK Channel - YouTube",
+            "link": "https://www.youtube.com/user/CUHKchannel",
+            "snippet":
+                "The Chinese University of Hong Kong (CUHK) is a comprehensive research-led university in Hong Kong delivering high-quality education on both undergraduate and postgraduate levels and serving the ",
+            "rank": 24
+          },
+          {
+            "title":
+                "CUHK Postgraduate Application - CUHK Graduate School | Postgraduate ...",
+            "link":
+                "https://www.gs.cuhk.edu.hk/admissions/admissions/how-to-apply",
+            "snippet":
+                "Step 1: Explore CUHK Postgraduate Study Options. Browse the Postgraduate Programme List. Check the Admissions Requirements. Step 2: Prepare for your Application. Prepare the documents/additional information required for application. Check the Application Deadline. (Please refer to individual programme pages for the specific application deadlines.)",
+            "rank": 25
+          },
+          {
+            "title": "Job Search - Oracle",
+            "link":
+                "https://cuhk.taleo.net/careersection/cu_career_teach/jobsearch.ftl?lang=en&portal=10115020119&lang=en",
+            "snippet":
+                "Actions. 230000LD. Part-time Instructors (Part-time Programmes -General Courses and other Professional Continuing Education Programmes) School of Continuing and Professional Studies. Apply ‌. Save Job Save Job. Share. 230000LI. Part-time Instructors (Full-time - Higher Diploma and Diploma Programmes)",
+            "rank": 26
+          },
+          {
+            "title": "The Chinese University of Hong Kong | Piazza",
+            "link": "https://piazza.com/cuhk.edu.hk",
+            "snippet":
+                "Piazza is an intuitive platform for instructors to efficiently manage class Q&A. Students can post questions and collaborate to edit responses to these questions. Instructors can also answer questions, endorse student answers, and edit or delete any posted content. Piazza is designed to simulate real class discussion.",
+            "rank": 27
+          }
+        ];
+
+        log("ddg results: ${items}");
+
+        break;
+      case 'Yahoo':
+        log("Yahoo");
+
+        // Parse the HTML response
+        final document = parse(response.body);
+
+        // Extract title and URL data
+        final titles = document
+            .querySelectorAll('.title a')
+            .map((element) => element.text)
+            .toList();
+        final urls = document
+            .querySelectorAll('.title a')
+            .map((element) => element.attributes['href']!)
+            .toList();
+
+        // Filter out unwanted results
+        final filteredTitles = <String>[];
+        final filteredUrls = <String>[];
+        for (int i = 0; i < titles.length; i++) {
+          // Exclude results that do not have a valid URL or contain specific keywords
+          if (urls[i] != null &&
+              !titles[i].contains('See all results for this question')) {
+            // Clean up the extracted title
+            String cleanedTitle = titles[i]
+                .trim()
+                .replaceAll(RegExp(r'\s{2,}'), ' '); // Remove extra spaces
+            cleanedTitle = cleanedTitle.replaceAll(
+                RegExp(r'\u200B'), ''); // Remove zero-width space
+            filteredTitles.add(cleanedTitle);
+            filteredUrls.add(urls[i]!);
+          }
+        }
+
+        // Print extracted data
+        for (int i = 0; i < filteredTitles.length; i++) {
+          log('Title: ${filteredTitles[i]} | URL: ${urls[i]}');
+          items.add({"title": filteredTitles[i], "link": cleanUrl(urls[i])});
+        }
+
+        break;
+      case 'YouTube':
+        items = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
+        for (var item in items) {
+          var videoId = item['id']['videoId'];
+          var videoUrl = "https://www.youtube.com/watch?v=$videoId";
+          item['title'] = item['snippet']['title'];
+          item['link'] = videoUrl;
+        }
+        break;
+
+      case 'Bing Video':
+        var results = jsonResponse['value'] != null
+            ? jsonResponse['value'] as List<dynamic>
+            : [];
+
+        for (var result in results) {
+          items.add({
+            "title": result['name'],
+            "link": result['hostPageUrl'],
+            "description": result['description'],
+            "date": result['datePublished'],
+            "viewCount": result['viewCount'],
+          });
+        }
+        break;
+      case 'Vimeo':
+        items = jsonResponse['data'] != null
+            ? jsonResponse['data'] as List<dynamic>
+            : [];
+        for (var item in items) {
+          item['title'] = item['name'];
+          item['description'] = item['description'];
+          item['date'] = item['created_time'];
+          item['link'] = item['link'];
+        }
+        break;
+      case 'Twitter':
+        // items = jsonResponse['items'] != null
         //     ? jsonResponse['items'] as List<dynamic>
         //     : [];
-        // log("items: ${items}");
 
-        // if (items.isEmpty) {
-        //   // setState(() {
-        //   //   _gg = true;
-        //   // });
-        //   log("no results found | _currentSearchPlatform: $_currentSearchPlatform | _prevSearchPlatform: $_prevSearchPlatform");
+        var results = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
 
-        //   // ignore: use_build_context_synchronously
-        //   await showDialog(
-        //       context: context,
-        //       builder: (BuildContext context) {
-        //         return AlertDialog(
-        //           title: const Text("No results found"),
-        //           content: const Text("Please try to change the search query"),
-        //           actions: [
-        //             TextButton(
-        //               child: const Text("OK"),
-        //               onPressed: () {
-        //                 Navigator.of(context).pop();
-        //               },
-        //             )
-        //           ],
-        //         );
-        //       });
+        for (var result in results) {
+          items.add({"title": result['title'], "link": result['link']});
+        }
+        break;
+      case 'Facebook':
+        // items = jsonResponse['items'] != null
+        //     ? jsonResponse['items'] as List<dynamic>
+        //     : [];
+        var results = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
 
-        //   setState(() {
-        //     _searchHistory.remove(_searchText);
-        //     _searchText = _prevSearchText;
-        //   });
+        for (var result in results) {
+          items.add({"title": result['title'], "link": result['link']});
+        }
+        break;
+      case 'Instagram':
+        // items = jsonResponse['items'] != null
+        //     ? jsonResponse['items'] as List<dynamic>
+        //     : [];
+        var results = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
 
-        //   _changeSearchPlatform(_prevSearchPlatform);
-        //   return null;
-        // } else {
-        setState(() {
-          _prevSearchText = _searchText;
-          _prevSearchPlatform = _currentSearchPlatform;
-        });
-        // }
+        for (var result in results) {
+          items.add({"title": result['title'], "link": result['link']});
+        }
+        break;
+      case 'LinkedIn':
+        // items = jsonResponse['items'] != null
+        //     ? jsonResponse['items'] as List<dynamic>
+        //     : [];
+        var results = jsonResponse['items'] != null
+            ? jsonResponse['items'] as List<dynamic>
+            : [];
 
-        return items;
-      } else {
-        log('Request failed with status: ${response.statusCode}.');
-
-        // ignore: use_build_context_synchronously
-        await showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text("Request Failed"),
-                content: Text("Status Code: ${response.statusCode}."),
-                actions: [
-                  TextButton(
-                    child: const Text("OK"),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  )
-                ],
-              );
-            });
-        return null;
-      }
-    } else {
-      log("GG");
+        for (var result in results) {
+          items.add({"title": result['title'], "link": result['link']});
+        }
+        break;
     }
+
+    // var items = jsonResponse['items'] != null
+    //     ? jsonResponse['items'] as List<dynamic>
+    //     : [];
+    // log("items: ${items}");
+
+    // if (items.isEmpty) {
+    //   // setState(() {
+    //   //   _gg = true;
+    //   // });
+    //   log("no results found | _currentSearchPlatform: $_currentSearchPlatform | _prevSearchPlatform: $_prevSearchPlatform");
+
+    //   // ignore: use_build_context_synchronously
+    //   await showDialog(
+    //       context: context,
+    //       builder: (BuildContext context) {
+    //         return AlertDialog(
+    //           title: const Text("No results found"),
+    //           content: const Text("Please try to change the search query"),
+    //           actions: [
+    //             TextButton(
+    //               child: const Text("OK"),
+    //               onPressed: () {
+    //                 Navigator.of(context).pop();
+    //               },
+    //             )
+    //           ],
+    //         );
+    //       });
+
+    //   setState(() {
+    //     _searchHistory.remove(_searchText);
+    //     _searchText = _prevSearchText;
+    //   });
+
+    //   _changeSearchPlatform(_prevSearchPlatform);
+    //   return null;
+    // } else {
+    setState(() {
+      _prevSearchText = _searchText;
+      _prevSearchPlatform = _currentSearchPlatform;
+    });
+    // }
+
+    return items;
+    // } else {
+    //   log('Request failed with status: ${response.statusCode}.');
+
+    //   // ignore: use_build_context_synchronously
+    //   await showDialog(
+    //       context: context,
+    //       builder: (BuildContext context) {
+    //         return AlertDialog(
+    //           title: const Text("Request Failed"),
+    //           content: Text("Status Code: ${response.statusCode}."),
+    //           actions: [
+    //             TextButton(
+    //               child: const Text("OK"),
+    //               onPressed: () {
+    //                 Navigator.of(context).pop();
+    //               },
+    //             )
+    //           ],
+    //         );
+    //       });
+    // return null;
+    //   }
+    // } else {
+    //   log("GG");
+    // }
 
     return null;
   }
@@ -1513,7 +1838,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                     .add({'title': item['title'], 'link': item['link']});
               }
 
-              // log("URLs[keyword] ${URLs[keyword]}");
+              if (_currentSearchPlatform == "General" &&
+                  (_mergeAlgorithm == "Original Rank" ||
+                      _mergeAlgorithm == "Further Merge")) {
+                URLs[keyword][platform]["original"] = list;
+              }
+
+              log("URLs[keyword] ${URLs[keyword]}");
 
               // URLs[keyword][platform]
               //     .add({'title': 'manual', 'link': 'https://www.google.com'});
@@ -1969,7 +2300,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
         EasyLoading.show(
           // status: 'Perform Image Search',
-          status: "Performing OCR",
+          status: "Performing Text Detection",
         );
 
         // try OCR first
@@ -2992,8 +3323,40 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
-  _toggleGeneralResults(String type) {
-    log("type: $type |${URLs[_searchText][_currentSearchPlatform]}");
+  _toggleGeneralResults(String type) async {
+    log("type: $type |${URLs[_searchText][_currentSearchPlatform]['original']}");
+    List current = URLs[_searchText][_currentSearchPlatform]['original'];
+    if (type == "All") {
+      setState(() {
+        URLs[_searchText][_currentSearchPlatform]["list"] = current;
+      });
+    } else if (type == "Duplicated") {
+      List temp = [];
+      for (int i = 0; i < current.length; i++) {
+        if (!current[i]["unique"]) {
+          temp.add(current[i]);
+        }
+      }
+      log("dup: $temp");
+      setState(() {
+        URLs[_searchText][_currentSearchPlatform]["list"] = temp;
+      });
+    } else if (type == "Unique") {
+      List temp = [];
+      for (int i = 0; i < current.length; i++) {
+        if (current[i]["unique"]) {
+          temp.add(current[i]);
+        }
+      }
+      log("uni: $temp");
+
+      setState(() {
+        URLs[_searchText][_currentSearchPlatform]["list"] = temp;
+      });
+    }
+
+    await _updateCurrentURLs();
+    await _moveSwiper();
   }
 
   _mergeSearch(String type) async {
@@ -3089,16 +3452,9 @@ class _WebViewContainerState extends State<WebViewContainer>
         case "ABAB":
           return mergedResults;
         case "Frequency":
-          // merge identical (similar?) results
+          // merge identical results
           Map webpageFrequency = {};
           for (int i = 0; i < mergedResults.length; i++) {
-            // var hash = await _getWebpageHash(mergedResults[i]["link"]);
-            // log("smart hash: $hash");
-            // if (webpageHashes[hash] == null) {
-            //   webpageHashes[hash] = 1;
-            // } else {
-            //   webpageHashes[hash] += 1;
-            // }
             if (webpageFrequency[mergedResults[i]["link"]] == null) {
               webpageFrequency[mergedResults[i]["link"]] = 1;
             } else {
@@ -3174,29 +3530,114 @@ class _WebViewContainerState extends State<WebViewContainer>
             }
           }
 
+          // sort in descending order
+          List<MapEntry> entries = webpageScore.entries.toList();
+          entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
+          Map sortedWebpageScore = Map.fromEntries(entries);
+
+          log("webpageScore: $webpageScore");
+          log("sortedWebpageScore: $sortedWebpageScore");
+
+          // add them to final results
+          List links = sortedWebpageScore.keys.toList();
+          List finalSortedList = [];
+          for (int i = 0; i < sortedWebpageScore.length; i++) {
+            finalSortedList.add({
+              "title": mergedResults.firstWhere(
+                  (element) => element["link"] == links[i])["title"],
+              "link": links[i],
+              "unique": sortedWebpageScore[links[i]]["rank"].length == 1
+                  ? true
+                  : false,
+            });
+          }
+
+          log("finalSortedList: $finalSortedList");
+          log("merged: ${finalSortedList.length / mergedResults.length}");
+
+          final snackBar = SnackBar(
+            content: Text(
+                "Merged ${mergedResults.length - finalSortedList.length} results | ${((finalSortedList.length / mergedResults.length) * 100).toStringAsFixed(2)}%"),
+            duration: const Duration(seconds: 3),
+          );
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          return finalSortedList;
+
+        case "Further Merge":
+          Map webpageScore = {};
+          double baseScore = mergedResults.length / platforms.length;
+          log("baseScore: $baseScore");
+
+          // for every appearance, score will be added
+          for (int i = 0; i < mergedResults.length; i++) {
+            if (webpageScore[mergedResults[i]["link"]] == null) {
+              webpageScore[mergedResults[i]["link"]] = {
+                "snippet": mergedResults[i]["snippet"],
+                "rank": [mergedResults[i]["rank"]],
+                "score": baseScore / mergedResults[i]["rank"],
+                "title": [mergedResults[i]["title"]],
+              };
+            } else {
+              webpageScore[mergedResults[i]["link"]] = {
+                "snippet": mergedResults[i]["snippet"],
+                "rank": [
+                  ...webpageScore[mergedResults[i]["link"]]["rank"],
+                  mergedResults[i]["rank"]
+                ],
+                "score": webpageScore[mergedResults[i]["link"]]["score"] +
+                    (baseScore / mergedResults[i]["rank"]),
+                "title": [mergedResults[i]["title"]],
+              };
+            }
+          }
+
           Iterable keys = webpageScore.keys;
 
           log("test $keys");
 
           for (int i = 0; i < keys.length; i++) {
             var current = keys.elementAt(i);
-            log("current $current");
+            var shortCurrent = current
+                .toString()
+                .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
+            // log("current $current");
             for (int j = i + 1; j < webpageScore.length; j++) {
               var compare = keys.elementAt(j);
-              log("compare $compare");
+              var shortCompare = compare
+                  .toString()
+                  .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
+              // log("compare $compare");
 
-              // keep the longer one (longest prefix match)
-              if (compare.contains(current)) {
-                log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+              // log("regex ${current.toString().replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "")}");
 
-                if (webpageScore[current]['snippet'].toString().trim().contains(
-                        webpageScore[compare]['snippet'].toString().trim()) ||
-                    webpageScore[compare]['snippet'].toString().trim().contains(
-                        webpageScore[current]['snippet'].toString().trim())) {
-                  log("real same 1 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-                  log("real same 1.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
-                  log("real same 1.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
+              if (shortCurrent == shortCompare) {
+                log("same merged: ${current} ${compare}");
+                if (current.length > compare.length) {
+                  webpageScore.update(
+                    current,
+                    (value) => {
+                      "rank": [
+                        ...webpageScore[current]["rank"],
+                        ...webpageScore[compare]["rank"]
+                      ],
+                      "score": webpageScore[current]["score"] +
+                          webpageScore[compare]["score"],
+                      "snippet": webpageScore[current]["snippet"],
+                      "title": webpageScore[current]["title"],
+                    },
+                  );
 
+                  webpageScore.update(
+                    compare,
+                    (value) => {
+                      "rank": [0],
+                      "score": 0,
+                      "snippet": webpageScore[compare]["snippet"],
+                      "title": webpageScore[compare]["title"],
+                    },
+                  );
+                } else if (compare.length > current.length) {
                   webpageScore.update(
                     compare,
                     (value) => {
@@ -3207,6 +3648,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       "score": webpageScore[current]["score"] +
                           webpageScore[compare]["score"],
                       "snippet": webpageScore[compare]["snippet"],
+                      "title": webpageScore[compare]["title"],
                     },
                   );
 
@@ -3216,20 +3658,64 @@ class _WebViewContainerState extends State<WebViewContainer>
                       "rank": [0],
                       "score": 0,
                       "snippet": webpageScore[current]["snippet"],
+                      "title": webpageScore[current]["title"],
                     },
                   );
                 }
-              } else if (current.contains(compare)) {
-                log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+              }
+              // keep the longer one (longest prefix match)
+              else if (shortCompare.contains(shortCurrent)) {
+                // log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+                // log("same 1 $current(${webpageScore[current]['title']}) is substring of $compare(${webpageScore[compare]['title']})");
 
                 if (webpageScore[current]['snippet'].toString().trim().contains(
                         webpageScore[compare]['snippet'].toString().trim()) ||
                     webpageScore[compare]['snippet'].toString().trim().contains(
                         webpageScore[current]['snippet'].toString().trim())) {
-                  log("real same 2 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-                  log("real same 2.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
-                  log("real same 2.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
+                  log("same merged 1: $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+                  // log("real same 1.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['title'].toString().trim())}");
+                  // log("real same 1.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['title'].toString().trim())}");
 
+                  log("same merged 1.1: ${current} ${compare}}");
+
+                  webpageScore.update(
+                    compare,
+                    (value) => {
+                      "rank": [
+                        ...webpageScore[current]["rank"],
+                        ...webpageScore[compare]["rank"]
+                      ],
+                      "score": webpageScore[current]["score"] +
+                          webpageScore[compare]["score"],
+                      "snippet": webpageScore[compare]["snippet"],
+                      "title": webpageScore[compare]["title"],
+                    },
+                  );
+
+                  webpageScore.update(
+                    current,
+                    (value) => {
+                      "rank": [0],
+                      "score": 0,
+                      "snippet": webpageScore[current]["snippet"],
+                      "title": webpageScore[current]["title"],
+                    },
+                  );
+                }
+              } else if (shortCurrent.contains(shortCompare)) {
+                // log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+
+                if (webpageScore[current]['snippet'].toString().trim().contains(
+                        webpageScore[compare]['snippet'].toString().trim()) ||
+                    webpageScore[compare]['snippet'].toString().trim().contains(
+                        webpageScore[current]['snippet'].toString().trim())) {
+                  // log("real same 2 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+                  // log("real same 2.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
+                  // log("real same 2.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
+
+                  log("same merged 2.1: $compare(${webpageScore[compare]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+
+                  log("same merged 2.2: ${current} ${compare}}");
                   webpageScore.update(
                     current,
                     (value) => {
@@ -3240,6 +3726,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       "score": webpageScore[current]["score"] +
                           webpageScore[compare]["score"],
                       "snippet": webpageScore[current]["snippet"],
+                      "title": webpageScore[current]["title"],
                     },
                   );
 
@@ -3249,6 +3736,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       "rank": [0],
                       "score": 0,
                       "snippet": webpageScore[compare]["snippet"],
+                      "title": webpageScore[compare]["title"],
                     },
                   );
                 }
@@ -3296,40 +3784,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
 
     return mergedResults;
-
-    // List test = [];
-    // int i = 0;
-    // for (i = 0; i < minLength; i++) {
-    //   test.add(platforms["Google"][i]);
-    //   test.add(platforms["Bing"][i]);
-    // }
-
-    // if (i < platforms["Google"].length) {
-    //   log("smart Google longer | $i | ${platforms["Google"].length}");
-    //   for (int j = i; j < platforms["Google"].length; j++) {
-    //     log("smart: ${platforms["Google"][j]}");
-    //     test.add(platforms["Google"][j]);
-    //   }
-    // }
-    // if (i < platforms["Bing"].length) {
-    //   log("smart Bing longer | $i | ${platforms["Bing"].length}");
-    //   for (int j = i; j < platforms["Bing"].length; j++) {
-    //     test.add(platforms["Bing"][j]);
-    //   }
-    // }
-
-    // sort the results according to frequency
-    // for (var result in results) {
-    //   if (!test.contains(result["link"])) {
-    //     test.add({result["link"]: 1});
-    //   } else {
-    //     test[result["link"]]++;
-    //   }
-    // }
-
-    // log("test: $test");
-
-    // return test;
   }
 
   _normalSearch([newSearch = false, refresh = false]) async {

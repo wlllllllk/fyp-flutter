@@ -157,9 +157,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
                 ListTile(
-                  title: const Text("Search Algorithm"),
+                  title: const Text("Extraction Method"),
                   subtitle:
-                      const Text("How the drill-down content is obtained."),
+                      const Text("How the drill-down content is extracted."),
                   trailing: DropdownButton<String>(
                     value: _searchAlgorithm,
                     icon: const Icon(Icons.arrow_downward),

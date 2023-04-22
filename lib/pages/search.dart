@@ -414,6 +414,34 @@ class _SearchPageState extends State<SearchPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: MultiSelectChipField(
+                  title: const Text(
+                    "Look for",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  items: platforms,
+                  showHeader: true,
+                  scroll: false,
+                  validator: (value) {
+                    log("validating $value");
+                  },
+                  onTap: (values) {
+                    log("selected: $values");
+                    selectedPlatform = values.isNotEmpty
+                        ? values[values.length - 1].toString()
+                        : "";
+                    log("updated $selectedPlatform");
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: MultiSelectChipField(
                   // key: selectKey,
                   title: const Text(
                     "Suggested Items",
@@ -520,34 +548,6 @@ class _SearchPageState extends State<SearchPage> {
                   //   // selectedKeywords = values.join(" ").trim();
                   //   // log("updated $selectedKeywords");
                   // },
-                ),
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: MultiSelectChipField(
-                  title: const Text(
-                    "Look for",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  items: platforms,
-                  showHeader: true,
-                  scroll: false,
-                  validator: (value) {
-                    log("validating $value");
-                  },
-                  onTap: (values) {
-                    log("selected: $values");
-                    selectedPlatform = values.isNotEmpty
-                        ? values[values.length - 1].toString()
-                        : "";
-                    log("updated $selectedPlatform");
-                  },
                 ),
               ),
             ],
