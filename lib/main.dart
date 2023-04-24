@@ -85,6 +85,12 @@ List<String> MergeAlgorithmList = [
   "Further Merge",
 ];
 
+List<String> VideoMergeAlgorithmList = [
+  "ABAB",
+  "Frequency",
+  "Original Rank",
+];
+
 // ignore: non_constant_identifier_names
 List<String> SearchPlatformList = [
   // "SmartText",
@@ -141,6 +147,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   // settings
   var _searchAlgorithm,
       _mergeAlgorithm,
+      _videoMergeAlgorithm,
       _preloadNumber,
       _reverseJoystick,
       _autoSwitchPlatform,
@@ -255,6 +262,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
     final mergeAlgorithm =
         await prefs.getString("mergeAlgorithm") ?? MergeAlgorithmList[0];
+    final videoMergeAlgorithm = await prefs.getString("videoMergeAlgorithm") ??
+        VideoMergeAlgorithmList[0];
     // final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final preloadNumber = await prefs.getBool("preloadNumber") ?? true;
     final reverseJoystick = await prefs.getBool("reverseJoystick") ?? false;
@@ -273,6 +282,8 @@ class _WebViewContainerState extends State<WebViewContainer>
       _currentSearchPlatform = "General";
       _searchAlgorithm = algorithm;
       _mergeAlgorithm = mergeAlgorithm;
+      _videoMergeAlgorithm = videoMergeAlgorithm;
+
       _preloadNumber = preloadNumber;
       _reverseJoystick = reverseJoystick;
       _autoSwitchPlatform = autoSwitchPlatform;
@@ -1580,12 +1591,16 @@ class _WebViewContainerState extends State<WebViewContainer>
         items = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
+        int i = 1;
         for (var item in items) {
           var videoId = item['id']['videoId'];
           var videoUrl = "https://www.youtube.com/watch?v=$videoId";
           item['title'] = item['snippet']['title'];
           item['link'] = videoUrl;
+          item['snippet'] = item['snippet']['description'];
+          item['rank'] = i++;
         }
+
         break;
 
       case 'Bing Video':
@@ -1593,13 +1608,15 @@ class _WebViewContainerState extends State<WebViewContainer>
             ? jsonResponse['value'] as List<dynamic>
             : [];
 
+        int i = 1;
         for (var result in results) {
           items.add({
             "title": result['name'],
             "link": result['hostPageUrl'],
-            "description": result['description'],
+            "snippet": result['description'],
             "date": result['datePublished'],
             "viewCount": result['viewCount'],
+            "rank": i++
           });
         }
         break;
@@ -1607,11 +1624,14 @@ class _WebViewContainerState extends State<WebViewContainer>
         items = jsonResponse['data'] != null
             ? jsonResponse['data'] as List<dynamic>
             : [];
+
+        int i = 1;
         for (var item in items) {
           item['title'] = item['name'];
-          item['description'] = item['description'];
+          item['snippet'] = item['description'];
           item['date'] = item['created_time'];
           item['link'] = item['link'];
+          item['rank'] = i++;
         }
         break;
       case 'Twitter':
@@ -1668,7 +1688,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     // var items = jsonResponse['items'] != null
     //     ? jsonResponse['items'] as List<dynamic>
     //     : [];
-    // log("items: ${items}");
+    log("items: ${items}");
 
     // if (items.isEmpty) {
     //   // setState(() {
@@ -2126,6 +2146,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
+  void _updateVideoMergeAlgorithm(algorithm) {
+    setState(() {
+      _videoMergeAlgorithm = algorithm;
+    });
+  }
+
   void _updatePreloadNumber(preloadNumber) {
     setState(() {
       _preloadNumber = preloadNumber;
@@ -2157,9 +2183,12 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSearchAlgorithm: _updateSearchAlgorithm,
             searchAlgorithm: _searchAlgorithm,
             updateMergeAlgorithm: _updateMergeAlgorithm,
+            updateVideoMergeAlgorithm: _updateVideoMergeAlgorithm,
             mergeAlgorithm: _mergeAlgorithm,
+            videoMergeAlgorithm: _videoMergeAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
             MergeAlgorithmList: MergeAlgorithmList,
+            VideoMergeAlgorithmList: VideoMergeAlgorithmList,
             updatePreloadNumber: _updatePreloadNumber,
             preloadNumber: _preloadNumber,
             updateAutoSwitchPlatform: _updateAutoSwitchPlatform,
@@ -3786,35 +3815,45 @@ class _WebViewContainerState extends State<WebViewContainer>
       return finalSortedList;
     }
 
-    switch (_mergeAlgorithm) {
-      case "ABAB":
-        log("merge algo ABAB");
-        return mergedResults;
+    if (type == "General") {
+      switch (_mergeAlgorithm) {
+        case "ABAB":
+          log("merge algo ABAB");
+          return mergedResults;
 
-      case "Frequency":
-        log("merge algo freq");
-
-        return frequencyMerge();
-      case "Original Rank":
-        log("merge algo rank");
-
-        if (type != "General") {
-          log("merge algo rank freq");
-          return frequencyMerge();
-        }
-        return rankMerge();
-      case "Further Merge":
-        log("merge algo further");
-
-        if (type != "General") {
-          log("merge algo further freq");
+        case "Frequency":
+          log("merge algo freq");
 
           return frequencyMerge();
-        }
-        return furtherMerge();
+        case "Original Rank":
+          log("merge algo rank");
+
+          return rankMerge();
+        case "Further Merge":
+          log("merge algo further");
+
+          return furtherMerge();
+      }
+
+      return mergedResults;
+    } else if (type == "Video") {
+      switch (_videoMergeAlgorithm) {
+        case "ABAB":
+          log("merge algo ABAB");
+          return mergedResults;
+
+        case "Frequency":
+          log("merge algo freq");
+
+          return frequencyMerge();
+        case "Original Rank":
+          log("merge algo rank");
+
+          return rankMerge();
+      }
+
+      return mergedResults;
     }
-
-    return mergedResults;
   }
 
   _normalSearch([newSearch = false, refresh = false]) async {

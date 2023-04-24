@@ -13,8 +13,11 @@ class SettingsPage extends StatefulWidget {
     required this.searchAlgorithm,
     required this.SearchAlgorithmList,
     required this.updateMergeAlgorithm,
+    required this.updateVideoMergeAlgorithm,
     required this.mergeAlgorithm,
+    required this.videoMergeAlgorithm,
     required this.MergeAlgorithmList,
+    required this.VideoMergeAlgorithmList,
     required this.updatePreloadNumber,
     required this.preloadNumber,
     required this.updateReverseJoystick,
@@ -28,7 +31,9 @@ class SettingsPage extends StatefulWidget {
   final updateSearchAlgorithm;
   final searchAlgorithm;
   final updateMergeAlgorithm;
+  final updateVideoMergeAlgorithm;
   final mergeAlgorithm;
+  final videoMergeAlgorithm;
   final updatePreloadNumber;
   final bool preloadNumber;
   final updateAutoSwitchPlatform;
@@ -37,6 +42,7 @@ class SettingsPage extends StatefulWidget {
   final int autoSwitchPlatform;
   final List<String> SearchAlgorithmList;
   final List<String> MergeAlgorithmList;
+  final List<String> VideoMergeAlgorithmList;
   final SharedPreferences prefs;
 
   @override
@@ -46,6 +52,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   var _searchAlgorithm;
   var _mergeAlgorithm;
+  var _videoMergeAlgorithm;
   var _preloadNumber;
   var _reverseJoystick;
   var _autoSwitchPlatform;
@@ -55,6 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _searchAlgorithm = widget.searchAlgorithm;
     _mergeAlgorithm = widget.mergeAlgorithm;
+    _videoMergeAlgorithm = widget.videoMergeAlgorithm;
     _preloadNumber = widget.preloadNumber;
     _reverseJoystick = widget.reverseJoystick;
     _autoSwitchPlatform = widget.autoSwitchPlatform;
@@ -221,6 +229,43 @@ class _SettingsPageState extends State<SettingsPage> {
                       );
                     },
                     items: widget.MergeAlgorithmList.asMap().entries.map(
+                      (entry) {
+                        return DropdownMenuItem<String>(
+                          value: entry.value,
+                          child: Text(entry.value),
+                        );
+                      },
+                    ).toList(),
+                  ),
+                ),
+                ListTile(
+                  title: const Text("Video Merge Algorithm"),
+                  subtitle: const Text(
+                      "How the results from different platforms are merged."),
+                  trailing: DropdownButton<String>(
+                    value: _videoMergeAlgorithm,
+                    icon: const Icon(Icons.arrow_downward),
+                    elevation: 16,
+                    // style: const TextStyle(color: Colors.deepPurple),
+                    underline: Container(
+                      height: 2,
+                      // color: _appBarColor,
+                    ),
+                    onChanged: (String? value) async {
+                      print("value $value");
+
+                      widget.updateVideoMergeAlgorithm(value);
+
+                      setState(() {
+                        _videoMergeAlgorithm = value;
+                      });
+
+                      await widget.prefs.setString(
+                        "videoMergeAlgorithm",
+                        value!,
+                      );
+                    },
+                    items: widget.VideoMergeAlgorithmList.asMap().entries.map(
                       (entry) {
                         return DropdownMenuItem<String>(
                           value: entry.value,
