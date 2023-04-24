@@ -3788,16 +3788,27 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     switch (_mergeAlgorithm) {
       case "ABAB":
+        log("merge algo ABAB");
         return mergedResults;
+
       case "Frequency":
+        log("merge algo freq");
+
         return frequencyMerge();
       case "Original Rank":
+        log("merge algo rank");
+
         if (type != "General") {
+          log("merge algo rank freq");
           return frequencyMerge();
         }
         return rankMerge();
       case "Further Merge":
+        log("merge algo further");
+
         if (type != "General") {
+          log("merge algo further freq");
+
           return frequencyMerge();
         }
         return furtherMerge();
