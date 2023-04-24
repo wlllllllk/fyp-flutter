@@ -1,38 +1,37 @@
-import 'dart:convert';
-import 'dart:io';
+// import 'dart:convert';
+// import 'dart:io';
 import 'dart:developer';
 
-import 'package:flutter/cupertino.dart';
+// import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_searchub/main.dart';
-import 'package:http/http.dart';
+// import 'package:http/http.dart';
 
 // import 'package:fyp_searchub/main.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:isar/isar.dart';
+// import 'package:isar/isar.dart';
 
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
+// import 'package:flutter/services.dart';
+// import 'package:path_provider/path_provider.dart';
 
-import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'dart:io' as io;
-import 'package:path/path.dart' as p;
-import 'package:googleapis_auth/auth_io.dart';
-import 'package:googleapis/vision/v1.dart' as vision;
-import 'package:googleapis/storage/v1.dart';
-import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart' as dio;
-import 'package:stats/stats.dart';
+// import 'package:flutter/material.dart';
+// import 'dart:ui';
+// import 'dart:io' as io;
+// import 'package:path/path.dart' as p;
+// import 'package:googleapis_auth/auth_io.dart';
+// import 'package:googleapis/vision/v1.dart' as vision;
+// import 'package:googleapis/storage/v1.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:dio/dio.dart' as dio;
+// import 'package:stats/stats.dart';
 
-import 'package:typed_data/typed_data.dart';
+// import 'package:typed_data/typed_data.dart';
 
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:menu_button/menu_button.dart';
+// import 'package:menu_button/menu_button.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
@@ -82,6 +81,7 @@ class SearchPage extends StatefulWidget {
     required this.updateCurrentImage,
     required this.mergeSearch,
     required this.isTutorial,
+    required this.updateIsTutorial,
   }) : super(key: key);
 
   final String realSearchText;
@@ -103,6 +103,7 @@ class SearchPage extends StatefulWidget {
   final updateCurrentImage;
   final mergeSearch;
   final isTutorial;
+  final updateIsTutorial;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -122,6 +123,7 @@ class _SearchPageState extends State<SearchPage> {
 
   // tutorial
   List<TargetFocus> targets = [];
+  var _tutorial;
 
   @override
   void initState() {
@@ -146,47 +148,49 @@ class _SearchPageState extends State<SearchPage> {
       ..maskType = EasyLoadingMaskType.black
       ..dismissOnTap = true;
 
-    targets.add(
-      TargetFocus(
-        identify: "Platforms",
-        keyTarget: _platformsKey,
-        enableOverlayTab: true,
-        shape: ShapeLightFocus.RRect,
-        contents: [
-          TargetContent(
-            align: ContentAlign.bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: const <Widget>[
-                Text(
-                  "First, select what you are looking for",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 20.0),
-                ),
-                // Padding(
-                //   padding: EdgeInsets.only(top: 10.0),
-                //   child: Text(
-                //     "This is where you access the settings page as well as showing this tutorial again.",
-                //     style: TextStyle(color: Colors.white),
-                //   ),
-                // )
-              ],
-            ),
-          )
-        ],
-      ),
-    );
-
     if (widget.isTutorial) {
+      targets.add(
+        TargetFocus(
+          identify: "Platforms",
+          keyTarget: _platformsKey,
+          enableOverlayTab: true,
+          shape: ShapeLightFocus.RRect,
+          radius: 8,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: const <Widget>[
+                  Text(
+                    "First, select what you are looking for",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "This is where you access the settings page as well as showing this tutorial again.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
       targets.add(
         TargetFocus(
           identify: "Text Field",
           keyTarget: _textFieldKey,
           enableOverlayTab: true,
           shape: ShapeLightFocus.RRect,
+          radius: 8,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
@@ -281,6 +285,74 @@ class _SearchPageState extends State<SearchPage> {
         ),
       );
 
+      targets.add(
+        TargetFocus(
+          identify: "Text Field",
+          keyTarget: _textFieldKey,
+          enableOverlayTab: true,
+          shape: ShapeLightFocus.RRect,
+          radius: 8,
+          color: Colors.yellow,
+          contents: [
+            TargetContent(
+              align: ContentAlign.bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    "Now, try to perform your first search.",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                        fontSize: 20.0),
+                  ),
+                  // Padding(
+                  //   padding: EdgeInsets.only(top: 10.0),
+                  //   child: Text(
+                  //     "This is where you access the settings page as well as showing this tutorial again.",
+                  //     style: TextStyle(color: Colors.white),
+                  //   ),
+                  // )
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+
+      // targets.add(
+      //   TargetFocus(
+      //     identify: "Perform Search",
+      //     enableOverlayTab: true,
+      //     contents: [
+      //       TargetContent(
+      //         align: ContentAlign.bottom,
+      //         child: Column(
+      //           mainAxisSize: MainAxisSize.min,
+      //           crossAxisAlignment: CrossAxisAlignment.end,
+      //           children: const <Widget>[
+      //             Text(
+      //               "Now, try to search for something.",
+      //               style: TextStyle(
+      //                   fontWeight: FontWeight.bold,
+      //                   color: Colors.white,
+      //                   fontSize: 20.0),
+      //             ),
+      //             // Padding(
+      //             //   padding: EdgeInsets.only(top: 10.0),
+      //             //   child: Text(
+      //             //     "This is where you access the settings page as well as showing this tutorial again.",
+      //             //     style: TextStyle(color: Colors.white),
+      //             //   ),
+      //             // )
+      //           ],
+      //         ),
+      //       )
+      //     ],
+      //   ),
+      // );
+
       _showTutorial();
     }
   }
@@ -288,7 +360,7 @@ class _SearchPageState extends State<SearchPage> {
   void _showTutorial() async {
     await Future.delayed(const Duration(milliseconds: 300), () {});
 
-    TutorialCoachMark tutorial = TutorialCoachMark(
+    _tutorial = TutorialCoachMark(
         targets: targets, // List<TargetFocus>
         colorShadow: Colors.blue, // DEFAULT Colors.black
         // alignSkip: Alignment.bottomRight,
@@ -377,264 +449,292 @@ class _SearchPageState extends State<SearchPage> {
       resultsBing = await widget.imageSearchBing(image, image.path);
       log("image search results Bing1: $resultsBing");
 
-      List test = resultsBing["bestGuessList"];
-      log("image search results Bing2: ${test}");
-      log("image search results Bing3: ${test.toList()}");
+      // List test = resultsBing["bestGuessList"];
+      // log("image search results Bing2: ${test}");
+      // log("image search results Bing3: ${test.toList()}");
 
-      List keywords = resultsBing["bestGuessList"];
-      // for (var i = 0; i < resultsBing["bestGuessList"].length; i++) {
-      //   keywords.add(MultiSelectItem(
-      //       "https://tse4.mm.bing.net/th?q=Keeby+Kirby&pid=Api&mkt=en-US&cc=US&setlang=en&adlt=moderate",
-      //       resultsBing["bestGuessList"][i]["bestGuessLabel"]));
-      // }
+      if (resultsBing["bestGuessList"] == null) {
+        EasyLoading.dismiss();
 
-      List<MultiSelectItem> platforms = [];
-      for (var i = 0; i < SearchPlatformList.length; i++) {
-        platforms
-            .add(MultiSelectItem(SearchPlatformList[i], SearchPlatformList[i]));
-      }
+        // ignore: use_build_context_synchronously
+        await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text("No results found"),
+                content: const Text("Please try to change the search query"),
+                actions: [
+                  TextButton(
+                    child: const Text("OK"),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  )
+                ],
+              );
+            });
+      } else {
+        List keywords = resultsBing["bestGuessList"];
+        // for (var i = 0; i < resultsBing["bestGuessList"].length; i++) {
+        //   keywords.add(MultiSelectItem(
+        //       "https://tse4.mm.bing.net/th?q=Keeby+Kirby&pid=Api&mkt=en-US&cc=US&setlang=en&adlt=moderate",
+        //       resultsBing["bestGuessList"][i]["bestGuessLabel"]));
+        // }
+        log("keywords: $keywords");
 
-      EasyLoading.dismiss();
+        List<MultiSelectItem> platforms = [];
+        for (var i = 0; i < SearchPlatformList.length; i++) {
+          platforms.add(
+              MultiSelectItem(SearchPlatformList[i], SearchPlatformList[i]));
+        }
 
-      List selectedKeyword = [];
-      String selectedPlatform = "";
-      bool abort = false;
-      // String selectedKeyword = "";
-      // GlobalKey<FormFieldState<dynamic>> selectKey = GlobalKey();
+        EasyLoading.dismiss();
 
-      // ignore: use_build_context_synchronously
-      await showDialog<String>(
-        barrierDismissible: false,
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-          scrollable: true,
-          title: const Text('Are you looking for one of these?'),
-          content: Column(
-            children: <Widget>[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: MultiSelectChipField(
-                  title: const Text(
-                    "Look for",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white),
+        List selectedKeyword = [];
+        String selectedPlatform = "";
+        bool abort = false;
+        // String selectedKeyword = "";
+        // GlobalKey<FormFieldState<dynamic>> selectKey = GlobalKey();
+
+        // ignore: use_build_context_synchronously
+        await showDialog<String>(
+          barrierDismissible: false,
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            scrollable: true,
+            title: const Text('Are you looking for one of these?'),
+            content: Column(
+              children: <Widget>[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: MultiSelectChipField(
+                    title: const Text(
+                      "Look for",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    items: platforms,
+                    showHeader: true,
+                    scroll: false,
+                    validator: (value) {
+                      log("validating $value");
+                    },
+                    onTap: (values) {
+                      log("selected: $values");
+                      selectedPlatform = values.isNotEmpty
+                          ? values[values.length - 1].toString()
+                          : "";
+                      log("updated $selectedPlatform");
+                    },
                   ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  items: platforms,
-                  showHeader: true,
-                  scroll: false,
-                  validator: (value) {
-                    log("validating $value");
-                  },
-                  onTap: (values) {
-                    log("selected: $values");
-                    selectedPlatform = values.isNotEmpty
-                        ? values[values.length - 1].toString()
-                        : "";
-                    log("updated $selectedPlatform");
-                  },
                 ),
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: MultiSelectChipField(
-                  // key: selectKey,
-                  title: const Text(
-                    "Suggested Items",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  decoration: const BoxDecoration(
-                    border: null,
-                  ),
-                  items: keywords
-                      .map((keyword) => MultiSelectItem(
-                            keyword["urls"],
-                            keyword["bestGuessLabel"],
-                          ))
-                      .toList(),
-                  itemBuilder: (item, state) {
-                    return InkWell(
-                      onTap: () {
-                        log("selected: ${item.label}");
-                        if (selectedKeyword.contains(item.label)) {
-                          selectedKeyword.clear();
-                        } else {
-                          selectedKeyword.clear();
-                          selectedKeyword.add(item.label);
-                        }
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: MultiSelectChipField(
+                    // key: selectKey,
+                    title: const Text(
+                      "Suggested Items",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    decoration: const BoxDecoration(
+                      border: null,
+                    ),
+                    items: keywords
+                        .map((keyword) => MultiSelectItem(
+                              keyword["urls"],
+                              keyword["bestGuessLabel"],
+                            ))
+                        .toList(),
+                    itemBuilder: (item, state) {
+                      return InkWell(
+                        onTap: () {
+                          log("selected: ${item.label}");
+                          if (selectedKeyword.contains(item.label)) {
+                            selectedKeyword.clear();
+                          } else {
+                            selectedKeyword.clear();
+                            selectedKeyword.add(item.label);
+                          }
 
-                        log("selectedKeyword: ${selectedKeyword}");
+                          log("selectedKeyword: ${selectedKeyword}");
 
-                        state.didChange(selectedKeyword);
-                        // selectKey.currentState?.validate();
-                      },
-                      child: ClipRRect(
-                        // borderRadius: BorderRadius.circular(10),
-                        child: AnimatedContainer(
-                          // width: 100,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: selectedKeyword.contains(item.label)
-                                ? const Color.fromRGBO(158, 158, 158, 0.475)
-                                : Colors.transparent,
-                          ),
-                          duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.all(10),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Opacity(
-                                  opacity: selectedKeyword.contains(item.label)
-                                      ? 0.5
-                                      : 1,
-                                  child: Image.network(
-                                    item.value.toString(),
-                                    // height: 100,
-                                    // width: 100,
+                          state.didChange(selectedKeyword);
+                          // selectKey.currentState?.validate();
+                        },
+                        child: ClipRRect(
+                          // borderRadius: BorderRadius.circular(10),
+                          child: AnimatedContainer(
+                            // width: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: selectedKeyword.contains(item.label)
+                                  ? const Color.fromRGBO(158, 158, 158, 0.475)
+                                  : Colors.transparent,
+                            ),
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.all(10),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Opacity(
+                                    opacity:
+                                        selectedKeyword.contains(item.label)
+                                            ? 0.5
+                                            : 1,
+                                    child: Image.network(
+                                      item.value.toString(),
+                                      // height: 100,
+                                      // width: 100,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                item.label,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                              const SizedBox(width: 10),
-                            ],
+                                const SizedBox(width: 10),
+                                Text(
+                                  item.label,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                const SizedBox(width: 10),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                    // return GestureDetector(
-                    //   onTap: () {
-                    //     // log("selected: ${item.label}");
-                    //   },
-                    //   child: Container(
-                    //     padding: const EdgeInsets.all(10),
-                    //     child: Column(
-                    //       children: [
-                    //         ClipRRect(
-                    //           borderRadius: BorderRadius.circular(10),
-                    //           child: Image.network(
-                    //             item.value.toString(),
-                    //             // height: 50,
-                    //             // width: 50,
-                    //           ),
-                    //         ),
-                    //         const SizedBox(width: 10),
-                    //         Text(
-                    //           item.label,
-                    //           style: const TextStyle(fontSize: 16),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //   ),
-                    // );
-                  },
-                  showHeader: false,
-                  scroll: false,
-                  // validator: (value) {
-                  //   log("value: $value");
-                  // },
-                  // onTap: (values) {
-                  //   log("selected: $values");
-                  //   // selectedKeywords = values.join(" ").trim();
-                  //   // log("updated $selectedKeywords");
-                  // },
+                      );
+                      // return GestureDetector(
+                      //   onTap: () {
+                      //     // log("selected: ${item.label}");
+                      //   },
+                      //   child: Container(
+                      //     padding: const EdgeInsets.all(10),
+                      //     child: Column(
+                      //       children: [
+                      //         ClipRRect(
+                      //           borderRadius: BorderRadius.circular(10),
+                      //           child: Image.network(
+                      //             item.value.toString(),
+                      //             // height: 50,
+                      //             // width: 50,
+                      //           ),
+                      //         ),
+                      //         const SizedBox(width: 10),
+                      //         Text(
+                      //           item.label,
+                      //           style: const TextStyle(fontSize: 16),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // );
+                    },
+                    showHeader: false,
+                    scroll: false,
+                    // validator: (value) {
+                    //   log("value: $value");
+                    // },
+                    // onTap: (values) {
+                    //   log("selected: $values");
+                    //   // selectedKeywords = values.join(" ").trim();
+                    //   // log("updated $selectedKeywords");
+                    // },
+                  ),
                 ),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, 'Cancel');
+                  abort = true;
+                },
+                child: const Text('Cancel'),
+              ),
+              // TextButton(
+              //   onPressed: () {
+              //     Navigator.pop(context, 'ALL');
+              //   },
+              //   child: const Text('Drill ALL'),
+              // ),
+              TextButton(
+                onPressed: () {
+                  log("final selected keywords: $selectedKeyword");
+                  if (selectedKeyword.isEmpty) {
+                    return;
+                  }
+                  Navigator.pop(context, 'OK');
+                },
+                child: const Text('OK'),
               ),
             ],
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, 'Cancel');
-                abort = true;
-              },
-              child: const Text('Cancel'),
-            ),
-            // TextButton(
-            //   onPressed: () {
-            //     Navigator.pop(context, 'ALL');
-            //   },
-            //   child: const Text('Drill ALL'),
-            // ),
-            TextButton(
-              onPressed: () {
-                log("final selected keywords: $selectedKeyword");
-                if (selectedKeyword.isEmpty) {
-                  return;
-                }
-                Navigator.pop(context, 'OK');
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+        );
 
-      // widget.updateSearchText(selectedKeyword[0]);
-      // await widget.mergeSearch(selectedPlatform);
-      if (!abort) {
-        await widget.handleSearch(selectedKeyword[0],
-            selectedPlatform == "" ? widget.currentPlatform : selectedPlatform);
+        // widget.updateSearchText(selectedKeyword[0]);
+        // await widget.mergeSearch(selectedPlatform);
+        if (!abort) {
+          await widget.handleSearch(
+              selectedKeyword[0],
+              selectedPlatform == ""
+                  ? widget.currentPlatform
+                  : selectedPlatform);
+        }
+        // await widget.mergeSearch(selectedPlatform);
+
+        // EasyLoading.dismiss();
+        // EasyLoading.show(
+        //   status: 'Merging Results',
+        // );
+        // String keyword = resultsGoogle["bestGuessLabel"];
+        // var results =
+        //     widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
+        // log("image search results: $results");
+        // await widget.updateURLs("replace", keyword, "Webpage", results, true);
+
+        // Map results = {};
+        // if (_imageSearchPlatform == "Google") {
+        //   var items;
+        //   results = await widget.imageSearchGoogle(image, image.path);
+        //   if (results['urls'].length == 0) {
+        //     log("Google 000000000");
+
+        //     items =
+        //         await widget.performSearch(results["bestGuessLabel"], "Google");
+        //     await widget.updateURLs(
+        //         "replace", results['bestGuessLabel'], "Google", items, true);
+        //   } else {
+        //     log("Google not 000000000");
+        //     await widget.updateURLs("replace", results['bestGuessLabel'],
+        //         "Google", results['urls'], true);
+        //   }
+        // } else if (_imageSearchPlatform == "Bing") {
+        //   var items;
+        //   results = await widget.imageSearchBing(image, image.path);
+        //   if (results["urls"].length == 0) {
+        //     log("Bing 000000000");
+        //     items =
+        //         await widget.performSearch(results["urls"], _imageSearchPlatform);
+        //     await widget.updateURLs("replace", "Bing Image Search",
+        //         _imageSearchPlatform, items, true);
+        //   } else {
+        //     log("Bing not 000000000");
+        //     await widget.updateURLs("replace", "Bing Image Search",
+        //         _imageSearchPlatform, results['urls'], true);
+        //   }
+        // }
+        // }
+
+        // log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
+
+        // await widget.updateCurrentURLs();
+        EasyLoading.dismiss();
       }
-      // await widget.mergeSearch(selectedPlatform);
 
-      // EasyLoading.dismiss();
-      // EasyLoading.show(
-      //   status: 'Merging Results',
-      // );
-      // String keyword = resultsGoogle["bestGuessLabel"];
-      // var results =
-      //     widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
-      // log("image search results: $results");
-      // await widget.updateURLs("replace", keyword, "Webpage", results, true);
-
-      // Map results = {};
-      // if (_imageSearchPlatform == "Google") {
-      //   var items;
-      //   results = await widget.imageSearchGoogle(image, image.path);
-      //   if (results['urls'].length == 0) {
-      //     log("Google 000000000");
-
-      //     items =
-      //         await widget.performSearch(results["bestGuessLabel"], "Google");
-      //     await widget.updateURLs(
-      //         "replace", results['bestGuessLabel'], "Google", items, true);
-      //   } else {
-      //     log("Google not 000000000");
-      //     await widget.updateURLs("replace", results['bestGuessLabel'],
-      //         "Google", results['urls'], true);
-      //   }
-      // } else if (_imageSearchPlatform == "Bing") {
-      //   var items;
-      //   results = await widget.imageSearchBing(image, image.path);
-      //   if (results["urls"].length == 0) {
-      //     log("Bing 000000000");
-      //     items =
-      //         await widget.performSearch(results["urls"], _imageSearchPlatform);
-      //     await widget.updateURLs("replace", "Bing Image Search",
-      //         _imageSearchPlatform, items, true);
-      //   } else {
-      //     log("Bing not 000000000");
-      //     await widget.updateURLs("replace", "Bing Image Search",
-      //         _imageSearchPlatform, results['urls'], true);
-      //   }
-      // }
-      // }
-
-      // log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
-
-      // await widget.updateCurrentURLs();
-      EasyLoading.dismiss();
       // EasyLoading.showToast('results length ${results['urls'].length}');
 
       // final snackBar = SnackBar(
@@ -655,51 +755,88 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Column(
-            // height: 40,
-            // padding: const EdgeInsets.only(left: 15),
-            // decoration: BoxDecoration(
-            // color: Colors.white,
-            // borderRadius: BorderRadius.circular(10),
-            // ),
-            children: <Widget>[
-              TextField(
-                key: _textFieldKey,
-                textInputAction: TextInputAction.search,
-                autofocus: true,
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Enter here',
-                  // prefixIcon: ClipRRect(
-                  //   borderRadius: BorderRadius.circular(10),
-                  //   child: MenuButton(
-                  //     decoration: BoxDecoration(
-                  //       color: Colors.white,
-                  //       borderRadius: BorderRadius.circular(10),
-                  //     ),
-                  //     topDivider: false,
-                  //     child: widget.platformIconBuilder(_platform),
-                  //     menuButtonBackgroundColor: Colors.white,
-                  //     items: SearchPlatformList,
-                  //     itemBuilder: (String value) => SizedBox(
-                  //       height: 50,
-                  //       child: widget.platformIconBuilder(value),
-                  //     ),
-                  //     onItemSelected: (value) {
-                  //       log("value $value");
-                  //       // widget.updateCurrentURLs(value);
-                  //       // widget.moveSwiper(0);
-                  //       setState(() {
-                  //         _platform = value as String;
-                  //       });
-                  //     },
-                  //   ),
-                  // ),
-                  suffixIcon: Container(
-                    child: IntrinsicHeight(
+    return WillPopScope(
+      onWillPop: () async {
+        bool pop = true;
+        if (widget.isTutorial) {
+          await showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text("Tutorial in progress"),
+                  content: const Text("Do you want to end it?"),
+                  actions: [
+                    TextButton(
+                      child: const Text("No"),
+                      onPressed: () {
+                        pop = false;
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    TextButton(
+                      child: const Text("Yes"),
+                      onPressed: () {
+                        // pop = true;
+                        _tutorial.finish();
+                        widget.updateIsTutorial(false);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              });
+        }
+
+        // if (end) {
+        return Future.value(pop);
+        // } else {
+        //   return Future.value(false);
+        // }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: Column(
+              // height: 40,
+              // padding: const EdgeInsets.only(left: 15),
+              // decoration: BoxDecoration(
+              // color: Colors.white,
+              // borderRadius: BorderRadius.circular(10),
+              // ),
+              children: <Widget>[
+                TextField(
+                  key: _textFieldKey,
+                  textInputAction: TextInputAction.search,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Enter here',
+                    // prefixIcon: ClipRRect(
+                    //   borderRadius: BorderRadius.circular(10),
+                    //   child: MenuButton(
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.white,
+                    //       borderRadius: BorderRadius.circular(10),
+                    //     ),
+                    //     topDivider: false,
+                    //     child: widget.platformIconBuilder(_platform),
+                    //     menuButtonBackgroundColor: Colors.white,
+                    //     items: SearchPlatformList,
+                    //     itemBuilder: (String value) => SizedBox(
+                    //       height: 50,
+                    //       child: widget.platformIconBuilder(value),
+                    //     ),
+                    //     onItemSelected: (value) {
+                    //       log("value $value");
+                    //       // widget.updateCurrentURLs(value);
+                    //       // widget.moveSwiper(0);
+                    //       setState(() {
+                    //         _platform = value as String;
+                    //       });
+                    //     },
+                    //   ),
+                    // ),
+                    suffixIcon: IntrinsicHeight(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         mainAxisSize: MainAxisSize.min,
@@ -725,82 +862,93 @@ class _SearchPageState extends State<SearchPage> {
                         ],
                       ),
                     ),
+                    // IconButton(
+                    //   onPressed: _searchFieldController.clear,
+                    //   icon: const Icon(Icons.photo),
+                    // ),
+                    //   ],
+                    // ),
                   ),
-                  // IconButton(
-                  //   onPressed: _searchFieldController.clear,
-                  //   icon: const Icon(Icons.photo),
-                  // ),
-                  //   ],
-                  // ),
-                ),
-                controller: _searchFieldController,
-                onSubmitted: (value) {
-                  if (value != "") widget.handleSearch(value, _platform);
-                },
-                autocorrect: false,
-                maxLines: 1,
-              ),
-            ]),
-      ),
-      body: Container(
-        color: Colors.white,
-        child: Align(
-          alignment: Alignment.center,
-          child: ListView(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(
-                    left: 16.0, right: 16.0, bottom: 16.0),
-                child: SegmentedButton(
-                  key: _platformsKey,
-                  segments: SearchPlatformList.map((e) => ButtonSegment(
-                      value: e,
-                      label: Text(e),
-                      icon: widget.platformIconBuilder(e))).toList(),
-                  selected: {_platform},
-                  onSelectionChanged: (newSelection) {
-                    log("newSelection $newSelection");
-
-                    setState(() {
-                      // By default there is only a single segment that can be
-                      // selected at one time, so its value is always the first
-                      // item in the selected set.
-                      _platform = newSelection.first.toString();
-                    });
+                  controller: _searchFieldController,
+                  onSubmitted: (value) {
+                    if (value != "") widget.handleSearch(value, _platform);
                   },
+                  autocorrect: false,
+                  maxLines: 1,
                 ),
-              ),
-              ..._searchRecords.map((record) {
-                return ListTile(
-                  title: Text(record.searchText,
-                      style: const TextStyle(
-                        fontSize: 18,
-                      )),
-                  trailing: IconButton(
-                    icon: const Icon(EvaIcons.close_outline),
-                    onPressed: () async {
-                      log("delete");
-                      await widget.updateSearchRecord(record.searchText, true);
+              ]),
+        ),
+        body: Container(
+          color: Colors.white,
+          child: Align(
+            alignment: Alignment.center,
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 16.0, right: 16.0, bottom: 16.0),
+                  child: SegmentedButton(
+                    key: _platformsKey,
+                    segments: SearchPlatformList.map((e) => ButtonSegment(
+                        value: e,
+                        label: Text(e),
+                        icon: widget.platformIconBuilder(e))).toList(),
+                    selected: {_platform},
+                    onSelectionChanged: (newSelection) {
+                      log("newSelection $newSelection");
+
                       setState(() {
-                        _searchRecords.removeWhere(
-                            (r) => r.searchText == record.searchText);
+                        // By default there is only a single segment that can be
+                        // selected at one time, so its value is always the first
+                        // item in the selected set.
+                        _platform = newSelection.first.toString();
                       });
                     },
                   ),
-                  onTap: () {
-                    log("record.searchText ${record.searchText}");
-                    widget.handleSearch(record.searchText, _platform);
-                  },
-                );
-              }).toList(),
-            ],
-          ),
+                ),
+                ..._searchRecords.map((record) {
+                  return ListTile(
+                    title: Text(record.searchText,
+                        style: const TextStyle(
+                          fontSize: 18,
+                        )),
+                    trailing: Wrap(
+                      children: [
+                        IconButton(
+                          icon: const Icon(EvaIcons.diagonal_arrow_left_up),
+                          onPressed: () async {
+                            _searchFieldController.text = record.searchText;
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(EvaIcons.close_outline),
+                          onPressed: () async {
+                            log("delete");
+                            await widget.updateSearchRecord(
+                                record.searchText, true);
+                            setState(() {
+                              _searchRecords.removeWhere(
+                                  (r) => r.searchText == record.searchText);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      log("record.searchText ${record.searchText}");
+                      widget.handleSearch(record.searchText, _platform);
+                    },
+                  );
+                }).toList(),
+              ],
+            ),
 
-          // Text(
-          //   // "Search here",
-          //   "",
-          //   style: TextStyle(fontSize: 22),
-          // ),
+            // Text(
+            //   // "Search here",
+            //   "",
+            //   style: TextStyle(fontSize: 22),
+            // ),
+          ),
         ),
       ),
     );

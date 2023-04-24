@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:ffi';
+// import 'dart:ffi';
 import 'dart:io' show Directory, File, Platform, exit;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+// import 'package:flutter/rendering.dart';
 import 'package:fyp_searchub/pages/history.dart';
 import 'package:fyp_searchub/pages/search.dart';
 import 'package:fyp_searchub/pages/settings.dart';
@@ -16,22 +16,21 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
-import 'package:duration/duration.dart';
+// import 'package:duration/duration.dart';
 import 'package:async/async.dart';
-import 'dart:math' as math;
+// import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:preload_page_view/preload_page_view.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
-import 'package:screenshot/screenshot.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:crypto/crypto.dart';
+// import 'package:flutter_native_splash/flutter_native_splash.dart';
+// import 'package:crypto/crypto.dart';
 import 'package:html/parser.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -102,12 +101,6 @@ List<String> SearchPlatformList = [
   "SNS",
 ];
 
-List<String> GeneralResultType = [
-  "All",
-  "Duplicated",
-  "Unique",
-];
-
 // // ignore: non_constant_identifier_names
 // List<String> SearchPlatformList_Text = [
 //   "Google",
@@ -170,6 +163,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   // tutorial
   List<TargetFocus> targets = [], targetsAfter = [];
+  var _tutorial;
+
   // controllers
   InAppWebViewController? _currentWebViewController;
   Map _webViewControllers = {};
@@ -183,7 +178,6 @@ class _WebViewContainerState extends State<WebViewContainer>
   PreloadPageController _testPreloadPageController = PreloadPageController(
     initialPage: 0,
   );
-  final ScreenshotController _screenshotController = ScreenshotController();
 
   // search related
   // ignore: non_constant_identifier_names
@@ -197,8 +191,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       _currentSearchPlatform = "",
       _prevSearchPlatform = "",
       _webpageContent = "",
-      _currentWebViewTitle = "",
-      _generalResultType = GeneralResultType[0];
+      _currentWebViewTitle = "";
   bool _isSearching = false, _gg = false, _isImageSearch = false;
   List _currentURLs = [];
   int _currentURLIndex = 0,
@@ -358,6 +351,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           identify: "Search Button",
           keyTarget: _searchButtonKey,
           unFocusAnimationDuration: Duration(milliseconds: 100),
+          color: Colors.green,
           contents: [
             TargetContent(
               align: ContentAlign.bottom,
@@ -599,7 +593,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       _isTutorial = true;
     });
 
-    TutorialCoachMark tutorial = TutorialCoachMark(
+    _tutorial = TutorialCoachMark(
         targets: targets, // List<TargetFocus>
         colorShadow: Colors.blue, // DEFAULT Colors.black
         // alignSkip: Alignment.bottomRight,
@@ -880,7 +874,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("_searchCount: $_searchCount | _searchTimer.isActive: ${_searchTimer.isActive}");
 
     if (_searchTimer.isActive) {
-      if (_searchCount > 5) {
+      if (_searchCount > 10) {
         setState(() {
           _gg = true;
         });
@@ -958,7 +952,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         response = !_gg
             ? await http.get(
                 Uri.parse(
-                    'https://api.vimeo.com/videos?page=1&per_page=100&query=$value&sort=relevant'),
+                    // 'https://api.vimeo.com/videos?page=1&per_page=100&query=$value&sort=relevant'),
+                    'https://api.vimeo.com/videos?query=$value&sort=relevant'),
                 // Send authorization headers to the backend.
                 headers: {
                   'Authorization': "bearer 721697e9ac433826e98951bd7e250647",
@@ -1064,82 +1059,82 @@ class _WebViewContainerState extends State<WebViewContainer>
         log("google items: $items");
 
         // *test data
-        items = [
-          {
-            "title": "The Chinese University of Hong Kong",
-            "link": "https://www.cuhk.edu.hk/",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the ",
-            "rank": 1
-          },
-          {
-            "title": "Postgraduate Admissions - CUHK Graduate School",
-            "link": "https://www.gs.cuhk.edu.hk/admissions/",
-            "snippet":
-                "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, ",
-            "rank": 2
-          },
-          {
-            "title": "Chinese University of Hong Kong - Wikipedia",
-            "link":
-                "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by ",
-            "rank": 3
-          },
-          {
-            "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
-            "link": "https://www.bschool.cuhk.edu.hk/",
-            "snippet":
-                "CUHK Business School is a global institution in Hong Kong. We offer various business programmes that help students embrace innovation and nurture their ",
-            "rank": 4
-          },
-          {
-            "title":
-                "Undergraduate Admissions - The Chinese University of Hong Kong ...",
-            "link": "https://admission.cuhk.edu.hk/",
-            "snippet":
-                "Getting Started · See Yourself in Us · Where Your Dream Can Be Found · A Day in CUHK · News and Activities.",
-            "rank": 5
-          },
-          {
-            "title": "CUHK School of Architecture",
-            "link": "https://www.arch.cuhk.edu.hk/",
-            "snippet":
-                "CUHK School of Architecture. ... ALUMNA WINS CUHK YOUNG SCHOLARS THESIS AWARD 2021. PROJECTS. AWARDS. Hong Kong. Local Engagement.",
-            "rank": 6
-          },
-          {
-            "title": "CUHK LibrarySearch",
-            "link": "https://julac-cuhk.primo.exlibrisgroup.com/",
-            "snippet":
-                " LibrarySearch provides simple, one-stop searching for CUHK library books, e-resources, videos, articles, dissertations, undergraduate past exam papers, ",
-            "rank": 7
-          },
-          {
-            "title": "CUHK LAW - The Chinese University of Hong Kong",
-            "link": "https://www.law.cuhk.edu.hk/app/",
-            "snippet":
-                "Doing the CUHK JD Programme has been a truly rewarding and enjoyable experience. What I especially love about the Programme are the highly qualified and ",
-            "rank": 8
-          },
-          {
-            "title": "Career Opportunities @ CUHK - CUHK - HRO",
-            "link":
-                "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
-            "snippet":
-                "Career Opportunities @ CUHK ... Copyright @ 2023. All Rights Reserved. The Chinese University of Hong Kong. Web Accessibility Recognition Scheme Family Friendly ",
-            "rank": 9
-          },
-          {
-            "title":
-                "CUHK MBA: Top MBA Programme in Hong Kong | Full-time MBA ...",
-            "link": " https://mba.cuhk.edu.hk/",
-            "snippet":
-                "Fast-track learning with the full-time CUHK MBA or part-time MBA programme offers leadership training, and global learning opportunities, ",
-            "rank": 10
-          }
-        ];
+        // items = [
+        //   {
+        //     "title": "The Chinese University of Hong Kong",
+        //     "link": "https://www.cuhk.edu.hk/",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the ",
+        //     "rank": 1
+        //   },
+        //   {
+        //     "title": "Postgraduate Admissions - CUHK Graduate School",
+        //     "link": "https://www.gs.cuhk.edu.hk/admissions/",
+        //     "snippet":
+        //         "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, ",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong - Wikipedia",
+        //     "link":
+        //         "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by ",
+        //     "rank": 3
+        //   },
+        //   {
+        //     "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
+        //     "link": "https://www.bschool.cuhk.edu.hk/",
+        //     "snippet":
+        //         "CUHK Business School is a global institution in Hong Kong. We offer various business programmes that help students embrace innovation and nurture their ",
+        //     "rank": 4
+        //   },
+        //   {
+        //     "title":
+        //         "Undergraduate Admissions - The Chinese University of Hong Kong ...",
+        //     "link": "https://admission.cuhk.edu.hk/",
+        //     "snippet":
+        //         "Getting Started · See Yourself in Us · Where Your Dream Can Be Found · A Day in CUHK · News and Activities.",
+        //     "rank": 5
+        //   },
+        //   {
+        //     "title": "CUHK School of Architecture",
+        //     "link": "https://www.arch.cuhk.edu.hk/",
+        //     "snippet":
+        //         "CUHK School of Architecture. ... ALUMNA WINS CUHK YOUNG SCHOLARS THESIS AWARD 2021. PROJECTS. AWARDS. Hong Kong. Local Engagement.",
+        //     "rank": 6
+        //   },
+        //   {
+        //     "title": "CUHK LibrarySearch",
+        //     "link": "https://julac-cuhk.primo.exlibrisgroup.com/",
+        //     "snippet":
+        //         " LibrarySearch provides simple, one-stop searching for CUHK library books, e-resources, videos, articles, dissertations, undergraduate past exam papers, ",
+        //     "rank": 7
+        //   },
+        //   {
+        //     "title": "CUHK LAW - The Chinese University of Hong Kong",
+        //     "link": "https://www.law.cuhk.edu.hk/app/",
+        //     "snippet":
+        //         "Doing the CUHK JD Programme has been a truly rewarding and enjoyable experience. What I especially love about the Programme are the highly qualified and ",
+        //     "rank": 8
+        //   },
+        //   {
+        //     "title": "Career Opportunities @ CUHK - CUHK - HRO",
+        //     "link":
+        //         "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
+        //     "snippet":
+        //         "Career Opportunities @ CUHK ... Copyright @ 2023. All Rights Reserved. The Chinese University of Hong Kong. Web Accessibility Recognition Scheme Family Friendly ",
+        //     "rank": 9
+        //   },
+        //   {
+        //     "title":
+        //         "CUHK MBA: Top MBA Programme in Hong Kong | Full-time MBA ...",
+        //     "link": " https://mba.cuhk.edu.hk/",
+        //     "snippet":
+        //         "Fast-track learning with the full-time CUHK MBA or part-time MBA programme offers leadership training, and global learning opportunities, ",
+        //     "rank": 10
+        //   }
+        // ];
         break;
       case 'Bing':
         int rank = 1;
@@ -1147,22 +1142,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         log("bing0: ${jsonResponse['webPages']}");
 
         if (jsonResponse['webPages'] != null) {
-          items.add({
-            "title": jsonResponse['webPages']['value'][0]['name'],
-            "link":
-                // cleanUrl(jsonResponse['webPages']['value'][0]['displayUrl']),
-                cleanUrl(jsonResponse['webPages']['value'][0]['url']),
-            "snippet": jsonResponse['webPages']['value'][0]['snippet']
-                .toString()
-                .trim()
-                .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-            "rank": 1,
-          });
-
-          rank++;
-
-          log("bing1: ${items}");
-
           if (jsonResponse['webPages']['value'] != null) {
             for (int i = 0; i < jsonResponse['webPages']['value'].length; i++) {
               items.add({
@@ -1172,9 +1151,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                     .toString()
                     .trim()
                     .replaceAll(RegExp(r'(\.\.\.)$'), ""),
-                "rank": rank,
+                "rank": rank++,
               });
-              rank++;
 
               var deepLinks = jsonResponse['webPages']['value'][i]["deepLinks"];
               if (deepLinks != null) {
@@ -1199,109 +1177,109 @@ class _WebViewContainerState extends State<WebViewContainer>
         log("bing2: ${items}");
 
         // *test data
-        items = [
-          {
-            "title": "The Chinese University of Hong Kong",
-            "link": "https://www.cuhk.edu.hk/english/index.html",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West. CUHK 60 th anniversary Strategic Plan 2021—2025 Search for Senior Academic Appointments",
-            "rank": 1
-          },
-          {
-            "title": "MyCUHK",
-            "link": "http://portal.cuhk.edu.hk/",
-            "snippet": "portal.cuhk.edu.hk",
-            "rank": 2
-          },
-          {
-            "title": "Library",
-            "link": "https://www.lib.cuhk.edu.hk/en",
-            "snippet":
-                'CUHK Golden Jubilee Celestial Civilian Scholarship on Hong Kong Literature 2022/23 10:00 am - 11:00 pm 23 Mar 21 Apr "Chinese Classic Text Mining and Processing" Workshops (Mar-Apr 2023) 2:30 pm - 5:30 pm 23 Mar 21 Apr "Chinese Classic Text Mining ',
-            "rank": 2
-          },
-          {
-            "title": "CUHK A-Z",
-            "link": "https://www.cuhk.edu.hk/english/cuhk-information.html",
-            "snippet":
-                "Directory of CUHK's Academic Units, Colleges, Professional and Administrative Services Units, Research Units, Students Organizations and Staff Organizations. A - E | F - M | N - Z Academic and Quality Section Academic Links, Office of Accountancy, The School",
-            "rank": 2
-          },
-          {
-            "title": "Giving to CUHK",
-            "link": "https://www.cuhk.edu.hk/english/giving.html",
-            "snippet":
-                "Giving to CUHK Over the decades CUHK has benefitted from the goodwill and munificence of many of its friends, corporate allies and alumni. Such support, in various forms ranging from student scholarships, research sponsorships, endowed professorships to funding for infrastructural projects, has helped propel the University forward in its pursuit of excellence and the realization of its missions.",
-            "rank": 2
-          },
-          {
-            "title": "Shortcuts",
-            "link": "https://www.gs.cuhk.edu.hk/admissions/",
-            "snippet":
-                "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, MPhil to Taught Doctoral and Master's degrees, PG Diplomas and PG Certificate. CUHK offers a wide range of study ",
-            "rank": 2
-          },
-          {
-            "title": "Career Opportunities",
-            "link":
-                "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
-            "snippet":
-                "Career Opportunities @ CUHK Professoriate, Teaching & Research Academic Posts Administrative, Professional, Executive, Clerical, Technical & Research Posts Junior Posts Applications Forms and Personal Information Collection Statement Back to top ",
-            "rank": 2
-          },
-          {
-            "title": "Introducing CUHK",
-            "link":
-                "https://www.cuhk.edu.hk/english/aboutus/university-intro.html",
-            "snippet":
-                "Introducing CUHK. Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward-looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all around the world. CUHK graduates are connected worldwide ",
-            "rank": 2
-          },
-          {
-            "title": "往內容",
-            "link": "http://admission.cuhk.edu.hk/",
-            "snippet":
-                "WHY CUHK A Unique Learning Experience CUHK in Numbers Studying in Hong Kong Sharing EXPERIENCE CUHK Campus Environment Colleges All-Round Development Events PROGRAMMES New Programmes Individual Programmes CUHK (HK) and CUHK",
-            "rank": 2
-          },
-          {
-            "title": "香港中文大學 - Chinese University of Hong Kong",
-            "link": "https://www.cuhk.edu.hk/chinese/index.html",
-            "snippet":
-                "香港中文大學是一所研究型綜合大學，提供多類學士、碩士和博士課程。 香港中文大學60周年 策略計劃 2021–2025 高級教學人員徵聘 中大‧環球足跡 中大有晴 校長網誌 香港中文大學（深圳）",
-            "rank": 2
-          },
-          {
-            "title": "Chinese University of Hong Kong",
-            "link": "https://portal.cuhk.edu.hk/",
-            "snippet": "Chinese University of Hong Kong",
-            "rank": 3
-          },
-          {
-            "title":
-                "香港中文大學專業進修學院(CUSCS) - 短期課程, 學歷課程, 高級文憑課程, 研究生及學位銜接課程, 遙距課程及網 ...",
-            "link": "https://cms.scs.cuhk.edu.hk/tc",
-            "snippet":
-                "香港中文大學專業進修學院 (CUSCS): 短期課程, 兼讀制學歷課程, 全日制高級文憑課程, 研究生及學位銜接課程, 網上及遙距課程,持續進修基金課程",
-            "rank": 4
-          },
-          {
-            "title":
-                "Prospective Students | CUHK - Chinese University of Hong Kong",
-            "link":
-                "https://www.cuhk.edu.hk/english/university/prospective-students.html",
-            "snippet":
-                "Information about The Chinese University of Hong Kong for local and international prospective students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
-            "rank": 5
-          },
-          {
-            "title": "Students | CUHK - Chinese University of Hong Kong",
-            "link": "https://www.cuhk.edu.hk/english/university/students.html",
-            "snippet":
-                "Information about The Chinese University of Hong Kong for current CUHK students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
-            "rank": 6
-          }
-        ];
+        // items = [
+        //   {
+        //     "title": "The Chinese University of Hong Kong",
+        //     "link": "https://www.cuhk.edu.hk/english/index.html",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West. CUHK 60 th anniversary Strategic Plan 2021—2025 Search for Senior Academic Appointments",
+        //     "rank": 1
+        //   },
+        //   {
+        //     "title": "MyCUHK",
+        //     "link": "http://portal.cuhk.edu.hk/",
+        //     "snippet": "portal.cuhk.edu.hk",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Library",
+        //     "link": "https://www.lib.cuhk.edu.hk/en",
+        //     "snippet":
+        //         'CUHK Golden Jubilee Celestial Civilian Scholarship on Hong Kong Literature 2022/23 10:00 am - 11:00 pm 23 Mar 21 Apr "Chinese Classic Text Mining and Processing" Workshops (Mar-Apr 2023) 2:30 pm - 5:30 pm 23 Mar 21 Apr "Chinese Classic Text Mining ',
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "CUHK A-Z",
+        //     "link": "https://www.cuhk.edu.hk/english/cuhk-information.html",
+        //     "snippet":
+        //         "Directory of CUHK's Academic Units, Colleges, Professional and Administrative Services Units, Research Units, Students Organizations and Staff Organizations. A - E | F - M | N - Z Academic and Quality Section Academic Links, Office of Accountancy, The School",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Giving to CUHK",
+        //     "link": "https://www.cuhk.edu.hk/english/giving.html",
+        //     "snippet":
+        //         "Giving to CUHK Over the decades CUHK has benefitted from the goodwill and munificence of many of its friends, corporate allies and alumni. Such support, in various forms ranging from student scholarships, research sponsorships, endowed professorships to funding for infrastructural projects, has helped propel the University forward in its pursuit of excellence and the realization of its missions.",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Shortcuts",
+        //     "link": "https://www.gs.cuhk.edu.hk/admissions/",
+        //     "snippet":
+        //         "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, MPhil to Taught Doctoral and Master's degrees, PG Diplomas and PG Certificate. CUHK offers a wide range of study ",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Career Opportunities",
+        //     "link":
+        //         "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
+        //     "snippet":
+        //         "Career Opportunities @ CUHK Professoriate, Teaching & Research Academic Posts Administrative, Professional, Executive, Clerical, Technical & Research Posts Junior Posts Applications Forms and Personal Information Collection Statement Back to top ",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Introducing CUHK",
+        //     "link":
+        //         "https://www.cuhk.edu.hk/english/aboutus/university-intro.html",
+        //     "snippet":
+        //         "Introducing CUHK. Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward-looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all around the world. CUHK graduates are connected worldwide ",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "往內容",
+        //     "link": "http://admission.cuhk.edu.hk/",
+        //     "snippet":
+        //         "WHY CUHK A Unique Learning Experience CUHK in Numbers Studying in Hong Kong Sharing EXPERIENCE CUHK Campus Environment Colleges All-Round Development Events PROGRAMMES New Programmes Individual Programmes CUHK (HK) and CUHK",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "香港中文大學 - Chinese University of Hong Kong",
+        //     "link": "https://www.cuhk.edu.hk/chinese/index.html",
+        //     "snippet":
+        //         "香港中文大學是一所研究型綜合大學，提供多類學士、碩士和博士課程。 香港中文大學60周年 策略計劃 2021–2025 高級教學人員徵聘 中大‧環球足跡 中大有晴 校長網誌 香港中文大學（深圳）",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong",
+        //     "link": "https://portal.cuhk.edu.hk/",
+        //     "snippet": "Chinese University of Hong Kong",
+        //     "rank": 3
+        //   },
+        //   {
+        //     "title":
+        //         "香港中文大學專業進修學院(CUSCS) - 短期課程, 學歷課程, 高級文憑課程, 研究生及學位銜接課程, 遙距課程及網 ...",
+        //     "link": "https://cms.scs.cuhk.edu.hk/tc",
+        //     "snippet":
+        //         "香港中文大學專業進修學院 (CUSCS): 短期課程, 兼讀制學歷課程, 全日制高級文憑課程, 研究生及學位銜接課程, 網上及遙距課程,持續進修基金課程",
+        //     "rank": 4
+        //   },
+        //   {
+        //     "title":
+        //         "Prospective Students | CUHK - Chinese University of Hong Kong",
+        //     "link":
+        //         "https://www.cuhk.edu.hk/english/university/prospective-students.html",
+        //     "snippet":
+        //         "Information about The Chinese University of Hong Kong for local and international prospective students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
+        //     "rank": 5
+        //   },
+        //   {
+        //     "title": "Students | CUHK - Chinese University of Hong Kong",
+        //     "link": "https://www.cuhk.edu.hk/english/university/students.html",
+        //     "snippet":
+        //         "Information about The Chinese University of Hong Kong for current CUHK students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
+        //     "rank": 6
+        //   }
+        // ];
 
         break;
       case 'DuckDuckGo':
@@ -1345,214 +1323,214 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
 
         // *test data
-        items = [
-          {
-            "title": "The Chinese University of Hong Kong",
-            "link": "https://www.cuhk.edu.hk/english/index.html",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West.",
-            "rank": 1
-          },
-          {
-            "title":
-                "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK)",
-            "link": "http://admission.cuhk.edu.hk/",
-            "snippet":
-                "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK) 11. Professors Named. Most Highly Cited Researchers. 70 +. undergraduate. major programmes. No. 1. Asia Pacific's Most.",
-            "rank": 2
-          },
-          {
-            "title": "Chinese University of Hong Kong - Wikipedia",
-            "link":
-                "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by the Legislative Council of Hong Kong.It is the territory's second-oldest university and was founded as a federation of three existing colleges - Chung Chi College, New Asia College and United College - the oldest of which was founded in ",
-            "rank": 3
-          },
-          {
-            "title": "Home | CUHK-Shenzhen",
-            "link": "https://www.cuhk.edu.cn/en",
-            "snippet":
-                "CUHK-Shenzhen hosts world's leading scholars and cutting-edge research facilities, fostering an innovative research hub. Learn MORE Research News; Research Fields; Institutes and Laboratories; Scholars; Research Information System; Admissions. Admissions. As China's global university, CUHK-Shenzhen offers first-class education and life ",
-            "rank": 4
-          },
-          {
-            "title": "Faculty of Arts | Faculties | CUHK",
-            "link": "https://www.cuhk.edu.hk/english/faculties/arts.html",
-            "snippet":
-                "Faculty of Arts. Established in 1963, the same year the Chinese University of Hong Kong was founded, the Faculty of Arts has always been pivotal to CUHK's commitment to integrating Chinese and Western traditions, to bilingual education and innovative interdisciplinary research. Today, CUHK ARTS is the largest Faculty dedicated to humanities ",
-            "rank": 5
-          },
-          {
-            "title": "Chinese University of Hong Kong in Hong Kong - US News",
-            "link":
-                "https://www.usnews.com/education/best-global-universities/chinese-university-of-hong-kong-502973",
-            "snippet":
-                "Chinese University of Hong Kong Rankings. # 53. in Best Global Universities. # 5. in Best Global Universities in Asia. # 1. in Best Global Universities in Hong Kong.",
-            "rank": 6
-          },
-          {
-            "title": "The Chinese University of Hong Kong - LinkedIn",
-            "link":
-                "https://www.linkedin.com/school/the-chinese-university-of-hong-kong/",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence ",
-            "rank": 7
-          },
-          {
-            "title":
-                "The Chinese University of Hong Kong - CUHK's Tweets - Twitter",
-            "link": "https://twitter.com/cuhkofficial",
-            "snippet":
-                "The official twitter account for The Chinese University of Hong Kong Connect with us: linktr.ee/CUHK. Education Sha Tin District, Hong Kong cuhk.edu.hk Joined November 2017. 525 Following.",
-            "rank": 8
-          },
-          {
-            "title": "Chinese University of Hong Kong | UCEAP",
-            "link":
-                "https://uceap.universityofcalifornia.edu/programs/chinese-university-hong-kong",
-            "snippet":
-                "The CUHK mission is to combine tradition with modernity and bring together China and the West. With faculty and students from all around the world, CUHK is committed to bilingualism, biculturalism, and providing an international study experience. This forward-looking research university has an enviable reputation for quality research that ",
-            "rank": 9
-          },
-          {
-            "title": "Apply Now - The Chinese University of Hong Kong (CUHK)",
-            "link":
-                "http://admission.cuhk.edu.hk/international/application-details.html",
-            "snippet":
-                "To facilitate outstanding candidates in making informed decisions among all early offers they receive from various universities, candidates who apply to CUHK on or before 17 November 2022 will be considered for an advance offer. In this round, successful applicants may be given a firm or conditional offer depending on individual merits, and ",
-            "rank": 10
-          },
-          {
-            "title": "Chinese University of Hong Kong, Shenzhen - Wikipedia",
-            "link":
-                "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong,_Shenzhen",
-            "snippet":
-                "The Chinese University of Hong Kong, Shenzhen (CUHK-Shenzhen) is a campus of the public research university, the Chinese University of Hong Kong.Located in Shenzhen, on the southern coast of China near Hong Kong, it is a joint venture between the Chinese University of Hong Kong and Shenzhen University, as the local partner. CUHK-Shenzhen was officially founded on 11 October 2012, and approved ",
-            "rank": 11
-          },
-          {
-            "title": "The Chinese University of Hong Kong (CUHK)",
-            "link":
-                "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk",
-            "snippet":
-                "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
-            "rank": 12
-          },
-          {
-            "title": "Chinese University of Hong Kong | Global Experiences",
-            "link": "https://www.abroad.pitt.edu/cuhk",
-            "snippet":
-                "THIS PROGRAM IS TEMPORARILY UNAVAILABLE. The Chinese University of Hong Kong (CUHK) (香港中文大學) was founded in 1963 with a mission to combine tradition with modernity and to bring together China and the West.As a comprehensive institution, CUHK has been consistently ranked as one of the top 50 universities in the world by QS World University Ranking as well as one top instituions in Asia.",
-            "rank": 13
-          },
-          {
-            "title": "CUHK MBA Programmes - CUHK MBA",
-            "link": "https://mba.cuhk.edu.hk/eng/",
-            "snippet":
-                "CUHK Business School was the first in Hong Kong and in the region to offer BBA, MBA and EMBA programmes, with over 40,000 alumni worldwide. We are a global institution that embraces innovation, nurtures an entrepreneurial mindset and promotes social responsibility.",
-            "rank": 14
-          },
-          {
-            "title": "MY CUHK - Chinese University of Hong Kong",
-            "link":
-                "https://portal.cuhk.edu.hk/psp/EPPRD/?cmd=login&languageCd=ENG&",
-            "snippet":
-                "Sign in with your organizational account. User Account. Password",
-            "rank": 15
-          },
-          {
-            "title": "The Chinese University of Hong Kong 香港中文大學 - CUHK",
-            "link": "https://www.facebook.com/CUHKofficial/",
-            "snippet":
-                "The Chinese University of Hong Kong 香港中文大學 - CUHK. 71,637 likes · 29,401 talking about this · 101,944 were here. The official Facebook page of The Chinese University of Hong Kong - CUHK.",
-            "rank": 16
-          },
-          {
-            "title": "CUHK - HRO - Career Opportunities @ CUHK",
-            "link":
-                "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
-            "snippet":
-                "Career Opportunities @ CUHK. Senior Academic Appointments. Vice-Chancellor Early Career Professorship Scheme. Working @ CUHK. Positivity and Staff Wellness. Other Appointments.",
-            "rank": 17
-          },
-          {
-            "title": "About Us | CUHK-Shenzhen",
-            "link": "https://www.cuhk.edu.cn/en/about-us",
-            "snippet":
-                "About Us. The Chinese University of Hong Kong, Shenzhen （CUHK-Shenzhen）was founded in accordance with the Regulations of the People's Republic of China on Chinese-foreign Cooperation in Running Schools upon approval by the Ministry of Education. The University is committed to providing top-quality higher education that features an ",
-            "rank": 18
-          },
-          {
-            "title": "Application | Office of Academic Links",
-            "link": "https://www.oal.cuhk.edu.hk/application/",
-            "snippet":
-                'Send the personal particulars page of your passport with your application no. to iasp@cuhk.edu.hk and request for an online debit note by email. The processing time is normally 3 working days. After 3 working days, login to your online application form, view your debit note under "My Task" and pay online.',
-            "rank": 19
-          },
-          {
-            "title":
-                "Chinese University of Hong Kong | World University Rankings | THE",
-            "link":
-                "https://www.timeshighereducation.com/world-university-rankings/chinese-university-hong-kong",
-            "snippet":
-                "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
-            "rank": 20
-          },
-          {
-            "title":
-                "The Chinese University of Hong Kong Online Courses | Coursera",
-            "link": "https://www.coursera.org/cuhk",
-            "snippet":
-                "Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all corners of the world.",
-            "rank": 21
-          },
-          {
-            "title": "Academic Staff Directory - CUHK Business School",
-            "link": "https://www.bschool.cuhk.edu.hk/staff/",
-            "snippet":
-                "Honorary Professor of CUHK Business School BCT Distinghished Research Fellow, Institute of Global Economics and Finance. igef@cuhk.edu.hk +852 3943 1660",
-            "rank": 22
-          },
-          {
-            "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
-            "link": "https://www.bschool.cuhk.edu.hk/cuhk-business-school/",
-            "snippet":
-                "Accreditation. CUHK Business School is one of the first two business schools in Asia accredited by The Association to Advance Collegiate Schools of Business (AACSB). CUHK Business School is accredited by The Association of MBAs (AMBA) for its programmes including EMBA, JD/MBA, MBA, MBA in Finance and MSc in Management.",
-            "rank": 23
-          },
-          {
-            "title": "CUHK Channel - YouTube",
-            "link": "https://www.youtube.com/user/CUHKchannel",
-            "snippet":
-                "The Chinese University of Hong Kong (CUHK) is a comprehensive research-led university in Hong Kong delivering high-quality education on both undergraduate and postgraduate levels and serving the ",
-            "rank": 24
-          },
-          {
-            "title":
-                "CUHK Postgraduate Application - CUHK Graduate School | Postgraduate ...",
-            "link":
-                "https://www.gs.cuhk.edu.hk/admissions/admissions/how-to-apply",
-            "snippet":
-                "Step 1: Explore CUHK Postgraduate Study Options. Browse the Postgraduate Programme List. Check the Admissions Requirements. Step 2: Prepare for your Application. Prepare the documents/additional information required for application. Check the Application Deadline. (Please refer to individual programme pages for the specific application deadlines.)",
-            "rank": 25
-          },
-          {
-            "title": "Job Search - Oracle",
-            "link":
-                "https://cuhk.taleo.net/careersection/cu_career_teach/jobsearch.ftl?lang=en&portal=10115020119&lang=en",
-            "snippet":
-                "Actions. 230000LD. Part-time Instructors (Part-time Programmes -General Courses and other Professional Continuing Education Programmes) School of Continuing and Professional Studies. Apply ‌. Save Job Save Job. Share. 230000LI. Part-time Instructors (Full-time - Higher Diploma and Diploma Programmes)",
-            "rank": 26
-          },
-          {
-            "title": "The Chinese University of Hong Kong | Piazza",
-            "link": "https://piazza.com/cuhk.edu.hk",
-            "snippet":
-                "Piazza is an intuitive platform for instructors to efficiently manage class Q&A. Students can post questions and collaborate to edit responses to these questions. Instructors can also answer questions, endorse student answers, and edit or delete any posted content. Piazza is designed to simulate real class discussion.",
-            "rank": 27
-          }
-        ];
+        // items = [
+        //   {
+        //     "title": "The Chinese University of Hong Kong",
+        //     "link": "https://www.cuhk.edu.hk/english/index.html",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West.",
+        //     "rank": 1
+        //   },
+        //   {
+        //     "title":
+        //         "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK)",
+        //     "link": "http://admission.cuhk.edu.hk/",
+        //     "snippet":
+        //         "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK) 11. Professors Named. Most Highly Cited Researchers. 70 +. undergraduate. major programmes. No. 1. Asia Pacific's Most.",
+        //     "rank": 2
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong - Wikipedia",
+        //     "link":
+        //         "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by the Legislative Council of Hong Kong.It is the territory's second-oldest university and was founded as a federation of three existing colleges - Chung Chi College, New Asia College and United College - the oldest of which was founded in ",
+        //     "rank": 3
+        //   },
+        //   {
+        //     "title": "Home | CUHK-Shenzhen",
+        //     "link": "https://www.cuhk.edu.cn/en",
+        //     "snippet":
+        //         "CUHK-Shenzhen hosts world's leading scholars and cutting-edge research facilities, fostering an innovative research hub. Learn MORE Research News; Research Fields; Institutes and Laboratories; Scholars; Research Information System; Admissions. Admissions. As China's global university, CUHK-Shenzhen offers first-class education and life ",
+        //     "rank": 4
+        //   },
+        //   {
+        //     "title": "Faculty of Arts | Faculties | CUHK",
+        //     "link": "https://www.cuhk.edu.hk/english/faculties/arts.html",
+        //     "snippet":
+        //         "Faculty of Arts. Established in 1963, the same year the Chinese University of Hong Kong was founded, the Faculty of Arts has always been pivotal to CUHK's commitment to integrating Chinese and Western traditions, to bilingual education and innovative interdisciplinary research. Today, CUHK ARTS is the largest Faculty dedicated to humanities ",
+        //     "rank": 5
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong in Hong Kong - US News",
+        //     "link":
+        //         "https://www.usnews.com/education/best-global-universities/chinese-university-of-hong-kong-502973",
+        //     "snippet":
+        //         "Chinese University of Hong Kong Rankings. # 53. in Best Global Universities. # 5. in Best Global Universities in Asia. # 1. in Best Global Universities in Hong Kong.",
+        //     "rank": 6
+        //   },
+        //   {
+        //     "title": "The Chinese University of Hong Kong - LinkedIn",
+        //     "link":
+        //         "https://www.linkedin.com/school/the-chinese-university-of-hong-kong/",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence ",
+        //     "rank": 7
+        //   },
+        //   {
+        //     "title":
+        //         "The Chinese University of Hong Kong - CUHK's Tweets - Twitter",
+        //     "link": "https://twitter.com/cuhkofficial",
+        //     "snippet":
+        //         "The official twitter account for The Chinese University of Hong Kong Connect with us: linktr.ee/CUHK. Education Sha Tin District, Hong Kong cuhk.edu.hk Joined November 2017. 525 Following.",
+        //     "rank": 8
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong | UCEAP",
+        //     "link":
+        //         "https://uceap.universityofcalifornia.edu/programs/chinese-university-hong-kong",
+        //     "snippet":
+        //         "The CUHK mission is to combine tradition with modernity and bring together China and the West. With faculty and students from all around the world, CUHK is committed to bilingualism, biculturalism, and providing an international study experience. This forward-looking research university has an enviable reputation for quality research that ",
+        //     "rank": 9
+        //   },
+        //   {
+        //     "title": "Apply Now - The Chinese University of Hong Kong (CUHK)",
+        //     "link":
+        //         "http://admission.cuhk.edu.hk/international/application-details.html",
+        //     "snippet":
+        //         "To facilitate outstanding candidates in making informed decisions among all early offers they receive from various universities, candidates who apply to CUHK on or before 17 November 2022 will be considered for an advance offer. In this round, successful applicants may be given a firm or conditional offer depending on individual merits, and ",
+        //     "rank": 10
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong, Shenzhen - Wikipedia",
+        //     "link":
+        //         "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong,_Shenzhen",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong, Shenzhen (CUHK-Shenzhen) is a campus of the public research university, the Chinese University of Hong Kong.Located in Shenzhen, on the southern coast of China near Hong Kong, it is a joint venture between the Chinese University of Hong Kong and Shenzhen University, as the local partner. CUHK-Shenzhen was officially founded on 11 October 2012, and approved ",
+        //     "rank": 11
+        //   },
+        //   {
+        //     "title": "The Chinese University of Hong Kong (CUHK)",
+        //     "link":
+        //         "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk",
+        //     "snippet":
+        //         "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
+        //     "rank": 12
+        //   },
+        //   {
+        //     "title": "Chinese University of Hong Kong | Global Experiences",
+        //     "link": "https://www.abroad.pitt.edu/cuhk",
+        //     "snippet":
+        //         "THIS PROGRAM IS TEMPORARILY UNAVAILABLE. The Chinese University of Hong Kong (CUHK) (香港中文大學) was founded in 1963 with a mission to combine tradition with modernity and to bring together China and the West.As a comprehensive institution, CUHK has been consistently ranked as one of the top 50 universities in the world by QS World University Ranking as well as one top instituions in Asia.",
+        //     "rank": 13
+        //   },
+        //   {
+        //     "title": "CUHK MBA Programmes - CUHK MBA",
+        //     "link": "https://mba.cuhk.edu.hk/eng/",
+        //     "snippet":
+        //         "CUHK Business School was the first in Hong Kong and in the region to offer BBA, MBA and EMBA programmes, with over 40,000 alumni worldwide. We are a global institution that embraces innovation, nurtures an entrepreneurial mindset and promotes social responsibility.",
+        //     "rank": 14
+        //   },
+        //   {
+        //     "title": "MY CUHK - Chinese University of Hong Kong",
+        //     "link":
+        //         "https://portal.cuhk.edu.hk/psp/EPPRD/?cmd=login&languageCd=ENG&",
+        //     "snippet":
+        //         "Sign in with your organizational account. User Account. Password",
+        //     "rank": 15
+        //   },
+        //   {
+        //     "title": "The Chinese University of Hong Kong 香港中文大學 - CUHK",
+        //     "link": "https://www.facebook.com/CUHKofficial/",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong 香港中文大學 - CUHK. 71,637 likes · 29,401 talking about this · 101,944 were here. The official Facebook page of The Chinese University of Hong Kong - CUHK.",
+        //     "rank": 16
+        //   },
+        //   {
+        //     "title": "CUHK - HRO - Career Opportunities @ CUHK",
+        //     "link":
+        //         "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
+        //     "snippet":
+        //         "Career Opportunities @ CUHK. Senior Academic Appointments. Vice-Chancellor Early Career Professorship Scheme. Working @ CUHK. Positivity and Staff Wellness. Other Appointments.",
+        //     "rank": 17
+        //   },
+        //   {
+        //     "title": "About Us | CUHK-Shenzhen",
+        //     "link": "https://www.cuhk.edu.cn/en/about-us",
+        //     "snippet":
+        //         "About Us. The Chinese University of Hong Kong, Shenzhen （CUHK-Shenzhen）was founded in accordance with the Regulations of the People's Republic of China on Chinese-foreign Cooperation in Running Schools upon approval by the Ministry of Education. The University is committed to providing top-quality higher education that features an ",
+        //     "rank": 18
+        //   },
+        //   {
+        //     "title": "Application | Office of Academic Links",
+        //     "link": "https://www.oal.cuhk.edu.hk/application/",
+        //     "snippet":
+        //         'Send the personal particulars page of your passport with your application no. to iasp@cuhk.edu.hk and request for an online debit note by email. The processing time is normally 3 working days. After 3 working days, login to your online application form, view your debit note under "My Task" and pay online.',
+        //     "rank": 19
+        //   },
+        //   {
+        //     "title":
+        //         "Chinese University of Hong Kong | World University Rankings | THE",
+        //     "link":
+        //         "https://www.timeshighereducation.com/world-university-rankings/chinese-university-hong-kong",
+        //     "snippet":
+        //         "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
+        //     "rank": 20
+        //   },
+        //   {
+        //     "title":
+        //         "The Chinese University of Hong Kong Online Courses | Coursera",
+        //     "link": "https://www.coursera.org/cuhk",
+        //     "snippet":
+        //         "Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all corners of the world.",
+        //     "rank": 21
+        //   },
+        //   {
+        //     "title": "Academic Staff Directory - CUHK Business School",
+        //     "link": "https://www.bschool.cuhk.edu.hk/staff/",
+        //     "snippet":
+        //         "Honorary Professor of CUHK Business School BCT Distinghished Research Fellow, Institute of Global Economics and Finance. igef@cuhk.edu.hk +852 3943 1660",
+        //     "rank": 22
+        //   },
+        //   {
+        //     "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
+        //     "link": "https://www.bschool.cuhk.edu.hk/cuhk-business-school/",
+        //     "snippet":
+        //         "Accreditation. CUHK Business School is one of the first two business schools in Asia accredited by The Association to Advance Collegiate Schools of Business (AACSB). CUHK Business School is accredited by The Association of MBAs (AMBA) for its programmes including EMBA, JD/MBA, MBA, MBA in Finance and MSc in Management.",
+        //     "rank": 23
+        //   },
+        //   {
+        //     "title": "CUHK Channel - YouTube",
+        //     "link": "https://www.youtube.com/user/CUHKchannel",
+        //     "snippet":
+        //         "The Chinese University of Hong Kong (CUHK) is a comprehensive research-led university in Hong Kong delivering high-quality education on both undergraduate and postgraduate levels and serving the ",
+        //     "rank": 24
+        //   },
+        //   {
+        //     "title":
+        //         "CUHK Postgraduate Application - CUHK Graduate School | Postgraduate ...",
+        //     "link":
+        //         "https://www.gs.cuhk.edu.hk/admissions/admissions/how-to-apply",
+        //     "snippet":
+        //         "Step 1: Explore CUHK Postgraduate Study Options. Browse the Postgraduate Programme List. Check the Admissions Requirements. Step 2: Prepare for your Application. Prepare the documents/additional information required for application. Check the Application Deadline. (Please refer to individual programme pages for the specific application deadlines.)",
+        //     "rank": 25
+        //   },
+        //   {
+        //     "title": "Job Search - Oracle",
+        //     "link":
+        //         "https://cuhk.taleo.net/careersection/cu_career_teach/jobsearch.ftl?lang=en&portal=10115020119&lang=en",
+        //     "snippet":
+        //         "Actions. 230000LD. Part-time Instructors (Part-time Programmes -General Courses and other Professional Continuing Education Programmes) School of Continuing and Professional Studies. Apply ‌. Save Job Save Job. Share. 230000LI. Part-time Instructors (Full-time - Higher Diploma and Diploma Programmes)",
+        //     "rank": 26
+        //   },
+        //   {
+        //     "title": "The Chinese University of Hong Kong | Piazza",
+        //     "link": "https://piazza.com/cuhk.edu.hk",
+        //     "snippet":
+        //         "Piazza is an intuitive platform for instructors to efficiently manage class Q&A. Students can post questions and collaborate to edit responses to these questions. Instructors can also answer questions, endorse student answers, and edit or delete any posted content. Piazza is designed to simulate real class discussion.",
+        //     "rank": 27
+        //   }
+        // ];
 
         log("ddg results: ${items}");
 
@@ -2005,6 +1983,17 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("_currentImage $_currentImage");
   }
 
+  void _updateIsTutorial(status) {
+    if (!status) {
+      _tutorial.finish();
+    }
+
+    setState(() {
+      _isTutorial = status;
+    });
+    log("_currentImage $_currentImage");
+  }
+
   final TextEditingController _searchFieldController = TextEditingController();
 
   void _pushSearchPage() async {
@@ -2080,6 +2069,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateCurrentImage: _updateCurrentImage,
             mergeSearch: _mergeSearch,
             isTutorial: _isTutorial,
+            updateIsTutorial: _updateIsTutorial,
           );
         },
       ),
@@ -2706,7 +2696,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                         _menuShown = false;
                       });
                     },
-                    icon: const FaIcon(FontAwesomeIcons.xmark, size: 20),
+                    // icon: const FaIcon(FontAwesomeIcons.xmark, size: 20),
+                    icon: const Icon(
+                      FontAwesome.xmark,
+                      size: 20,
+                    ),
                   ),
                   IconButton(
                     onPressed: () async {
@@ -2718,7 +2712,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                         _menuShown = false;
                       });
                     },
-                    icon: const FaIcon(FontAwesomeIcons.borderAll, size: 20),
+                    // icon: const FaIcon(FontAwesomeIcons.borderAll, size: 20),
+                    icon: const Icon(
+                      FontAwesome.border_all,
+                      size: 20,
+                    ),
                   ),
                   IconButton(
                     onPressed: () async {
@@ -2741,7 +2739,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                       );
                       ScaffoldMessenger.of(context).showSnackBar(snackBar);
                     },
-                    icon: const FaIcon(FontAwesomeIcons.copy, size: 20),
+                    // icon: const FaIcon(FontAwesomeIcons.copy, size: 20),
+                    icon: const Icon(
+                      FontAwesome.copy,
+                      size: 20,
+                    ),
                   ),
                   IconButton(
                     onPressed: () async {
@@ -3284,44 +3286,44 @@ class _WebViewContainerState extends State<WebViewContainer>
     return results;
   }
 
-  _getWebpageHash(String link) async {
-    var response = await http.get(Uri.parse(link));
-    // log("hash0: ${response.statusCode}");
-    if (response.statusCode == 200) {
-      // Parse the HTML content
-      var document = parse(response.body);
-      // log("document: ${document.outerHtml}");
+  // _getWebpageHash(String link) async {
+  //   var response = await http.get(Uri.parse(link));
+  //   // log("hash0: ${response.statusCode}");
+  //   if (response.statusCode == 200) {
+  //     // Parse the HTML content
+  //     var document = parse(response.body);
+  //     // log("document: ${document.outerHtml}");
 
-      // // Inspect the meta-refresh tag
-      // var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
-      // log("metaRefreshTag: $metaRefreshTag");
-      // if (metaRefreshTag != null) {
-      //   // Extract the "content" attribute value, which contains the redirect URL
-      //   var content = metaRefreshTag.attributes['content'];
+  //     // // Inspect the meta-refresh tag
+  //     // var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
+  //     // log("metaRefreshTag: $metaRefreshTag");
+  //     // if (metaRefreshTag != null) {
+  //     //   // Extract the "content" attribute value, which contains the redirect URL
+  //     //   var content = metaRefreshTag.attributes['content'];
 
-      //   // Extract the URL from the "content" attribute value
-      //   var redirectUrl = content?.split(';')[1].trim().substring(4);
+  //     //   // Extract the URL from the "content" attribute value
+  //     //   var redirectUrl = content?.split(';')[1].trim().substring(4);
 
-      //   // The web page is being client-side redirected
-      //   print('Redirect URL: $redirectUrl');
-      // }
+  //     //   // The web page is being client-side redirected
+  //     //   print('Redirect URL: $redirectUrl');
+  //     // }
 
-      // Convert the content to string
-      String content = utf8.decode(response.bodyBytes);
-      // log("hash1: $content");
+  //     // Convert the content to string
+  //     String content = utf8.decode(response.bodyBytes);
+  //     // log("hash1: $content");
 
-      // Generate an MD5 hash of the content
-      var hash = md5.convert(utf8.encode(content));
-      log("hash: $hash | link: $link");
-      return hash;
+  //     // Generate an MD5 hash of the content
+  //     var hash = md5.convert(utf8.encode(content));
+  //     log("hash: $hash | link: $link");
+  //     return hash;
 
-      // Return the hexadecimal representation of the hash
-      // return hash.toString();
-    } else {
-      throw Exception(
-          'Failed to fetch web page content: ${response.statusCode}');
-    }
-  }
+  //     // Return the hexadecimal representation of the hash
+  //     // return hash.toString();
+  //   } else {
+  //     throw Exception(
+  //         'Failed to fetch web page content: ${response.statusCode}');
+  //   }
+  // }
 
   _toggleGeneralResults(String type) async {
     log("type: $type |${URLs[_searchText][_currentSearchPlatform]['original']}");
@@ -3447,56 +3449,57 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     log("mergedResults.toList(): ${mergedResults.toList()}");
 
-    if (type == "General") {
-      switch (_mergeAlgorithm) {
-        case "ABAB":
-          return mergedResults;
-        case "Frequency":
-          // merge identical results
-          Map webpageFrequency = {};
-          for (int i = 0; i < mergedResults.length; i++) {
-            if (webpageFrequency[mergedResults[i]["link"]] == null) {
-              webpageFrequency[mergedResults[i]["link"]] = 1;
-            } else {
-              webpageFrequency[mergedResults[i]["link"]] += 1;
-            }
-          }
+    frequencyMerge() {
+      log("frqeuency merge");
+      // merge identical results
+      Map webpageFrequency = {};
+      for (int i = 0; i < mergedResults.length; i++) {
+        if (webpageFrequency[mergedResults[i]["link"]] == null) {
+          webpageFrequency[mergedResults[i]["link"]] = 1;
+        } else {
+          webpageFrequency[mergedResults[i]["link"]] += 1;
+        }
+      }
 
-          List<MapEntry> entries = webpageFrequency.entries.toList();
-          entries.sort(
-              (a, b) => b.value.compareTo(a.value)); // sort in descending order
-          Map sortedWebpageFrequency = Map.fromEntries(entries);
+      List<MapEntry> entries = webpageFrequency.entries.toList();
+      entries.sort(
+          (a, b) => b.value.compareTo(a.value)); // sort in descending order
+      Map sortedWebpageFrequency = Map.fromEntries(entries);
 
-          log("webpageFrequency: $webpageFrequency");
-          log("sortedWebpageFrequency: $sortedWebpageFrequency");
+      log("webpageFrequency: $webpageFrequency");
+      log("sortedWebpageFrequency: $sortedWebpageFrequency");
 
-          List finalSortedList = [];
-          List links = sortedWebpageFrequency.keys.toList();
+      List finalSortedList = [];
+      List links = sortedWebpageFrequency.keys.toList();
 
-          for (int i = 0; i < sortedWebpageFrequency.length; i++) {
-            // log("keys[i]: ${links[i]}");
+      for (int i = 0; i < sortedWebpageFrequency.length; i++) {
+        // log("keys[i]: ${links[i]}");
 
-            finalSortedList.add({
-              "title": mergedResults.firstWhere(
-                  (element) => element["link"] == links[i])["title"],
-              "link": links[i]
-            });
-          }
+        finalSortedList.add({
+          "title": mergedResults
+              .firstWhere((element) => element["link"] == links[i])["title"],
+          "link": links[i]
+        });
+      }
 
-          log("finalSortedList: $finalSortedList");
-          log("merged: ${finalSortedList.length / mergedResults.length}");
+      log("finalSortedList: $finalSortedList");
+      log("merged: ${finalSortedList.length} / ${mergedResults.length} ${finalSortedList.length / mergedResults.length}");
 
-          final snackBar = SnackBar(
-            content: Text(
-                "From ${mergedResults.length} to ${finalSortedList.length} | ${finalSortedList.length / mergedResults.length}"),
-            duration: const Duration(seconds: 3),
-          );
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      final snackBar = SnackBar(
+        content: Text(
+            "From ${mergedResults.length} to ${finalSortedList.length} | ${finalSortedList.length / mergedResults.length}"),
+        duration: const Duration(seconds: 3),
+      );
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-          return finalSortedList;
-        case "Original Rank":
-          /*
+      return finalSortedList;
+    }
+
+    rankMerge() {
+      log("rank merge");
+
+      /*
           base score: no. of all results / no. of platforms
           score per result: base score / rank
 
@@ -3505,282 +3508,299 @@ class _WebViewContainerState extends State<WebViewContainer>
 
           */
 
-          Map webpageScore = {};
-          double baseScore = mergedResults.length / platforms.length;
-          log("baseScore: $baseScore");
+      Map webpageScore = {};
+      double baseScore = mergedResults.length / platforms.length;
+      log("baseScore: $baseScore");
 
-          // for every appearance, score will be added
-          for (int i = 0; i < mergedResults.length; i++) {
-            if (webpageScore[mergedResults[i]["link"]] == null) {
-              webpageScore[mergedResults[i]["link"]] = {
-                "snippet": mergedResults[i]["snippet"],
-                "rank": [mergedResults[i]["rank"]],
-                "score": baseScore / mergedResults[i]["rank"]
-              };
-            } else {
-              webpageScore[mergedResults[i]["link"]] = {
-                "snippet": mergedResults[i]["snippet"],
-                "rank": [
-                  ...webpageScore[mergedResults[i]["link"]]["rank"],
-                  mergedResults[i]["rank"]
-                ],
-                "score": webpageScore[mergedResults[i]["link"]]["score"] +
-                    (baseScore / mergedResults[i]["rank"])
-              };
-            }
-          }
-
-          // sort in descending order
-          List<MapEntry> entries = webpageScore.entries.toList();
-          entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
-          Map sortedWebpageScore = Map.fromEntries(entries);
-
-          log("webpageScore: $webpageScore");
-          log("sortedWebpageScore: $sortedWebpageScore");
-
-          // add them to final results
-          List links = sortedWebpageScore.keys.toList();
-          List finalSortedList = [];
-          for (int i = 0; i < sortedWebpageScore.length; i++) {
-            finalSortedList.add({
-              "title": mergedResults.firstWhere(
-                  (element) => element["link"] == links[i])["title"],
-              "link": links[i],
-              "unique": sortedWebpageScore[links[i]]["rank"].length == 1
-                  ? true
-                  : false,
-            });
-          }
-
-          log("finalSortedList: $finalSortedList");
-          log("merged: ${finalSortedList.length / mergedResults.length}");
-
-          final snackBar = SnackBar(
-            content: Text(
-                "Merged ${mergedResults.length - finalSortedList.length} results | ${((finalSortedList.length / mergedResults.length) * 100).toStringAsFixed(2)}%"),
-            duration: const Duration(seconds: 3),
-          );
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          return finalSortedList;
-
-        case "Further Merge":
-          Map webpageScore = {};
-          double baseScore = mergedResults.length / platforms.length;
-          log("baseScore: $baseScore");
-
-          // for every appearance, score will be added
-          for (int i = 0; i < mergedResults.length; i++) {
-            if (webpageScore[mergedResults[i]["link"]] == null) {
-              webpageScore[mergedResults[i]["link"]] = {
-                "snippet": mergedResults[i]["snippet"],
-                "rank": [mergedResults[i]["rank"]],
-                "score": baseScore / mergedResults[i]["rank"],
-                "title": [mergedResults[i]["title"]],
-              };
-            } else {
-              webpageScore[mergedResults[i]["link"]] = {
-                "snippet": mergedResults[i]["snippet"],
-                "rank": [
-                  ...webpageScore[mergedResults[i]["link"]]["rank"],
-                  mergedResults[i]["rank"]
-                ],
-                "score": webpageScore[mergedResults[i]["link"]]["score"] +
-                    (baseScore / mergedResults[i]["rank"]),
-                "title": [mergedResults[i]["title"]],
-              };
-            }
-          }
-
-          Iterable keys = webpageScore.keys;
-
-          log("test $keys");
-
-          for (int i = 0; i < keys.length; i++) {
-            var current = keys.elementAt(i);
-            var shortCurrent = current
-                .toString()
-                .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
-            // log("current $current");
-            for (int j = i + 1; j < webpageScore.length; j++) {
-              var compare = keys.elementAt(j);
-              var shortCompare = compare
-                  .toString()
-                  .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
-              // log("compare $compare");
-
-              // log("regex ${current.toString().replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "")}");
-
-              if (shortCurrent == shortCompare) {
-                log("same merged: ${current} ${compare}");
-                if (current.length > compare.length) {
-                  webpageScore.update(
-                    current,
-                    (value) => {
-                      "rank": [
-                        ...webpageScore[current]["rank"],
-                        ...webpageScore[compare]["rank"]
-                      ],
-                      "score": webpageScore[current]["score"] +
-                          webpageScore[compare]["score"],
-                      "snippet": webpageScore[current]["snippet"],
-                      "title": webpageScore[current]["title"],
-                    },
-                  );
-
-                  webpageScore.update(
-                    compare,
-                    (value) => {
-                      "rank": [0],
-                      "score": 0,
-                      "snippet": webpageScore[compare]["snippet"],
-                      "title": webpageScore[compare]["title"],
-                    },
-                  );
-                } else if (compare.length > current.length) {
-                  webpageScore.update(
-                    compare,
-                    (value) => {
-                      "rank": [
-                        ...webpageScore[current]["rank"],
-                        ...webpageScore[compare]["rank"]
-                      ],
-                      "score": webpageScore[current]["score"] +
-                          webpageScore[compare]["score"],
-                      "snippet": webpageScore[compare]["snippet"],
-                      "title": webpageScore[compare]["title"],
-                    },
-                  );
-
-                  webpageScore.update(
-                    current,
-                    (value) => {
-                      "rank": [0],
-                      "score": 0,
-                      "snippet": webpageScore[current]["snippet"],
-                      "title": webpageScore[current]["title"],
-                    },
-                  );
-                }
-              }
-              // keep the longer one (longest prefix match)
-              else if (shortCompare.contains(shortCurrent)) {
-                // log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
-                // log("same 1 $current(${webpageScore[current]['title']}) is substring of $compare(${webpageScore[compare]['title']})");
-
-                if (webpageScore[current]['snippet'].toString().trim().contains(
-                        webpageScore[compare]['snippet'].toString().trim()) ||
-                    webpageScore[compare]['snippet'].toString().trim().contains(
-                        webpageScore[current]['snippet'].toString().trim())) {
-                  log("same merged 1: $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-                  // log("real same 1.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['title'].toString().trim())}");
-                  // log("real same 1.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['title'].toString().trim())}");
-
-                  log("same merged 1.1: ${current} ${compare}}");
-
-                  webpageScore.update(
-                    compare,
-                    (value) => {
-                      "rank": [
-                        ...webpageScore[current]["rank"],
-                        ...webpageScore[compare]["rank"]
-                      ],
-                      "score": webpageScore[current]["score"] +
-                          webpageScore[compare]["score"],
-                      "snippet": webpageScore[compare]["snippet"],
-                      "title": webpageScore[compare]["title"],
-                    },
-                  );
-
-                  webpageScore.update(
-                    current,
-                    (value) => {
-                      "rank": [0],
-                      "score": 0,
-                      "snippet": webpageScore[current]["snippet"],
-                      "title": webpageScore[current]["title"],
-                    },
-                  );
-                }
-              } else if (shortCurrent.contains(shortCompare)) {
-                // log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
-
-                if (webpageScore[current]['snippet'].toString().trim().contains(
-                        webpageScore[compare]['snippet'].toString().trim()) ||
-                    webpageScore[compare]['snippet'].toString().trim().contains(
-                        webpageScore[current]['snippet'].toString().trim())) {
-                  // log("real same 2 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-                  // log("real same 2.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
-                  // log("real same 2.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
-
-                  log("same merged 2.1: $compare(${webpageScore[compare]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-
-                  log("same merged 2.2: ${current} ${compare}}");
-                  webpageScore.update(
-                    current,
-                    (value) => {
-                      "rank": [
-                        ...webpageScore[current]["rank"],
-                        ...webpageScore[compare]["rank"]
-                      ],
-                      "score": webpageScore[current]["score"] +
-                          webpageScore[compare]["score"],
-                      "snippet": webpageScore[current]["snippet"],
-                      "title": webpageScore[current]["title"],
-                    },
-                  );
-
-                  webpageScore.update(
-                    compare,
-                    (value) => {
-                      "rank": [0],
-                      "score": 0,
-                      "snippet": webpageScore[compare]["snippet"],
-                      "title": webpageScore[compare]["title"],
-                    },
-                  );
-                }
-              }
-            }
-          }
-
-          // remove the duplicate results as it has been merged above
-          webpageScore.removeWhere((key, value) => value["rank"][0] == 0);
-
-          // sort in descending order
-          List<MapEntry> entries = webpageScore.entries.toList();
-          entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
-          Map sortedWebpageScore = Map.fromEntries(entries);
-
-          log("webpageScore: $webpageScore");
-          log("sortedWebpageScore: $sortedWebpageScore");
-
-          // add them to final results
-          List links = sortedWebpageScore.keys.toList();
-          List finalSortedList = [];
-          for (int i = 0; i < sortedWebpageScore.length; i++) {
-            finalSortedList.add({
-              "title": mergedResults.firstWhere(
-                  (element) => element["link"] == links[i])["title"],
-              "link": links[i],
-              "unique": sortedWebpageScore[links[i]]["rank"].length == 1
-                  ? true
-                  : false,
-            });
-          }
-
-          log("finalSortedList: $finalSortedList");
-          log("merged: ${finalSortedList.length / mergedResults.length}");
-
-          final snackBar = SnackBar(
-            content: Text(
-                "Merged ${mergedResults.length - finalSortedList.length} results | ${((finalSortedList.length / mergedResults.length) * 100).toStringAsFixed(2)}%"),
-            duration: const Duration(seconds: 3),
-          );
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          return finalSortedList;
+      // for every appearance, score will be added
+      for (int i = 0; i < mergedResults.length; i++) {
+        if (webpageScore[mergedResults[i]["link"]] == null) {
+          webpageScore[mergedResults[i]["link"]] = {
+            "snippet": mergedResults[i]["snippet"],
+            "rank": [mergedResults[i]["rank"]],
+            "score": baseScore / mergedResults[i]["rank"]
+          };
+        } else {
+          webpageScore[mergedResults[i]["link"]] = {
+            "snippet": mergedResults[i]["snippet"],
+            "rank": [
+              ...webpageScore[mergedResults[i]["link"]]["rank"],
+              mergedResults[i]["rank"]
+            ],
+            "score": webpageScore[mergedResults[i]["link"]]["score"] +
+                (baseScore / mergedResults[i]["rank"])
+          };
+        }
       }
+
+      // sort in descending order
+      List<MapEntry> entries = webpageScore.entries.toList();
+      entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
+      Map sortedWebpageScore = Map.fromEntries(entries);
+
+      log("webpageScore: $webpageScore");
+      log("sortedWebpageScore: $sortedWebpageScore");
+
+      // add them to final results
+      List links = sortedWebpageScore.keys.toList();
+      List finalSortedList = [];
+      for (int i = 0; i < sortedWebpageScore.length; i++) {
+        finalSortedList.add({
+          "title": mergedResults
+              .firstWhere((element) => element["link"] == links[i])["title"],
+          "link": links[i],
+          "unique":
+              sortedWebpageScore[links[i]]["rank"].length == 1 ? true : false,
+        });
+      }
+
+      log("finalSortedList: $finalSortedList");
+      log("merged: ${finalSortedList.length} / ${mergedResults.length} ${finalSortedList.length / mergedResults.length}");
+
+      final snackBar = SnackBar(
+        content: Text(
+            "Merged ${mergedResults.length - finalSortedList.length} results | ${((finalSortedList.length / mergedResults.length) * 100).toStringAsFixed(2)}%"),
+        duration: const Duration(seconds: 3),
+      );
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      return finalSortedList;
+    }
+
+    furtherMerge() {
+      log("further merge");
+
+      Map webpageScore = {};
+      double baseScore = mergedResults.length / platforms.length;
+      log("baseScore: $baseScore");
+
+      // for every appearance, score will be added
+      for (int i = 0; i < mergedResults.length; i++) {
+        if (webpageScore[mergedResults[i]["link"]] == null) {
+          webpageScore[mergedResults[i]["link"]] = {
+            "snippet": mergedResults[i]["snippet"],
+            "rank": [mergedResults[i]["rank"]],
+            "score": baseScore / mergedResults[i]["rank"],
+            "title": [mergedResults[i]["title"]],
+          };
+        } else {
+          webpageScore[mergedResults[i]["link"]] = {
+            "snippet": mergedResults[i]["snippet"],
+            "rank": [
+              ...webpageScore[mergedResults[i]["link"]]["rank"],
+              mergedResults[i]["rank"]
+            ],
+            "score": webpageScore[mergedResults[i]["link"]]["score"] +
+                (baseScore / mergedResults[i]["rank"]),
+            "title": [mergedResults[i]["title"]],
+          };
+        }
+      }
+
+      Iterable keys = webpageScore.keys;
+
+      log("test $keys");
+
+      for (int i = 0; i < keys.length; i++) {
+        var current = keys.elementAt(i);
+        var shortCurrent = current
+            .toString()
+            .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
+        // log("current $current");
+        for (int j = i + 1; j < webpageScore.length; j++) {
+          var compare = keys.elementAt(j);
+          var shortCompare = compare
+              .toString()
+              .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
+          // log("compare $compare");
+
+          // log("regex ${current.toString().replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "")}");
+
+          if (shortCurrent == shortCompare) {
+            log("same merged: ${current} ${compare}");
+            if (current.length > compare.length) {
+              webpageScore.update(
+                current,
+                (value) => {
+                  "rank": [
+                    ...webpageScore[current]["rank"],
+                    ...webpageScore[compare]["rank"]
+                  ],
+                  "score": webpageScore[current]["score"] +
+                      webpageScore[compare]["score"],
+                  "snippet": webpageScore[current]["snippet"],
+                  "title": webpageScore[current]["title"],
+                },
+              );
+
+              webpageScore.update(
+                compare,
+                (value) => {
+                  "rank": [0],
+                  "score": 0,
+                  "snippet": webpageScore[compare]["snippet"],
+                  "title": webpageScore[compare]["title"],
+                },
+              );
+            } else if (compare.length > current.length) {
+              webpageScore.update(
+                compare,
+                (value) => {
+                  "rank": [
+                    ...webpageScore[current]["rank"],
+                    ...webpageScore[compare]["rank"]
+                  ],
+                  "score": webpageScore[current]["score"] +
+                      webpageScore[compare]["score"],
+                  "snippet": webpageScore[compare]["snippet"],
+                  "title": webpageScore[compare]["title"],
+                },
+              );
+
+              webpageScore.update(
+                current,
+                (value) => {
+                  "rank": [0],
+                  "score": 0,
+                  "snippet": webpageScore[current]["snippet"],
+                  "title": webpageScore[current]["title"],
+                },
+              );
+            }
+          }
+          // keep the longer one (longest prefix match)
+          else if (shortCompare.contains(shortCurrent)) {
+            // log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+            // log("same 1 $current(${webpageScore[current]['title']}) is substring of $compare(${webpageScore[compare]['title']})");
+
+            if (webpageScore[current]['snippet'].toString().trim().contains(
+                    webpageScore[compare]['snippet'].toString().trim()) ||
+                webpageScore[compare]['snippet'].toString().trim().contains(
+                    webpageScore[current]['snippet'].toString().trim())) {
+              log("same merged 1: $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+              // log("real same 1.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['title'].toString().trim())}");
+              // log("real same 1.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['title'].toString().trim())}");
+
+              log("same merged 1.1: ${current} ${compare}}");
+
+              webpageScore.update(
+                compare,
+                (value) => {
+                  "rank": [
+                    ...webpageScore[current]["rank"],
+                    ...webpageScore[compare]["rank"]
+                  ],
+                  "score": webpageScore[current]["score"] +
+                      webpageScore[compare]["score"],
+                  "snippet": webpageScore[compare]["snippet"],
+                  "title": webpageScore[compare]["title"],
+                },
+              );
+
+              webpageScore.update(
+                current,
+                (value) => {
+                  "rank": [0],
+                  "score": 0,
+                  "snippet": webpageScore[current]["snippet"],
+                  "title": webpageScore[current]["title"],
+                },
+              );
+            }
+          } else if (shortCurrent.contains(shortCompare)) {
+            // log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+
+            if (webpageScore[current]['snippet'].toString().trim().contains(
+                    webpageScore[compare]['snippet'].toString().trim()) ||
+                webpageScore[compare]['snippet'].toString().trim().contains(
+                    webpageScore[current]['snippet'].toString().trim())) {
+              // log("real same 2 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+              // log("real same 2.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
+              // log("real same 2.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
+
+              log("same merged 2.1: $compare(${webpageScore[compare]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
+
+              log("same merged 2.2: ${current} ${compare}}");
+              webpageScore.update(
+                current,
+                (value) => {
+                  "rank": [
+                    ...webpageScore[current]["rank"],
+                    ...webpageScore[compare]["rank"]
+                  ],
+                  "score": webpageScore[current]["score"] +
+                      webpageScore[compare]["score"],
+                  "snippet": webpageScore[current]["snippet"],
+                  "title": webpageScore[current]["title"],
+                },
+              );
+
+              webpageScore.update(
+                compare,
+                (value) => {
+                  "rank": [0],
+                  "score": 0,
+                  "snippet": webpageScore[compare]["snippet"],
+                  "title": webpageScore[compare]["title"],
+                },
+              );
+            }
+          }
+        }
+      }
+
+      // remove the duplicate results as it has been merged above
+      webpageScore.removeWhere((key, value) => value["rank"][0] == 0);
+
+      // sort in descending order
+      List<MapEntry> entries = webpageScore.entries.toList();
+      entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
+      Map sortedWebpageScore = Map.fromEntries(entries);
+
+      log("webpageScore: $webpageScore");
+      log("sortedWebpageScore: $sortedWebpageScore");
+
+      // add them to final results
+      List links = sortedWebpageScore.keys.toList();
+      List finalSortedList = [];
+      for (int i = 0; i < sortedWebpageScore.length; i++) {
+        finalSortedList.add({
+          "title": mergedResults
+              .firstWhere((element) => element["link"] == links[i])["title"],
+          "link": links[i],
+          "unique":
+              sortedWebpageScore[links[i]]["rank"].length == 1 ? true : false,
+        });
+      }
+
+      log("finalSortedList: $finalSortedList");
+      log("merged: ${finalSortedList.length} / ${mergedResults.length} ${finalSortedList.length / mergedResults.length}");
+
+      final snackBar = SnackBar(
+        content: Text(
+            "Merged ${mergedResults.length - finalSortedList.length} results | ${((finalSortedList.length / mergedResults.length) * 100).toStringAsFixed(2)}%"),
+        duration: const Duration(seconds: 3),
+      );
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      return finalSortedList;
+    }
+
+    switch (_mergeAlgorithm) {
+      case "ABAB":
+        return mergedResults;
+      case "Frequency":
+        return frequencyMerge();
+      case "Original Rank":
+        if (type != "General") {
+          return frequencyMerge();
+        }
+        return rankMerge();
+      case "Further Merge":
+        if (type != "General") {
+          return frequencyMerge();
+        }
+        return furtherMerge();
     }
 
     return mergedResults;
@@ -3940,11 +3960,14 @@ class _WebViewContainerState extends State<WebViewContainer>
           visualDensity: VisualDensity(horizontal: 0, vertical: -4),
           // dense: true,
           horizontalTitleGap: 0,
-          leading: const FaIcon(
-            FontAwesomeIcons.arrowTrendDown,
-            size: 18,
-            color: Colors.black87,
-          ),
+          leading:
+              // const FaIcon(
+              //   FontAwesomeIcons.arrowTrendDown,
+              //   size: 18,
+              //   color: Colors.black87,
+              // ),
+              const Icon(FontAwesome.arrow_trend_down, size: 18),
+
           title: Text(
               "${key.toString()} ($lastViewedPlatform #${lastViewedIndex + 1})"),
         ));
@@ -4351,7 +4374,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                       activeIcon: Icons.close,
                       // onOpen: () => debugPrint('OPENING DIAL'),
                       // onClose: () => debugPrint('DIAL CLOSED'),
-                      children: _currentSearchPlatform == "General"
+                      children: _currentSearchPlatform == "General" &&
+                              (_mergeAlgorithm == "Original Rank" ||
+                                  _mergeAlgorithm == "Further Merge")
                           ? [
                               SpeedDialChild(
                                 child: const Icon(BoxIcons.bx_refresh),
@@ -4396,7 +4421,19 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 },
                               ),
                             ]
-                          : [],
+                          : [
+                              SpeedDialChild(
+                                child: const Icon(BoxIcons.bx_refresh),
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                label: 'Refresh',
+                                // visible: true,
+                                onTap: () {
+                                  log("fab pressed");
+                                  _normalSearch(false, true);
+                                },
+                              ),
+                            ],
                     ),
                   ),
                 ),
@@ -4617,10 +4654,14 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         ),
                                                       );
                                                     },
-                                                    icon: FaIcon(
-                                                      FontAwesomeIcons.stairs,
-                                                      size: 20,
-                                                    ),
+                                                    icon:
+                                                        // FaIcon(
+                                                        //   FontAwesomeIcons.stairs,
+                                                        //   size: 20,
+                                                        // ),
+                                                        const Icon(
+                                                            FontAwesome.stairs,
+                                                            size: 20),
                                                   ),
                                                   IconButton(
                                                     key: _firstResultButtonKey,
@@ -4638,11 +4679,16 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         //     .jumpToPage(0);
                                                       }
                                                     },
-                                                    icon: const FaIcon(
-                                                      FontAwesomeIcons
-                                                          .backwardFast,
-                                                      size: 20,
-                                                    ),
+                                                    icon:
+                                                        // const FaIcon(
+                                                        //   FontAwesomeIcons
+                                                        //       .backwardFast,
+                                                        //   size: 20,
+                                                        // ),
+                                                        const Icon(
+                                                            FontAwesome
+                                                                .backward_fast,
+                                                            size: 20),
                                                   ),
                                                   IconButton(
                                                     key: _backButtonKey,
@@ -4650,10 +4696,15 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       await _currentWebViewController!
                                                           .goBack();
                                                     },
-                                                    icon: const FaIcon(
-                                                        FontAwesomeIcons
-                                                            .arrowLeft,
-                                                        size: 20),
+                                                    icon:
+                                                        // const FaIcon(
+                                                        //     FontAwesomeIcons
+                                                        //         .arrowLeft,
+                                                        //     size: 20),
+                                                        const Icon(
+                                                            FontAwesome
+                                                                .arrow_left,
+                                                            size: 20),
                                                   ),
                                                   IconButton(
                                                     key: _shareButtonKey,
@@ -4668,10 +4719,16 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       await Share.share(
                                                           '${title!}\n${url!}');
                                                     },
-                                                    icon: const FaIcon(
-                                                        FontAwesomeIcons
-                                                            .shareNodes,
-                                                        size: 20),
+                                                    icon:
+                                                        // const FaIcon(
+                                                        //     FontAwesomeIcons
+                                                        //         .shareNodes,
+                                                        //     size: 20),
+
+                                                        const Icon(
+                                                            FontAwesome
+                                                                .share_nodes,
+                                                            size: 20),
                                                   ),
                                                 ],
                                               ),
@@ -5404,7 +5461,8 @@ _imageSearchBing(src, path) async {
 
     //?mkt=zh-HK&setLang=EN
     var uri = Uri.parse(
-        'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=en-US');
+        // 'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=en-US');
+        'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=zh-HK&setLang=EN');
     var headers = {
       'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
     };
@@ -5440,6 +5498,117 @@ _imageSearchBing(src, path) async {
 
     Map results = {"bestGuessLabel": bestGuessLabel};
     // Convert the base64 image to bytes
+
+    // if (response.statusCode == 200) {
+    //   final responseJson = jsonDecode(responseString);
+    //   imageToken = responseJson['image']['imageInsightsToken'];
+
+    //   final elements = responseJson['tags'][0]['actions'];
+    //   var bingVisualObject;
+    //   var bingVisualQuery = null;
+    //   var bingIncludedPage = null;
+    //   var bingBestRepresentation = null;
+    //   var bingIncludedName = null;
+
+    //   print("response code ${response.statusCode}");
+    //   elements.forEach((data) => {
+    //         if (data['actionType'] == "VisualSearch")
+    //           {bingVisualObject = data['data']['value']}
+    //       });
+    //   elements.forEach((data) => {
+    //         if (data['actionType'] == "RelatedSearches")
+    //           {bingVisualQuery = data['data']['value']}
+    //       });
+    //   elements.forEach((data) => {
+    //         if (data['actionType'] == "PagesIncluding")
+    //           {bingIncludedPage = data['data']['value']}
+    //       });
+    //   elements.forEach((data) => {
+    //         if (data['actionType'] == "BestRepresentativeQuery")
+    //           {bingBestRepresentation = data['displayName']}
+    //       });
+    //   print("Bing gust: ${bingBestRepresentation}");
+
+    //   if (bingIncludedPage.length != 0) {
+    //     bingIncludedName = bingIncludedPage[0]['name'].toString();
+    //     bingIncludedPage.forEach((value) async {
+    //       // final isShopping = isShoppingWebsite(value['hostPageUrl']);
+    //       // if (isShopping) {
+    //       //   shoppingResult.add(value['hostPageUrl']);
+    //       // }
+
+    //       Result.add({
+    //         'title': value['name'].toString(),
+    //         'link': value['hostPageUrl'].toString(),
+    //       });
+    //       PageIncludedImage.add({
+    //         'title': value['name'].toString(),
+    //         'thumbnail': value['thumbnailUrl'].toString(),
+    //         'website': value['hostPageUrl'].toString(),
+    //       });
+    //     });
+    //   }
+
+    //   bingVisualObject.forEach((value) async {
+    //     // print("fetch URL: ==============");
+    //     //  print("Website name: ${value['name']}");
+    //     // print("website: ${value['hostPageUrl']}");
+
+    //     // final isShopping = isShoppingWebsite(value['hostPageUrl']);
+    //     // if (isShopping) {
+    //     //   shoppingResult.add(value['hostPageUrl']);
+    //     // }
+    //     // print('Is the URL a shopping website? $isShopping');
+
+    //     Result.add({
+    //       'title': value['name'].toString(),
+    //       'link': value['hostPageUrl'].toString(),
+    //     });
+    //   });
+
+    //   List bestGuessList = [];
+
+    //   if (bingVisualQuery != null) {
+    //     bingVisualQuery.forEach((value) async {
+    //       // print("Query name: ${value['text']}");
+    //       //bestGuessLabel.add(value['text']);
+
+    //       bestGuessList.add({
+    //         'bestGuessLabel': value['text'],
+    //         'urls': value['thumbnail']['url'],
+    //       });
+    //     });
+
+    //     if (PageIncludedImage.length > 0) {
+    //       bestGuessLabel.add(bingIncludedName);
+    //     } else {
+    //       // print("NULL bestGuessLabel");
+    //       if (bingBestRepresentation != null) {
+    //         bestGuessLabel.add(bingBestRepresentation);
+    //       } else {
+    //         bestGuessLabel.add(bingVisualQuery[0]['displaytext']);
+    //         // results.addAll({'BestGuessList': bestGuessList});
+    //       }
+
+    //       // if (bestGuessLabel == null) {
+    //       //    bestGuessLabel.add(bingBestRepresentation);
+    //       //  }
+    //     }
+
+    //     print(bestGuessLabel);
+    //     results.addAll({'bestGuessList': bestGuessList});
+    //     print(bestGuessList);
+    //   }
+    // } else {
+    //   print('Failed to upload image. Error code: ${response.statusCode}');
+    // }
+
+    // print("Bing: ${results['bestGuessLabel']}");
+
+    // print("results ${shoppingResult}");
+    // if (PageIncludedImage != null) {
+    //   results.addAll({'urls': PageIncludedImage});
+    // }
 
     if (response.statusCode == 200) {
       final responseJson = jsonDecode(responseString);
@@ -5491,23 +5660,6 @@ _imageSearchBing(src, path) async {
         });
       }
 
-      bingVisualObject.forEach((value) async {
-        // print("fetch URL: ==============");
-        //  print("Website name: ${value['name']}");
-        // print("website: ${value['hostPageUrl']}");
-
-        // final isShopping = isShoppingWebsite(value['hostPageUrl']);
-        // if (isShopping) {
-        //   shoppingResult.add(value['hostPageUrl']);
-        // }
-        // print('Is the URL a shopping website? $isShopping');
-
-        Result.add({
-          'title': value['name'].toString(),
-          'link': value['hostPageUrl'].toString(),
-        });
-      });
-
       List bestGuessList = [];
 
       if (bingVisualQuery != null) {
@@ -5528,18 +5680,34 @@ _imageSearchBing(src, path) async {
           if (bingBestRepresentation != null) {
             bestGuessLabel.add(bingBestRepresentation);
           } else {
-            bestGuessLabel.add(bingVisualQuery[0]['displaytext']);
+            bestGuessLabel.add(bingVisualObject[0]['name']);
             // results.addAll({'BestGuessList': bestGuessList});
           }
-
-          // if (bestGuessLabel == null) {
-          //    bestGuessLabel.add(bingBestRepresentation);
-          //  }
         }
 
         print(bestGuessLabel);
         results.addAll({'bestGuessList': bestGuessList});
         print(bestGuessList);
+      }
+
+      bingVisualObject.forEach((value) async {
+        // print("fetch URL: ==============");
+        //  print("Website name: ${value['name']}");
+        // print("website: ${value['hostPageUrl']}");
+
+        // final isShopping = isShoppingWebsite(value['hostPageUrl']);
+        // if (isShopping) {
+        //   shoppingResult.add(value['hostPageUrl']);
+        // }
+        // print('Is the URL a shopping website? $isShopping');
+
+        Result.add({
+          'title': value['name'].toString(),
+          'link': value['hostPageUrl'].toString(),
+        });
+      });
+      if (bestGuessLabel.length <= 0) {
+        bestGuessLabel.add(bingVisualObject[0]['name']);
       }
     } else {
       print('Failed to upload image. Error code: ${response.statusCode}');
@@ -5550,6 +5718,10 @@ _imageSearchBing(src, path) async {
     // print("results ${shoppingResult}");
     // if (PageIncludedImage != null) {
     //   results.addAll({'urls': PageIncludedImage});
+    // }
+    //   results.addAll({'urls': Result});
+
+    //   return results;
     // }
     results.addAll({'urls': Result});
 
