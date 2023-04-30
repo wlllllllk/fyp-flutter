@@ -510,23 +510,42 @@ _imageSearch(src, path, name) async {
     }
 
     // Future<vision.BatchAnnotateImagesResponse> search(String image) async {
-    Future<Map> webSearch(String image) async {
-      var _vision = vision.VisionApi(await _client);
+    Future<Map> webSearch(String image, Map<String, dynamic> GoogleObj) async {
+      var _vision = vision.VisionApi(_client);
+
+      var requestJson;
+      if (GoogleObj['imageUri'] != "") {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"source": GoogleObj},
+              "features": [
+                {
+                  "type": "WEB_DETECTION",
+                  "maxresult": 20,
+                }
+              ]
+            }
+          ]
+        };
+      } else {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"content": image},
+              "features": [
+                {
+                  "type": "WEB_DETECTION",
+                  "maxresult": 20,
+                }
+              ]
+            }
+          ]
+        };
+      }
       var _api = _vision.images;
-      var _response =
-          await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
-        "requests": [
-          {
-            "image": {"content": image},
-            "features": [
-              {
-                "type": "WEB_DETECTION",
-                "maxresult": 20,
-              }
-            ]
-          }
-        ]
-      }));
+      var _response = await _api
+          .annotate(vision.BatchAnnotateImagesRequest.fromJson(requestJson));
       // print(entity.entityId);
       List<vision.WebEntity>? entities;
       List<vision.WebImage>? fullMatchImage;
@@ -623,6 +642,7 @@ _imageSearch(src, path, name) async {
           'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=zh-HK&setLang=EN');
       var headers = {
         'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
+        "Content-Type": "application/json",
       };
 
       final knowledgeRequest = {
@@ -630,24 +650,32 @@ _imageSearch(src, path, name) async {
         "invokedSkillsRequestData": {"enableEntityData": "true"}
       };
 
-      var request = http.MultipartRequest('POST', uri);
+      var request;
       var imageToken = '';
-
-      request.fields.addAll(
-          {"invokedSkills": "SimilarImages", 'enableEntityData': 'true'});
-
-      request.headers.addAll(headers);
-
+      var response;
+      final String responseString;
       //URL OR IMG64
       if (imgURL == "") {
+        request = http.MultipartRequest('POST', uri);
+
+        request.fields.addAll(
+            {"invokedSkills": "SimilarImages", 'enableEntityData': 'true'});
+
+        request.headers.addAll(headers);
         request.files.add(await http.MultipartFile.fromPath('image', imgpath,
             filename: 'myfile'));
-      } else {}
+        response = await request.send();
 
-      var response = await request.send();
-      // Convert the base64 image to bytes
-
-      final String responseString = await response.stream.bytesToString();
+        responseString = await response.stream.bytesToString();
+      } else {
+        response = await http.post(
+          Uri.parse(
+              "https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=zh-HK&setLang=EN&imgUrl=$imgURL"),
+          headers: headers,
+        );
+        print(response.body);
+        responseString = response.body;
+      }
 
       print(responseString);
 
@@ -758,6 +786,7 @@ _imageSearch(src, path, name) async {
         }
       } else {
         print('Failed to upload image. Error code: ${response.statusCode}');
+        exit(1);
       }
 
       // print("Bing: ${results['bestGuessLabel']}");
@@ -773,14 +802,21 @@ _imageSearch(src, path, name) async {
 
     //  print(await RealTimeLens(path, img64));
 
-    var imgURI = "";
+    var imgURI =
+        "https://cdn.shopify.com/s/files/1/2675/4376/products/image_a28b3542-15db-4d61-93b0-3ba2126aba22_525x700.jpg?v=1662710522";
+    var webResults;
+    if (imgURI != "") {
+      Map<String, dynamic> googleImageURi = {"imageUri": imgURI};
+      webResults = webSearch(img64, googleImageURi);
+    } else {
+      webResults = webSearch(img64, {"imageUri": ""});
+    }
 
     var bingVisualResult = BingSearch(path, img64, imgURI);
 
     //print(text['bestGuessLabel']);
     // print(text);
     //BingVisualSearch(img64, path, name);
-    var webResults = webSearch(img64);
 
     Map bing = await Future.value(bingVisualResult);
     Map Google = await Future.value(webResults);
@@ -800,11 +836,13 @@ _imageSearch(src, path, name) async {
     String bestguessGoogle = Google["bestGuessLabel"];
     List textOCR = await TextDetection(img64);
     String logoDetect = await logoDetection(img64);
+    List GoogleUrls = Google['urls'];
 
     Map<dynamic, dynamic> outputMerge = {
       "bestGuessLabel1": bestguessBing,
       "bestGuessLabel2": bestguessGoogle,
       "bestGuessList": bingBestGuessList,
+      "bestGuessListGoogle": GoogleUrls,
       "OCRtextList": textOCR,
       "LogoDetect": logoDetect,
     };
