@@ -893,7 +893,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
     log("_gg: $_gg");
 
-    var ENGINE_ID, uri;
+    var engineId, uri;
 
     log("page: $page | _start: $_start");
 
@@ -2324,7 +2324,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
         // try OCR first
         var resultsOCR =
-            await _imageSearchGoogle(image, path, "text_detection");
+            await _imageSearchGoogle(image, path, "", "text_detection");
         log("OCR:$resultsOCR");
         // log("OCR toString: :${resultsOCR.toString()}");
 
@@ -5158,7 +5158,7 @@ class Order {
   Order({required this.area, required this.description});
 }
 
-_imageSearchGoogle(src, path, [type]) async {
+_imageSearchGoogle(src, path, imgURL, [type]) async {
   Directory dir = (await getApplicationDocumentsDirectory());
   bool fileExists = false;
   String filename = "credential.json";
@@ -5182,48 +5182,107 @@ _imageSearchGoogle(src, path, [type]) async {
     final bytes = File(path).readAsBytesSync();
     String img64 = base64Encode(bytes);
 
-    // Future logoDetection(String image) async {
-    //   var _vision = vision.VisionApi(await _client);
-    //   var _api = _vision.images;
-    //   var _response =
-    //       await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
-    //     "requests": [
-    //       {
-    //         "image": {"content": image},
-    //         "features": [
-    //           {
-    //             "type": "LOGO_DETECTION",
-    //           }
-    //         ]
-    //       }
-    //     ]
-    //   }));
-    //   List<vision.EntityAnnotation> entities;
-    //   var logoOutput;
-    //   _response.responses?.forEach((data) {
-    //     entities = data.logoAnnotations as List<vision.EntityAnnotation>;
-    //     logoOutput = entities[0].description;
-    //   });
-    //   log(logoOutput);
-    // }
-
-    Future textDetection(String image) async {
+    Future logoDetection(String image, Map<String, dynamic> GoogleObj) async {
       var _vision = vision.VisionApi(await _client);
       var _api = _vision.images;
-      var _response =
-          await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
-        "requests": [
-          {
-            "image": {"content": image},
-            "features": [
-              {
-                "type": "TEXT_DETECTION",
-                // "type": "DOCUMENT_TEXT_DETECTION",
-              }
-            ]
-          }
-        ]
-      }));
+      var requestJson;
+      if (GoogleObj['imageUri'] != "") {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"source": GoogleObj},
+              "features": [
+                {
+                  "type": "LOGO_DETECTION",
+                }
+              ]
+            }
+          ]
+        };
+      } else {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"content": image},
+              "features": [
+                {
+                  "type": "LOGO_DETECTION",
+                }
+              ]
+            }
+          ]
+        };
+      }
+
+      var _response = await _api
+          .annotate(vision.BatchAnnotateImagesRequest.fromJson(requestJson));
+
+      List<vision.EntityAnnotation> entities;
+      var logoOutput;
+
+      _response.responses?.forEach((data) {
+        if (data.logoAnnotations != null) {
+          entities = data.logoAnnotations as List<vision.EntityAnnotation>;
+          logoOutput = entities[0].description;
+        } else {
+          logoOutput = "NO Logo detected";
+        }
+      });
+      print(logoOutput);
+      return logoOutput;
+    }
+
+    Future textDetection(String image, Map<String, dynamic> GoogleObj) async {
+      var _vision = vision.VisionApi(await _client);
+      var _api = _vision.images;
+
+      var requestJson;
+      if (imgURL != "") {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"source": GoogleObj},
+              "features": [
+                {
+                  "type": "TEXT_DETECTION",
+                  "maxresult": 20,
+                }
+              ]
+            }
+          ]
+        };
+      } else {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"content": image},
+              "features": [
+                {
+                  "type": "TEXT_DETECTION",
+                  "maxresult": 20,
+                }
+              ]
+            }
+          ]
+        };
+      }
+      var _response = await _api
+          .annotate(vision.BatchAnnotateImagesRequest.fromJson(requestJson));
+      // var _response =
+      //     await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
+
+      //   "requests": [
+      //     {
+      //       "image": {"content": image},
+      //       "features": [
+      //         {
+      //           "type": "TEXT_DETECTION",
+      //           // "type": "DOCUMENT_TEXT_DETECTION",
+      //         }
+      //       ]
+      //     }
+      //   ]
+      // }));
 
       List<vision.EntityAnnotation>? entities;
 
@@ -5234,7 +5293,7 @@ _imageSearchGoogle(src, path, [type]) async {
         log("No words is detected");
         exit(1);
       }
-      // log("entities1: $entities");
+      log("entities1: $entities");
       List ocr = [];
       for (int i = 0; i < entities!.length; i++) {
         ocr.add(entities![i].description?.trim());
@@ -5245,90 +5304,109 @@ _imageSearchGoogle(src, path, [type]) async {
 
       return ocr.join(' ').replaceAll('\n', '');
 
-      final acc = [0];
-      int count = 0;
+      // final acc = [0];
+      // int count = 0;
 
-      List<String?> str_arr = [''];
-      List<String?> original = [''];
-      String? string_ent = entities![0].description;
-      final separated = string_ent?.split('\n');
+      // List<String?> strArr = [''];
+      // List<String?> original = [''];
+      // String? stringEnt = entities![0].description;
+      // final separated = stringEnt?.split('\n');
 
-      for (int j = 1; j < entities!.length; j++) {
-        var vertice = entities![j].boundingPoly!.vertices;
-        String? curString = entities![j].description;
-        //area of each words
-        var max_x = 0, max_y = 0, min_x = vertice![0].x, min_y = vertice[0].y;
-        for (int i = 0; i < vertice!.length; i++) {
-          if (vertice[i].x! > max_x) {
-            max_x = vertice[i].x!;
-          }
-          if (vertice[i].y! > max_y) {
-            max_y = vertice[i].y!;
-          }
-          if (vertice[i].x! < min_x!) {
-            min_x = vertice[i].x!;
-          }
-          if (vertice[i].y! < min_y!) {
-            min_y = vertice[i].y!;
-          }
-        }
+      // for (int j = 1; j < entities!.length; j++) {
+      //   var vertice = entities![j].boundingPoly!.vertices;
+      //   String? curString = entities![j].description;
+      //   //area of each words
+      //   var maxX = 0, maxY = 0, minX = vertice![0].x, minY = vertice[0].y;
+      //   for (int i = 0; i < vertice!.length; i++) {
+      //     if (vertice[i].x! > maxX) {
+      //       maxX = vertice[i].x!;
+      //     }
+      //     if (vertice[i].y! > maxY) {
+      //       maxY = vertice[i].y!;
+      //     }
+      //     if (vertice[i].x! < minX!) {
+      //       minX = vertice[i].x!;
+      //     }
+      //     if (vertice[i].y! < minY!) {
+      //       minY = vertice[i].y!;
+      //     }
+      //   }
 
-        var length_x = max_x - min_x!;
-        var length_y = max_y - min_y!;
-        var area = length_x * length_y;
+      //   var lengthX = maxX - minX!;
+      //   var lengthY = maxY - minY!;
+      //   var area = lengthX * lengthY;
 
-        // log("image $image");
-        // log("entities![j].description ${entities![j].description}");
-        acc.insert(j, area);
-        original.insert(j, entities![j].description);
-      }
+      //   // log("image $image");
+      //   // log("entities![j].description ${entities![j].description}");
+      //   acc.insert(j, area);
+      //   original.insert(j, entities![j].description);
+      // }
 
-      final stats = Stats.fromData(acc);
-      final numberArr = [0];
-      final Map<String, int> outputString = {};
+      // final stats = Stats.fromData(acc);
+      // final numberArr = [0];
+      // final Map<String, int> outputString = {};
 
-      List<Order> orders = [];
+      // List<Order> orders = [];
 
-      var countArr = 0;
+      // var countArr = 0;
 
-      for (int j = 0; j < separated!.length; j++) {
-        for (int i = 0; i < original.length; i++) {
-          if (separated[j].contains(original[i]!)) {
-            numberArr[countArr] += acc[i];
-          }
-        }
-        orders.add(Order(area: numberArr[countArr], description: separated[j]));
-        countArr++;
-        numberArr.insert(countArr, 0);
-      }
+      // for (int j = 0; j < separated!.length; j++) {
+      //   for (int i = 0; i < original.length; i++) {
+      //     if (separated[j].contains(original[i]!)) {
+      //       numberArr[countArr] += acc[i];
+      //     }
+      //   }
+      //   orders.add(Order(area: numberArr[countArr], description: separated[j]));
+      //   countArr++;
+      //   numberArr.insert(countArr, 0);
+      // }
 
-      //log(numberArr);
-      orders.sort((a, b) => b.area.compareTo(a.area));
-      log("Ordered Output text: ${orders.map((order) => order.description)}");
+      // //log(numberArr);
+      // orders.sort((a, b) => b.area.compareTo(a.area));
+      // log("Ordered Output text: ${orders.map((order) => order.description)}");
 
-      log("TEXT: $str_arr");
-      return str_arr;
+      // log("TEXT: $strArr");
+      // return strArr;
     }
 
     // Future<vision.BatchAnnotateImagesResponse> search(String image) async {
-    Future<Map> webSearch(String image) async {
-      var _vision = vision.VisionApi(await _client);
+    Future<Map> webSearch(String image, Map<String, dynamic> GoogleObj) async {
+      var _vision = vision.VisionApi(_client);
+
+      var requestJson;
+      if (GoogleObj['imageUri'] != "") {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"source": GoogleObj},
+              "features": [
+                {
+                  "type": "WEB_DETECTION",
+                  "maxresult": 20,
+                }
+              ]
+            }
+          ]
+        };
+      } else {
+        requestJson = {
+          "requests": [
+            {
+              "image": {"content": image},
+              "features": [
+                {
+                  "type": "WEB_DETECTION",
+                  "maxresult": 20,
+                }
+              ]
+            }
+          ]
+        };
+      }
       var _api = _vision.images;
-      var _response =
-          await _api.annotate(vision.BatchAnnotateImagesRequest.fromJson({
-        "requests": [
-          {
-            "image": {"content": image},
-            "features": [
-              {
-                "type": "WEB_DETECTION",
-                "maxresult": 20,
-              }
-            ]
-          }
-        ]
-      }));
-      // log(entity.entityId);
+      var _response = await _api
+          .annotate(vision.BatchAnnotateImagesRequest.fromJson(requestJson));
+      // print(entity.entityId);
       List<vision.WebEntity>? entities;
       List<vision.WebImage>? fullMatchImage;
       List<vision.WebImage>? partialMatchImage;
@@ -5417,17 +5495,36 @@ _imageSearchGoogle(src, path, [type]) async {
 
     //BingVisualSearch(img64, path, name);
     var webResults;
+
     if (type == "text_detection") {
-      webResults = textDetection(img64);
-    } else {
-      webResults = webSearch(img64);
+      if (imgURL != "") {
+        Map<String, dynamic> googleImageURi = {"imageUri": imgURL};
+        webResults = textDetection(img64, googleImageURi);
+      } else {
+        webResults = textDetection(img64, {"imageUri": ""});
+      }
+
+      //return webResults;
+    } else if (type == "imageWeb") {
+      if (imgURL != "") {
+        Map<String, dynamic> googleImageURi = {"imageUri": imgURL};
+        webResults = webSearch(img64, googleImageURi);
+      } else {
+        webResults = webSearch(img64, {"imageUri": ""});
+      }
+
+      return webResults;
+    } else if (type == "logo_detection") {
+      if (imgURL != "") {
+        Map<String, dynamic> googleImageURi = {"imageUri": imgURL};
+        webResults = logoDetection(img64, googleImageURi);
+      } else {
+        webResults = logoDetection(img64, {"imageUri": ""});
+      }
     }
-
-    // textDetection(img64);
-    // logoDetection(img64);
-
-    // log("results = ${await Future.value(results)}");
-    return await Future.value(webResults);
+    return webResults;
+    //return webResults;
+    // return await Future.value(webResults);
   } finally {
     await jsonCredential.delete();
     fileExists = jsonCredential.existsSync();
@@ -5504,42 +5601,48 @@ _imageSearchBing(src, path) async {
   // }
 
   List bestGuessLabel = [];
-  Future<Map> BingSearch(String imgpath, String img64,
-      [String imgURL = ""]) async {
+  Future<Map> BingSearch(String imgpath, String img64, String imgURL) async {
     final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
-    // final imageData = base64.encode(File(imgpath).readAsBytesSync());
+    final imageData = base64.encode(File(imgpath).readAsBytesSync());
 
     //?mkt=zh-HK&setLang=EN
     var uri = Uri.parse(
-        // 'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=en-US');
         'https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=zh-HK&setLang=EN');
     var headers = {
       'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa',
+      "Content-Type": "application/json",
     };
 
     final knowledgeRequest = {
       "invokedSkills": ["SimilarImages"],
       "invokedSkillsRequestData": {"enableEntityData": "true"}
     };
-
-    var request = http.MultipartRequest('POST', uri);
+    var request;
     var imageToken = '';
-
-    request.fields
-        .addAll({"invokedSkills": "SimilarImages", 'enableEntityData': 'true'});
-
-    request.headers.addAll(headers);
-
+    var response;
+    final String responseString;
     //URL OR IMG64
     if (imgURL == "") {
+      request = http.MultipartRequest('POST', uri);
+
+      request.fields.addAll(
+          {"invokedSkills": "SimilarImages", 'enableEntityData': 'true'});
+
+      request.headers.addAll(headers);
       request.files.add(await http.MultipartFile.fromPath('image', imgpath,
           filename: 'myfile'));
-    } else {}
+      response = await request.send();
 
-    var response = await request.send();
-    // Convert the base64 image to bytes
-
-    final String responseString = await response.stream.bytesToString();
+      responseString = await response.stream.bytesToString();
+    } else {
+      response = await http.post(
+        Uri.parse(
+            "https://api.bing.microsoft.com/v7.0/images/visualsearch?mkt=zh-HK&setLang=EN&imgUrl=$imgURL"),
+        headers: headers,
+      );
+      print(response.body);
+      responseString = response.body;
+    }
 
     print(responseString);
 
@@ -5778,6 +5881,78 @@ _imageSearchBing(src, path) async {
     return results;
   }
 
-  var bingVisualResult = BingSearch(path, img64);
+  var imgURI =
+      "https://media.sketchfab.com/models/b2ac5c6f19414966bdf0498cddd3ab2f/thumbnails/5d4ec181cbb44969a7ad9097fc1f4a50/30190a307b5e472db8c63e9b71c596ab.jpeg";
+
+  var bingVisualResult = BingSearch(path, img64, imgURI);
+  var webResults;
+  webResults = await _imageSearchGoogle(img64, path, imgURI, "imageWeb");
+
+  Map bing = await Future.value(bingVisualResult);
+  Map Google = await Future.value(webResults);
+
+  List mergeList = [];
+  final keyBing = bing.keys.toList();
+  //print("LEY BING: ${bing[1](0)}");
+  final keyGoogle = Google.keys.toList();
+
+  Map output = {};
+  List bingBestGuessList = [];
+  String bestguessBing = bing["bestGuessLabel"][0];
+  if (bing["bestGuessList"] != null) {
+    bingBestGuessList = bing["bestGuessList"];
+  }
+
+  String bestguessGoogle = Google["bestGuessLabel"];
+  var textOCR;
+  var logoDetect;
+
+  if (imgURI != '') {
+    textOCR = await _imageSearchGoogle(img64, path, imgURI, "text_detection");
+    logoDetect =
+        await _imageSearchGoogle(img64, path, imgURI, "logo_detection");
+  } else {
+    textOCR = await _imageSearchGoogle(img64, path, null, "text_detection");
+    logoDetect = await _imageSearchGoogle(img64, path, null, "logo_detection");
+  }
+
+  log("OCR:$textOCR");
+
+  var GoogleUrls = Google['urls'];
+
+  Map<dynamic, dynamic> outputMerge = {
+    "bestGuessLabel1": bestguessBing,
+    "bestGuessLabel2": bestguessGoogle,
+    "bestGuessList": bingBestGuessList,
+    "bestGuessListGoogle": GoogleUrls,
+    "OCRtextList": textOCR,
+    "LogoDetect": logoDetect,
+  };
+  var bingCount = 0;
+  var GoogleCount = 0;
+  var bingelement = bing["urls"];
+  var Googlelement = Google["urls"];
+  var maxlength = bingelement.length + Googlelement.length;
+
+  for (int i = 0; i < maxlength; i++) {
+    if (GoogleCount < Googlelement.length) {
+      if ((i % 2) == 0) {
+        mergeList.add(bingelement[bingCount]);
+        bingCount++;
+      }
+      if ((i % 2) == 1) {
+        mergeList.add(Googlelement[GoogleCount]);
+        GoogleCount++;
+      }
+    } else {
+      mergeList.add(bingelement[bingCount]);
+      bingCount++;
+    }
+  }
+
+  outputMerge.addAll({'urls': mergeList});
+
+  print("Merge List ${outputMerge}");
+
   return bingVisualResult;
 }
