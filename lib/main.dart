@@ -41,6 +41,7 @@ import 'package:googleapis/vision/v1.dart' as vision;
 import 'package:flutter/services.dart';
 import 'package:stats/stats.dart';
 
+import 'duck_duck_go_icons.dart';
 import 'my_flutter_app_icons.dart';
 
 part 'main.g.dart';
@@ -105,6 +106,28 @@ List<String> SearchPlatformList = [
   "General",
   "Video",
   "SNS",
+];
+
+// ignore: non_constant_identifier_names
+List<String> GeneralPlatformList = [
+  "Google",
+  "Bing",
+  "DuckDuckGo",
+];
+
+// ignore: non_constant_identifier_names
+List<String> VideoPlatformList = [
+  "YouTube",
+  "Bing Video",
+  "Vimeo",
+];
+
+// ignore: non_constant_identifier_names
+List<String> SNSPlatformList = [
+  "Twitter",
+  "Facebook",
+  "Instagram",
+  "LinkedIn",
 ];
 
 // // ignore: non_constant_identifier_names
@@ -205,7 +228,9 @@ class _WebViewContainerState extends State<WebViewContainer>
       _loadingPercentage = 0,
       _selectedPageIndex = 0,
       _searchCount = 0;
-
+  List _enabledGeneralPlatforms = [],
+      _enabledVideoPlatforms = [],
+      _enabledSNSPlatforms = [];
   //stopwatch
   final activityStopwatch = Stopwatch();
   // final _redirectStopwatch = Stopwatch();
@@ -260,10 +285,20 @@ class _WebViewContainerState extends State<WebViewContainer>
     // final algorithm = await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
-    final mergeAlgorithm =
-        await prefs.getString("mergeAlgorithm") ?? MergeAlgorithmList[0];
+    final generalMergeAlgorithm =
+        await prefs.getString("generalMergeAlgorithm") ?? MergeAlgorithmList[0];
+
     final videoMergeAlgorithm = await prefs.getString("videoMergeAlgorithm") ??
         VideoMergeAlgorithmList[0];
+    final enabledGeneralPlatforms =
+        await prefs.getStringList("enabledGeneralPlatforms") ??
+            GeneralPlatformList;
+    final enabledVideoPlatforms =
+        await prefs.getStringList("enabledVideoPlatforms") ?? VideoPlatformList;
+    final enabledSNSPlatforms =
+        await prefs.getStringList("enabledSNSPlatforms") ?? SNSPlatformList;
+
+    log("enabledGeneralPlatforms $enabledGeneralPlatforms | enabledVideoPlatforms: $enabledVideoPlatforms | enabledSNSPlatforms: $enabledSNSPlatforms");
     // final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final preloadNumber = await prefs.getBool("preloadNumber") ?? true;
     final reverseJoystick = await prefs.getBool("reverseJoystick") ?? false;
@@ -281,8 +316,11 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _currentSearchPlatform = "General";
       _searchAlgorithm = algorithm;
-      _mergeAlgorithm = mergeAlgorithm;
+      _mergeAlgorithm = generalMergeAlgorithm;
       _videoMergeAlgorithm = videoMergeAlgorithm;
+      _enabledGeneralPlatforms = enabledGeneralPlatforms;
+      _enabledVideoPlatforms = enabledVideoPlatforms;
+      _enabledSNSPlatforms = enabledSNSPlatforms;
 
       _preloadNumber = preloadNumber;
       _reverseJoystick = reverseJoystick;
@@ -2014,6 +2052,23 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("_currentImage $_currentImage");
   }
 
+  void _updateEnabledPlatforms(type, list) {
+    if (type == "General") {
+      setState(() {
+        _enabledGeneralPlatforms = list;
+      });
+    } else if (type == "Video") {
+      setState(() {
+        _enabledVideoPlatforms = list;
+      });
+    } else if (type == "SNS") {
+      setState(() {
+        _enabledSNSPlatforms = list;
+      });
+    }
+    log("type: $type | list: $list");
+  }
+
   final TextEditingController _searchFieldController = TextEditingController();
 
   void _pushSearchPage() async {
@@ -2057,6 +2112,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     //   throw Exception(
     //       'Failed to fetch web page content: ${response.statusCode}');
     // }
+    SharedPreferences prefs = await SharedPreferences.getInstance();
 
     setState(() {
       _isSearching = true;
@@ -2090,6 +2146,14 @@ class _WebViewContainerState extends State<WebViewContainer>
             mergeSearch: _mergeSearch,
             isTutorial: _isTutorial,
             updateIsTutorial: _updateIsTutorial,
+            // generalPlatformList: GeneralPlatformList,
+            // videoPlatformList: VideoPlatformList,
+            // SNSPlatformList: SNSPlatformList,
+            enabledGeneralPlatforms: _enabledGeneralPlatforms,
+            enabledVideoPlatforms: _enabledVideoPlatforms,
+            enabledSNSPlatforms: _enabledSNSPlatforms,
+            updateEnabledPlatforms: _updateEnabledPlatforms,
+            prefs: prefs,
           );
         },
       ),
@@ -2182,9 +2246,9 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSelectedPageIndex: _updateSelectedPageIndex,
             updateSearchAlgorithm: _updateSearchAlgorithm,
             searchAlgorithm: _searchAlgorithm,
-            updateMergeAlgorithm: _updateMergeAlgorithm,
+            updateGeneralMergeAlgorithm: _updateMergeAlgorithm,
             updateVideoMergeAlgorithm: _updateVideoMergeAlgorithm,
-            mergeAlgorithm: _mergeAlgorithm,
+            generalMergeAlgorithm: _mergeAlgorithm,
             videoMergeAlgorithm: _videoMergeAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
             MergeAlgorithmList: MergeAlgorithmList,
@@ -3394,27 +3458,36 @@ class _WebViewContainerState extends State<WebViewContainer>
     Map platforms = {};
     switch (type) {
       case "General":
-        platforms = {
-          "Google": {},
-          "Bing": {},
-          "DuckDuckGo": {},
-          // "Yahoo": {},
-        };
+        // platforms = {
+        //   "Google": {},
+        //   "Bing": {},
+        //   "DuckDuckGo": {},
+        //   // "Yahoo": {},
+        // };
+        for (int i = 0; i < _enabledGeneralPlatforms.length; i++) {
+          platforms.addAll({_enabledGeneralPlatforms[i]: ""});
+        }
         break;
       case "Video":
-        platforms = {
-          "YouTube": {},
-          "Bing Video": {},
-          "Vimeo": {},
-        };
+        // platforms = {
+        //   "YouTube": {},
+        //   "Bing Video": {},
+        //   "Vimeo": {},
+        // };
+        for (int i = 0; i < _enabledVideoPlatforms.length; i++) {
+          platforms.addAll({_enabledVideoPlatforms[i]: ""});
+        }
         break;
       case "SNS":
-        platforms = {
-          "Twitter": {},
-          "Facebook": {},
-          "Instagram": {},
-          "LinkedIn": {},
-        };
+        // platforms = {
+        //   "Twitter": {},
+        //   "Facebook": {},
+        //   "Instagram": {},
+        //   "LinkedIn": {},
+        // };
+        for (int i = 0; i < _enabledSNSPlatforms.length; i++) {
+          platforms.addAll({_enabledSNSPlatforms[i]: ""});
+        }
         break;
     }
 
@@ -3853,6 +3926,23 @@ class _WebViewContainerState extends State<WebViewContainer>
       }
 
       return mergedResults;
+    } else if (type == "SNS") {
+      // switch (_videoMergeAlgorithm) {
+      //   case "ABAB":
+      //     log("merge algo ABAB");
+      //     return mergedResults;
+
+      //   case "Frequency":
+      //     log("merge algo freq");
+
+      //     return frequencyMerge();
+      //   case "Original Rank":
+      //     log("merge algo rank");
+
+      //     return rankMerge();
+      // }
+
+      return mergedResults;
     }
   }
 
@@ -4032,11 +4122,6 @@ class _WebViewContainerState extends State<WebViewContainer>
   _platformIconBuilder(String platform) {
     switch (platform) {
       case "General":
-        // return const Icon(
-        //   FontAwesome.wand_magic_sparkles,
-        //   size: 24,
-        //   color: Colors.green,
-        // );
         return const Icon(HeroIcons.globe_alt, size: 24);
       case "Video":
         return const Icon(BoxIcons.bx_video, size: 24);
@@ -4045,8 +4130,18 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       case "Google":
         return const Icon(BoxIcons.bxl_google, size: 24);
+      case "Bing":
+        return const Icon(BoxIcons.bxl_bing, size: 24);
+      case "DuckDuckGo":
+        return const Icon(DuckDuckGo.duckduckgo, size: 20);
+
       case "YouTube":
         return const Icon(BoxIcons.bxl_youtube, size: 24);
+      case "Bing Video":
+        return const Icon(BoxIcons.bxl_bing, size: 24);
+      case "Vimeo":
+        return const Icon(BoxIcons.bxl_vimeo, size: 24);
+
       case "Twitter":
         return const Icon(BoxIcons.bxl_twitter, size: 24);
       case "Facebook":
@@ -4055,18 +4150,9 @@ class _WebViewContainerState extends State<WebViewContainer>
         return const Icon(BoxIcons.bxl_instagram, size: 24);
       case "LinkedIn":
         return const Icon(BoxIcons.bxl_linkedin, size: 24);
-      case "Bing":
-        return const Icon(BoxIcons.bxl_bing, size: 24);
-      case "Yahoo":
-        return const Icon(BoxIcons.bxl_yahoo, size: 24);
-      case "Baidu":
-        return const Icon(BoxIcons.bxl_baidu, size: 24);
-      // case "SmartImage":
-      //   return const Icon(
-      //     FontAwesome.photo_film,
-      //     size: 24,
-      //     color: Colors.green,
-      //   );
+
+      // case "Yahoo":
+      //   return const Icon(BoxIcons.bxl_yahoo, size: 24);
     }
   }
 

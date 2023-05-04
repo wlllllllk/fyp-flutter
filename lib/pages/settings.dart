@@ -12,9 +12,9 @@ class SettingsPage extends StatefulWidget {
     required this.updateSearchAlgorithm,
     required this.searchAlgorithm,
     required this.SearchAlgorithmList,
-    required this.updateMergeAlgorithm,
+    required this.updateGeneralMergeAlgorithm,
     required this.updateVideoMergeAlgorithm,
-    required this.mergeAlgorithm,
+    required this.generalMergeAlgorithm,
     required this.videoMergeAlgorithm,
     required this.MergeAlgorithmList,
     required this.VideoMergeAlgorithmList,
@@ -30,9 +30,9 @@ class SettingsPage extends StatefulWidget {
   final updateSelectedPageIndex;
   final updateSearchAlgorithm;
   final searchAlgorithm;
-  final updateMergeAlgorithm;
+  final updateGeneralMergeAlgorithm;
   final updateVideoMergeAlgorithm;
-  final mergeAlgorithm;
+  final generalMergeAlgorithm;
   final videoMergeAlgorithm;
   final updatePreloadNumber;
   final bool preloadNumber;
@@ -61,7 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _searchAlgorithm = widget.searchAlgorithm;
-    _mergeAlgorithm = widget.mergeAlgorithm;
+    _mergeAlgorithm = widget.generalMergeAlgorithm;
     _videoMergeAlgorithm = widget.videoMergeAlgorithm;
     _preloadNumber = widget.preloadNumber;
     _reverseJoystick = widget.reverseJoystick;
@@ -217,14 +217,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     onChanged: (String? value) async {
                       print("value $value");
 
-                      widget.updateMergeAlgorithm(value);
+                      widget.updateGeneralMergeAlgorithm(value);
 
                       setState(() {
                         _mergeAlgorithm = value;
                       });
 
                       await widget.prefs.setString(
-                        "mergeAlgorithm",
+                        "generalMergeAlgorithm",
                         value!,
                       );
                     },

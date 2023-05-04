@@ -138,6 +138,9 @@ flutter:
     - family: MyFlutterApp
       fonts:
         - asset: fonts/MyFlutterApp.ttf
+    - family: DuckDuckGo
+      fonts:
+        - asset: fonts/DuckDuckGo.ttf
   assets:
     - assets/ml/
   #

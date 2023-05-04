@@ -35,6 +35,8 @@ import 'package:icons_plus/icons_plus.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 // class CredentialsProvider {
 //   CredentialsProvider();
 
@@ -82,6 +84,14 @@ class SearchPage extends StatefulWidget {
     required this.mergeSearch,
     required this.isTutorial,
     required this.updateIsTutorial,
+    // required this.generalPlatformList,
+    // required this.videoPlatformList,
+    // required this.SNSPlatformList,
+    required this.enabledGeneralPlatforms,
+    required this.enabledVideoPlatforms,
+    required this.enabledSNSPlatforms,
+    required this.updateEnabledPlatforms,
+    required this.prefs,
   }) : super(key: key);
 
   final String realSearchText;
@@ -104,6 +114,14 @@ class SearchPage extends StatefulWidget {
   final mergeSearch;
   final isTutorial;
   final updateIsTutorial;
+  // final generalPlatformList;
+  // final videoPlatformList;
+  // final SNSPlatformList;
+  final enabledGeneralPlatforms;
+  final enabledVideoPlatforms;
+  final enabledSNSPlatforms;
+  final updateEnabledPlatforms;
+  final SharedPreferences prefs;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -114,6 +132,9 @@ class _SearchPageState extends State<SearchPage> {
   // String _realSearchText = "";
   String _platform = "", _imageSearchPlatform = "";
   List _searchRecords = [];
+  Set<String> _enabledGeneralPlatforms = {},
+      _enabledVideoPlatforms = {},
+      _enabledSNSPlatforms = {};
 
   // key
   final _textFieldKey = GlobalKey();
@@ -132,6 +153,9 @@ class _SearchPageState extends State<SearchPage> {
     _searchFieldController.text = widget.realSearchText;
     _platform = widget.currentPlatform;
     _searchRecords = widget.searchRecords;
+    _enabledGeneralPlatforms = widget.enabledGeneralPlatforms.toSet();
+    _enabledVideoPlatforms = widget.enabledVideoPlatforms.toSet();
+    _enabledSNSPlatforms = widget.enabledSNSPlatforms.toSet();
 
     EasyLoading.instance
       ..displayDuration = const Duration(milliseconds: 2000)
@@ -753,6 +777,169 @@ class _SearchPageState extends State<SearchPage> {
     // log("picked");
   }
 
+  _selectPlatforms(type) async {
+    List<String> temp = [];
+    Set<String> tempEnabled = {};
+
+    if (type == "General") {
+      temp = GeneralPlatformList;
+      tempEnabled = _enabledGeneralPlatforms;
+    } else if (type == "Video") {
+      temp = VideoPlatformList;
+      tempEnabled = _enabledVideoPlatforms;
+    } else if (type == "SNS") {
+      temp = SNSPlatformList;
+      tempEnabled = _enabledSNSPlatforms;
+    }
+
+    await showDialog<String>(
+        // barrierDismissible: false,
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                scrollable: true,
+                title: const Text('Platforms to be searched on'),
+                content: Column(
+                  children: <Widget>[
+                    ...temp
+                        .map((e) => CheckboxListTile(
+                              value: tempEnabled.contains(e),
+                              title: Text(e),
+                              secondary: widget.platformIconBuilder(e),
+                              onChanged: (value) async {
+                                log("$e: $value");
+
+                                if (!value! && tempEnabled.length > 1) {
+                                  setState(() {
+                                    tempEnabled.remove(e);
+                                  });
+                                } else {
+                                  setState(() {
+                                    tempEnabled.add(e);
+                                  });
+                                }
+
+                                log("tempEnabled: $tempEnabled");
+
+                                if (type == "General") {
+                                  setState(() {
+                                    _enabledGeneralPlatforms = tempEnabled;
+                                  });
+
+                                  widget.updateEnabledPlatforms(
+                                      type, _enabledGeneralPlatforms.toList());
+
+                                  await widget.prefs.setStringList(
+                                      "enabledGeneralPlatforms",
+                                      _enabledGeneralPlatforms.toList());
+                                } else if (type == "Video") {
+                                  setState(() {
+                                    _enabledVideoPlatforms = tempEnabled;
+                                  });
+
+                                  widget.updateEnabledPlatforms(
+                                      type, _enabledVideoPlatforms.toList());
+
+                                  await widget.prefs.setStringList(
+                                      "enabledVideoPlatforms",
+                                      _enabledVideoPlatforms.toList());
+                                } else if (type == "SNS") {
+                                  setState(() {
+                                    _enabledSNSPlatforms = tempEnabled;
+                                  });
+
+                                  widget.updateEnabledPlatforms(
+                                      type, _enabledSNSPlatforms.toList());
+
+                                  await widget.prefs.setStringList(
+                                      "enabledSNSPlatforms",
+                                      _enabledSNSPlatforms.toList());
+                                }
+                                log("_enabledGeneralPlatforms $_enabledGeneralPlatforms");
+                                log("_enabledVideoPlatforms $_enabledVideoPlatforms");
+                                log("_enabledSNSPlatforms $_enabledSNSPlatforms");
+                              },
+                            ))
+                        .toList(),
+                    // SegmentedButton(
+                    //   showSelectedIcon: false,
+                    //   multiSelectionEnabled: true,
+                    //   segments: temp
+                    //       .map((e) => ButtonSegment(
+                    //             value: e,
+                    //             label: Text(e),
+                    //             icon: widget.platformIconBuilder(e),
+                    //           ))
+                    //       .toList(),
+                    //   selected: type == "General"
+                    //       ? _enabledGeneralPlatforms
+                    //       : type == "Video"
+                    //           ? _enabledVideoPlatforms
+                    //           : type == "SNS"
+                    //               ? _enabledSNSPlatforms
+                    //               : _enabledGeneralPlatforms,
+                    //   onSelectionChanged: (newSelection) async {
+                    //     log("newSelection $newSelection");
+
+                    //     widget.updateEnabledPlatforms(
+                    //         type, newSelection.toList());
+
+                    //     if (type == "General") {
+                    //       setState(() {
+                    //         _enabledGeneralPlatforms =
+                    //             newSelection as Set<String>;
+                    //       });
+
+                    //       log("_enabledGeneralPlatforms : $_enabledGeneralPlatforms");
+
+                    //       await widget.prefs.setStringList(
+                    //           "enabledGeneralPlatforms",
+                    //           _enabledGeneralPlatforms.toList());
+                    //     } else if (type == "Video") {
+                    //       setState(() {
+                    //         _enabledVideoPlatforms =
+                    //             newSelection as Set<String>;
+                    //       });
+
+                    //       await widget.prefs.setStringList(
+                    //           "enabledVideoPlatforms",
+                    //           _enabledVideoPlatforms.toList());
+                    //     } else if (type == "SNS") {
+                    //       setState(() {
+                    //         _enabledSNSPlatforms = newSelection as Set<String>;
+                    //       });
+
+                    //       await widget.prefs.setStringList(
+                    //           "enabledSNSPlatforms",
+                    //           _enabledSNSPlatforms.toList());
+                    //     }
+                    //     // log("tempEnabled $tempEnabled | ${tempEnabled.toSet()}");
+                    //   },
+                    // ),
+                  ],
+                ),
+                actions: <Widget>[
+                  // TextButton(
+                  //   onPressed: () {
+                  //     Navigator.pop(context, 'Cancel');
+                  //   },
+                  //   child: const Text('Cancel'),
+                  // ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, 'OK');
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -884,15 +1071,76 @@ class _SearchPageState extends State<SearchPage> {
             alignment: Alignment.center,
             child: ListView(
               children: [
+                // SegmentedButton(
+                //   showSelectedIcon: false,
+                //   multiSelectionEnabled: true,
+                //   segments: GeneralPlatformList.map((e) => ButtonSegment(
+                //         value: e,
+                //         label: Text(e),
+                //         icon: widget.platformIconBuilder(e),
+                //       )).toList(),
+                //   // selected: type == "General"
+                //   //     ? _enabledGeneralPlatforms
+                //   //     : type == "Video"
+                //   //         ? _enabledVideoPlatforms
+                //   //         : type == "SNS"
+                //   //             ? _enabledSNSPlatforms
+                //   //             : {},
+                //   selected: _enabledGeneralPlatforms,
+                //   onSelectionChanged: (newSelection) async {
+                //     log("newSelection $newSelection");
+
+                //     widget.updateEnabledPlatforms(
+                //         "General", newSelection.toList());
+
+                //     // if (type == "General") {
+                //     setState(() {
+                //       _enabledGeneralPlatforms = newSelection as Set<String>;
+                //     });
+
+                //     log("_enabledGeneralPlatforms : $_enabledGeneralPlatforms");
+
+                //     await widget.prefs.setStringList("enabledGeneralPlatforms",
+                //         _enabledGeneralPlatforms.toList());
+                //     // } else if (type == "Video") {
+                //     //   setState(() {
+                //     //     _enabledVideoPlatforms = newSelection as Set<String>;
+                //     //   });
+
+                //     //   await widget.prefs.setStringList("enabledVideoPlatforms",
+                //     //       _enabledVideoPlatforms.toList());
+                //     // } else if (type == "SNS") {
+                //     //   setState(() {
+                //     //     _enabledSNSPlatforms = newSelection as Set<String>;
+                //     //   });
+
+                //     //   await widget.prefs.setStringList(
+                //     //       "enabledSNSPlatforms", _enabledSNSPlatforms.toList());
+                //     // }
+                //     // log("tempEnabled $tempEnabled | ${tempEnabled.toSet()}");
+                //   },
+                // ),
                 Padding(
                   padding: const EdgeInsets.only(
                       left: 16.0, right: 16.0, bottom: 16.0),
                   child: SegmentedButton(
                     key: _platformsKey,
+                    showSelectedIcon: false,
                     segments: SearchPlatformList.map((e) => ButtonSegment(
-                        value: e,
-                        label: Text(e),
-                        icon: widget.platformIconBuilder(e))).toList(),
+                          value: e,
+                          label: GestureDetector(
+                              onLongPress: () {
+                                log("$e label long pressed");
+                                _selectPlatforms(e);
+                              },
+                              child: Text(e)),
+                          icon: GestureDetector(
+                              onLongPress: () {
+                                log("$e icon long pressed");
+                                _selectPlatforms(e);
+                              },
+                              child: widget.platformIconBuilder(e)),
+                        )).toList(),
                     selected: {_platform},
                     onSelectionChanged: (newSelection) {
                       log("newSelection $newSelection");
