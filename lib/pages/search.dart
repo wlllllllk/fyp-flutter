@@ -1,65 +1,12 @@
-// import 'dart:convert';
-// import 'dart:io';
 import 'dart:developer';
-
-// import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_searchub/main.dart';
-// import 'package:http/http.dart';
-
-// import 'package:fyp_searchub/main.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'package:isar/isar.dart';
-
-// import 'package:flutter/services.dart';
-// import 'package:path_provider/path_provider.dart';
-
-// import 'package:flutter/material.dart';
-// import 'dart:ui';
-// import 'dart:io' as io;
-// import 'package:path/path.dart' as p;
-// import 'package:googleapis_auth/auth_io.dart';
-// import 'package:googleapis/vision/v1.dart' as vision;
-// import 'package:googleapis/storage/v1.dart';
-// import 'package:http/http.dart' as http;
-// import 'package:dio/dio.dart' as dio;
-// import 'package:stats/stats.dart';
-
-// import 'package:typed_data/typed_data.dart';
-
-// import 'package:permission_handler/permission_handler.dart';
-// import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:icons_plus/icons_plus.dart';
-// import 'package:menu_button/menu_button.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
-// class CredentialsProvider {
-//   CredentialsProvider();
-
-//   Future<ServiceAccountCredentials> get _credentials async {
-//     final directory = await getApplicationDocumentsDirectory();
-//     bool fileExists = false;
-//     String filename = "credential.json";
-//     File jsonCredential = File(directory.path + "/" + filename);
-//     fileExists = jsonCredential.existsSync();
-//     log("JSON EXIST?= " + fileExists.toString());
-
-//     String _file = await jsonCredential.readAsStringSync();
-//     /*String _file = await rootBundle
-//         .loadString("assets/iron-ripple-361505-0cf917e05a8a.json");*/
-//     return ServiceAccountCredentials.fromJson(_file);
-//   }
-
-//   Future<AutoRefreshingAuthClient> get client async {
-//     AutoRefreshingAuthClient _client = await clientViaServiceAccount(
-//         await _credentials, [vision.VisionApi.cloudVisionScope]).then((c) => c);
-//     return _client;
-//   }
-// }
 
 class SearchPage extends StatefulWidget {
   const SearchPage({
@@ -84,9 +31,6 @@ class SearchPage extends StatefulWidget {
     required this.mergeSearch,
     required this.isTutorial,
     required this.updateIsTutorial,
-    // required this.generalPlatformList,
-    // required this.videoPlatformList,
-    // required this.SNSPlatformList,
     required this.enabledGeneralPlatforms,
     required this.enabledVideoPlatforms,
     required this.enabledSNSPlatforms,
@@ -114,9 +58,6 @@ class SearchPage extends StatefulWidget {
   final mergeSearch;
   final isTutorial;
   final updateIsTutorial;
-  // final generalPlatformList;
-  // final videoPlatformList;
-  // final SNSPlatformList;
   final enabledGeneralPlatforms;
   final enabledVideoPlatforms;
   final enabledSNSPlatforms;
@@ -129,12 +70,14 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchFieldController = TextEditingController();
-  // String _realSearchText = "";
-  String _platform = "", _imageSearchPlatform = "";
+  String _platform = "";
   List _searchRecords = [];
   Set<String> _enabledGeneralPlatforms = {},
       _enabledVideoPlatforms = {},
       _enabledSNSPlatforms = {};
+  final List<bool> _selectedGeneralPlatforms = <bool>[];
+  final List<bool> _selectedVideoPlatforms = <bool>[];
+  final List<bool> _selectedSNSPlatforms = <bool>[];
 
   // key
   final _textFieldKey = GlobalKey();
@@ -156,6 +99,19 @@ class _SearchPageState extends State<SearchPage> {
     _enabledGeneralPlatforms = widget.enabledGeneralPlatforms.toSet();
     _enabledVideoPlatforms = widget.enabledVideoPlatforms.toSet();
     _enabledSNSPlatforms = widget.enabledSNSPlatforms.toSet();
+
+    for (int i = 0; i < GeneralPlatformList.length; i++) {
+      _selectedGeneralPlatforms
+          .add(_enabledGeneralPlatforms.contains(GeneralPlatformList[i]));
+    }
+    for (int i = 0; i < VideoPlatformList.length; i++) {
+      _selectedVideoPlatforms
+          .add(_enabledVideoPlatforms.contains(VideoPlatformList[i]));
+    }
+    for (int i = 0; i < SNSPlatformList.length; i++) {
+      _selectedSNSPlatforms
+          .add(_enabledSNSPlatforms.contains(SNSPlatformList[i]));
+    }
 
     EasyLoading.instance
       ..displayDuration = const Duration(milliseconds: 2000)
@@ -229,13 +185,6 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "This is where you access the settings page as well as showing this tutorial again.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -262,13 +211,6 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "This is where you access the settings page as well as showing this tutorial again.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -295,13 +237,6 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "This is where you access the settings page as well as showing this tutorial again.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -331,51 +266,12 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.grey[900],
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "This is where you access the settings page as well as showing this tutorial again.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
           ],
         ),
       );
-
-      // targets.add(
-      //   TargetFocus(
-      //     identify: "Perform Search",
-      //     enableOverlayTab: true,
-      //     contents: [
-      //       TargetContent(
-      //         align: ContentAlign.bottom,
-      //         child: Column(
-      //           mainAxisSize: MainAxisSize.min,
-      //           crossAxisAlignment: CrossAxisAlignment.end,
-      //           children: const <Widget>[
-      //             Text(
-      //               "Now, try to search for something.",
-      //               style: TextStyle(
-      //                   fontWeight: FontWeight.bold,
-      //                   color: Colors.white,
-      //                   fontSize: 20.0),
-      //             ),
-      //             // Padding(
-      //             //   padding: EdgeInsets.only(top: 10.0),
-      //             //   child: Text(
-      //             //     "This is where you access the settings page as well as showing this tutorial again.",
-      //             //     style: TextStyle(color: Colors.white),
-      //             //   ),
-      //             // )
-      //           ],
-      //         ),
-      //       )
-      //     ],
-      //   ),
-      // );
 
       _showTutorial();
     }
@@ -454,7 +350,6 @@ class _SearchPageState extends State<SearchPage> {
     log("image $image | imgURI $imgURI");
     if (image != null) {
       // widget.updateCurrentImage(image);
-      _imageSearchPlatform = "";
 
       Map results = {};
       List combinedResults = [];
@@ -476,10 +371,6 @@ class _SearchPageState extends State<SearchPage> {
         combinedResults.addAll(results["bestGuessListGoogle"]);
       }
       log("image search combinedResults: $combinedResults");
-
-      // List test = resultsBing["bestGuessList"];
-      // log("image search results Bing2: ${test}");
-      // log("image search results Bing3: ${test.toList()}");
 
       if (combinedResults.isEmpty) {
         EasyLoading.dismiss();
@@ -503,11 +394,6 @@ class _SearchPageState extends State<SearchPage> {
             });
       } else {
         List keywords = combinedResults;
-        // for (var i = 0; i < resultsBing["bestGuessList"].length; i++) {
-        //   keywords.add(MultiSelectItem(
-        //       "https://tse4.mm.bing.net/th?q=Keeby+Kirby&pid=Api&mkt=en-US&cc=US&setlang=en&adlt=moderate",
-        //       resultsBing["bestGuessList"][i]["bestGuessLabel"]));
-        // }
         log("keywords: $keywords");
 
         List<MultiSelectItem> platforms = [];
@@ -521,8 +407,6 @@ class _SearchPageState extends State<SearchPage> {
         List selectedKeyword = [];
         String selectedPlatform = "";
         bool abort = false;
-        // String selectedKeyword = "";
-        // GlobalKey<FormFieldState<dynamic>> selectKey = GlobalKey();
 
         // ignore: use_build_context_synchronously
         await showDialog<String>(
@@ -621,11 +505,21 @@ class _SearchPageState extends State<SearchPage> {
                                       item.value.toString(),
                                       // height: 100,
                                       // width: 100,
-                                      errorBuilder: (BuildContext context,
-                                          Object exception,
-                                          StackTrace? stackTrace) {
-                                        return const Text(
-                                            'Error loading image');
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null) {
+                                          return child;
+                                        }
+                                        return const Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        log("error: $error");
+                                        return const Center(
+                                          child: Icon(Icons.error),
+                                        );
                                       },
                                     ),
                                   ),
@@ -713,17 +607,24 @@ class _SearchPageState extends State<SearchPage> {
 
   _selectPlatforms(type) async {
     List<String> temp = [];
-    Set<String> tempEnabled = {};
+    List<bool> tempEnabled = [];
+    int numOfEnabled = 0;
 
     if (type == "General") {
       temp = GeneralPlatformList;
-      tempEnabled = _enabledGeneralPlatforms;
+      tempEnabled = _selectedGeneralPlatforms;
+      numOfEnabled =
+          _selectedGeneralPlatforms.where((element) => element == true).length;
     } else if (type == "Video") {
       temp = VideoPlatformList;
-      tempEnabled = _enabledVideoPlatforms;
+      tempEnabled = _selectedVideoPlatforms;
+      numOfEnabled =
+          _selectedVideoPlatforms.where((element) => element == true).length;
     } else if (type == "SNS") {
       temp = SNSPlatformList;
-      tempEnabled = _enabledSNSPlatforms;
+      tempEnabled = _selectedSNSPlatforms;
+      numOfEnabled =
+          _selectedSNSPlatforms.where((element) => element == true).length;
     }
 
     await showDialog<String>(
@@ -731,128 +632,107 @@ class _SearchPageState extends State<SearchPage> {
         context: context,
         builder: (BuildContext context) {
           return StatefulBuilder(
-            builder: (context, setState) {
+            builder: (context, setAlertState) {
               return AlertDialog(
                 scrollable: true,
                 title: const Text('Platforms to be searched on'),
-                content: Column(
-                  children: <Widget>[
+                content: ToggleButtons(
+                  direction: Axis.vertical,
+                  borderRadius: const BorderRadius.all(Radius.circular(8)),
+                  isSelected: tempEnabled,
+                  children: [
                     ...temp
-                        .map((e) => CheckboxListTile(
-                              value: tempEnabled.contains(e),
-                              title: Text(e),
-                              secondary: widget.platformIconBuilder(e),
-                              onChanged: (value) async {
-                                log("$e: $value");
-
-                                if (!value! && tempEnabled.length > 1) {
-                                  setState(() {
-                                    tempEnabled.remove(e);
-                                  });
-                                } else {
-                                  setState(() {
-                                    tempEnabled.add(e);
-                                  });
-                                }
-
-                                log("tempEnabled: $tempEnabled");
-
-                                if (type == "General") {
-                                  setState(() {
-                                    _enabledGeneralPlatforms = tempEnabled;
-                                  });
-
-                                  widget.updateEnabledPlatforms(
-                                      type, _enabledGeneralPlatforms.toList());
-
-                                  await widget.prefs.setStringList(
-                                      "enabledGeneralPlatforms",
-                                      _enabledGeneralPlatforms.toList());
-                                } else if (type == "Video") {
-                                  setState(() {
-                                    _enabledVideoPlatforms = tempEnabled;
-                                  });
-
-                                  widget.updateEnabledPlatforms(
-                                      type, _enabledVideoPlatforms.toList());
-
-                                  await widget.prefs.setStringList(
-                                      "enabledVideoPlatforms",
-                                      _enabledVideoPlatforms.toList());
-                                } else if (type == "SNS") {
-                                  setState(() {
-                                    _enabledSNSPlatforms = tempEnabled;
-                                  });
-
-                                  widget.updateEnabledPlatforms(
-                                      type, _enabledSNSPlatforms.toList());
-
-                                  await widget.prefs.setStringList(
-                                      "enabledSNSPlatforms",
-                                      _enabledSNSPlatforms.toList());
-                                }
-                                log("_enabledGeneralPlatforms $_enabledGeneralPlatforms");
-                                log("_enabledVideoPlatforms $_enabledVideoPlatforms");
-                                log("_enabledSNSPlatforms $_enabledSNSPlatforms");
-                              },
-                            ))
+                        .map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                widget.platformIconBuilder(e),
+                                const SizedBox(width: 10),
+                                Text(e),
+                              ],
+                            ),
+                          ),
+                        )
                         .toList(),
-                    // SegmentedButton(
-                    //   showSelectedIcon: false,
-                    //   multiSelectionEnabled: true,
-                    //   segments: temp
-                    //       .map((e) => ButtonSegment(
-                    //             value: e,
-                    //             label: Text(e),
-                    //             icon: widget.platformIconBuilder(e),
-                    //           ))
-                    //       .toList(),
-                    //   selected: type == "General"
-                    //       ? _enabledGeneralPlatforms
-                    //       : type == "Video"
-                    //           ? _enabledVideoPlatforms
-                    //           : type == "SNS"
-                    //               ? _enabledSNSPlatforms
-                    //               : _enabledGeneralPlatforms,
-                    //   onSelectionChanged: (newSelection) async {
-                    //     log("newSelection $newSelection");
-
-                    //     widget.updateEnabledPlatforms(
-                    //         type, newSelection.toList());
-
-                    //     if (type == "General") {
-                    //       setState(() {
-                    //         _enabledGeneralPlatforms =
-                    //             newSelection as Set<String>;
-                    //       });
-
-                    //       log("_enabledGeneralPlatforms : $_enabledGeneralPlatforms");
-
-                    //       await widget.prefs.setStringList(
-                    //           "enabledGeneralPlatforms",
-                    //           _enabledGeneralPlatforms.toList());
-                    //     } else if (type == "Video") {
-                    //       setState(() {
-                    //         _enabledVideoPlatforms =
-                    //             newSelection as Set<String>;
-                    //       });
-
-                    //       await widget.prefs.setStringList(
-                    //           "enabledVideoPlatforms",
-                    //           _enabledVideoPlatforms.toList());
-                    //     } else if (type == "SNS") {
-                    //       setState(() {
-                    //         _enabledSNSPlatforms = newSelection as Set<String>;
-                    //       });
-
-                    //       await widget.prefs.setStringList(
-                    //           "enabledSNSPlatforms",
-                    //           _enabledSNSPlatforms.toList());
-                    //     }
-                    //     // log("tempEnabled $tempEnabled | ${tempEnabled.toSet()}");
-                    //   },
-                    // ),
                   ],
+                  onPressed: (int index) async {
+                    log("pressed $index | ${tempEnabled[index]} | ${tempEnabled.length} | $numOfEnabled");
+
+                    if (numOfEnabled == 1 && tempEnabled[index] == true) {
+                      EasyLoading.showToast(
+                          "At least one platform must be enabled");
+                      return;
+                    }
+
+                    if (type == "General") {
+                      setAlertState(() {
+                        _selectedGeneralPlatforms[index] =
+                            !_selectedGeneralPlatforms[index];
+
+                        numOfEnabled = _selectedGeneralPlatforms
+                            .where((element) => element == true)
+                            .length;
+                      });
+
+                      List<String> newEnabledPlatforms =
+                          GeneralPlatformList.where((element) =>
+                              _selectedGeneralPlatforms[
+                                  GeneralPlatformList.indexOf(element)] ==
+                              true).toList();
+
+                      log("test: $newEnabledPlatforms");
+
+                      widget.updateEnabledPlatforms(type, newEnabledPlatforms);
+
+                      await widget.prefs.setStringList(
+                          "enabledGeneralPlatforms", newEnabledPlatforms);
+                    } else if (type == "Video") {
+                      setAlertState(() {
+                        _selectedVideoPlatforms[index] =
+                            !_selectedVideoPlatforms[index];
+
+                        numOfEnabled = _selectedVideoPlatforms
+                            .where((element) => element == true)
+                            .length;
+                      });
+
+                      List<String> newEnabledPlatforms =
+                          VideoPlatformList.where((element) =>
+                              _selectedVideoPlatforms[
+                                  VideoPlatformList.indexOf(element)] ==
+                              true).toList();
+
+                      log("test: $newEnabledPlatforms");
+
+                      widget.updateEnabledPlatforms(type, newEnabledPlatforms);
+
+                      await widget.prefs.setStringList(
+                          "enabledVideoPlatforms", newEnabledPlatforms);
+                    } else if (type == "SNS") {
+                      setAlertState(() {
+                        _selectedSNSPlatforms[index] =
+                            !_selectedSNSPlatforms[index];
+
+                        numOfEnabled = _selectedSNSPlatforms
+                            .where((element) => element == true)
+                            .length;
+                      });
+
+                      List<String> newEnabledPlatforms = SNSPlatformList.where(
+                          (element) =>
+                              _selectedSNSPlatforms[
+                                  SNSPlatformList.indexOf(element)] ==
+                              true).toList();
+
+                      log("test: $newEnabledPlatforms");
+
+                      widget.updateEnabledPlatforms(type, newEnabledPlatforms);
+
+                      await widget.prefs.setStringList(
+                          "enabledSNSPlatforms", newEnabledPlatforms);
+                    }
+                  },
                 ),
                 actions: <Widget>[
                   // TextButton(
@@ -1005,55 +885,6 @@ class _SearchPageState extends State<SearchPage> {
             alignment: Alignment.center,
             child: ListView(
               children: [
-                // SegmentedButton(
-                //   showSelectedIcon: false,
-                //   multiSelectionEnabled: true,
-                //   segments: GeneralPlatformList.map((e) => ButtonSegment(
-                //         value: e,
-                //         label: Text(e),
-                //         icon: widget.platformIconBuilder(e),
-                //       )).toList(),
-                //   // selected: type == "General"
-                //   //     ? _enabledGeneralPlatforms
-                //   //     : type == "Video"
-                //   //         ? _enabledVideoPlatforms
-                //   //         : type == "SNS"
-                //   //             ? _enabledSNSPlatforms
-                //   //             : {},
-                //   selected: _enabledGeneralPlatforms,
-                //   onSelectionChanged: (newSelection) async {
-                //     log("newSelection $newSelection");
-
-                //     widget.updateEnabledPlatforms(
-                //         "General", newSelection.toList());
-
-                //     // if (type == "General") {
-                //     setState(() {
-                //       _enabledGeneralPlatforms = newSelection as Set<String>;
-                //     });
-
-                //     log("_enabledGeneralPlatforms : $_enabledGeneralPlatforms");
-
-                //     await widget.prefs.setStringList("enabledGeneralPlatforms",
-                //         _enabledGeneralPlatforms.toList());
-                //     // } else if (type == "Video") {
-                //     //   setState(() {
-                //     //     _enabledVideoPlatforms = newSelection as Set<String>;
-                //     //   });
-
-                //     //   await widget.prefs.setStringList("enabledVideoPlatforms",
-                //     //       _enabledVideoPlatforms.toList());
-                //     // } else if (type == "SNS") {
-                //     //   setState(() {
-                //     //     _enabledSNSPlatforms = newSelection as Set<String>;
-                //     //   });
-
-                //     //   await widget.prefs.setStringList(
-                //     //       "enabledSNSPlatforms", _enabledSNSPlatforms.toList());
-                //     // }
-                //     // log("tempEnabled $tempEnabled | ${tempEnabled.toSet()}");
-                //   },
-                // ),
                 Padding(
                   padding: const EdgeInsets.only(
                       left: 16.0, right: 16.0, bottom: 16.0),

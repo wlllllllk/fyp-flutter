@@ -68,8 +68,7 @@ void main() async {
   );
 }
 
-// enum SearchAlgorithm { Title, ClickContent, TitleWithClickContent }
-// Map SearchAlgorithm = {"Title": 0, "ClickContent": 1, "TitleWithClickContent": 2};
+// ignore: non_constant_identifier_names
 List<String> SearchAlgorithmList = [
   "Title",
   "Webpage Content",
@@ -79,6 +78,7 @@ List<String> SearchAlgorithmList = [
   // "TEST HIGHLIGHT"
 ];
 
+// ignore: non_constant_identifier_names
 List<String> GeneralMergeAlgorithmList = [
   "ABAB",
   "Frequency",
@@ -86,6 +86,7 @@ List<String> GeneralMergeAlgorithmList = [
   "Further Merge",
 ];
 
+// ignore: non_constant_identifier_names
 List<String> VideoMergeAlgorithmList = [
   "ABAB",
   "Frequency",
@@ -129,14 +130,6 @@ List<String> SNSPlatformList = [
   "Instagram",
   "LinkedIn",
 ];
-
-// // ignore: non_constant_identifier_names
-// List<String> SearchPlatformList_Text = [
-//   "Google",
-//   "Bing",
-//   "DuckDuckGo",
-//   "Yahoo",
-// ];
 
 enum Theme { Light, Dark, Auto }
 
@@ -257,7 +250,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   var _isDialOpen = ValueNotifier<bool>(false);
 
   //regex
-  var containNonEnglish = RegExp(r'^\w+');
+  var containNonEnglish = RegExp(r'^[\p{ASCII}]+$');
   var endsWithSlash = RegExp(r'\/$');
 
   // positions
@@ -842,7 +835,9 @@ class _WebViewContainerState extends State<WebViewContainer>
         break;
     }
     log("query: $query");
-    return query;
+    String test = query.toString().replaceAll('\n', '');
+    log("query test: $test");
+    return query.toString().replaceAll('\n', '');
   }
 
   _updateSearchRecord(String searchText, [remove = false]) async {
@@ -2409,7 +2404,7 @@ class _WebViewContainerState extends State<WebViewContainer>
       });
     }
 
-    keyword = "$currentSearchText ${keyword.trim()}";
+    keyword = keyword.trim();
     log("drilling... 2| $keyword");
 
     log("keyword length: ${keyword.split(' ').length}, ${keyword.length}");
@@ -2421,8 +2416,8 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("regex: ${containNonEnglish.hasMatch(keyword)}");
 
     // auto keywords extraction if more than 7 words, or characters (non-english)
-    if (((!containNonEnglish.hasMatch(keyword) && keyword.length > 7) ||
-        keyword.split(' ').length > 10)) {
+    if (((containNonEnglish.hasMatch(keyword) && keyword.length > 7) ||
+        keyword.split(' ').length > 7)) {
       var extracted = await _extractKeywords(keyword);
 
       List<MultiSelectItem> keywords = [];
@@ -2539,7 +2534,9 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     setState(() {
       _appBarColor = _searchingAppBarColor;
-      _searchText = selectedKeywords == "" ? keyword : selectedKeywords;
+      _searchText = selectedKeywords == ""
+          ? "$_searchText $keyword"
+          : "$_searchText $selectedKeywords";
       _currentSearchPlatform =
           selectedPlatform == "" ? _currentSearchPlatform : selectedPlatform;
 
@@ -4173,6 +4170,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     //   "MPhil",
     //   "Taught Doctoral"
     // ];
+    EasyLoading.show(
+      status: 'Extracting Keywords',
+    );
+
     log("content: $content");
     final response = await http.post(
       Uri.parse(
@@ -4213,10 +4214,14 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         log("results: ${results}");
 
+        EasyLoading.dismiss();
+
         // return items;
         return results;
       } else {
         log('Request failed with status: ${response.statusCode}.');
+        EasyLoading.dismiss();
+
         return null;
       }
     }
