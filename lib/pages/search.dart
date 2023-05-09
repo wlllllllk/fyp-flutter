@@ -420,7 +420,7 @@ class _SearchPageState extends State<SearchPage> {
     // tutorial.previous(); // call previous target programmatically
   }
 
-  _performImageSearch(source) async {
+  _pickImage(source) async {
     log("picking...");
     // try {
     final ImagePicker picker = ImagePicker();
@@ -447,37 +447,41 @@ class _SearchPageState extends State<SearchPage> {
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
+    _performImageSearch(image);
+  }
+
+  _performImageSearch(image, [imgURI = ""]) async {
+    log("image $image | imgURI $imgURI");
     if (image != null) {
       // widget.updateCurrentImage(image);
       _imageSearchPlatform = "";
-      // await _choosePlatform();
-      // if (_imageSearchPlatform == "") {
-      //   return;
-      // } else {
 
-      // EasyLoading.show(
-      //   // status: 'Perform Image Search',
-      //   status: "Searching on Google",
-      // );
-
-      Map resultsGoogle = {}, resultsBing = {};
-      // var itemsGoogle;
-      // resultsGoogle = await widget.imageSearchGoogle(image, image.path);
-      // log("image search results Google: $resultsGoogle");
-
-      // EasyLoading.dismiss();
+      Map results = {};
+      List combinedResults = [];
 
       EasyLoading.show(
         status: 'Searching...',
       );
-      resultsBing = await widget.imageSearch(image, image.path);
-      log("image search results Bing1: $resultsBing");
+      results = imgURI == ""
+          ? await widget.imageSearch(image, image.path)
+          : await widget.imageSearch("", "", imgURI);
+      log("image search results1: $results");
+      log("image search results2: $results['bestGuessList']");
+      log("image search results3: $results['bestGuessListGoogle']");
+
+      if (results["bestGuessList"] != null) {
+        combinedResults.addAll(results["bestGuessList"]);
+      }
+      if (results["bestGuessListGoogle"] != null) {
+        combinedResults.addAll(results["bestGuessListGoogle"]);
+      }
+      log("image search combinedResults: $combinedResults");
 
       // List test = resultsBing["bestGuessList"];
       // log("image search results Bing2: ${test}");
       // log("image search results Bing3: ${test.toList()}");
 
-      if (resultsBing["bestGuessList"] == null) {
+      if (combinedResults.isEmpty) {
         EasyLoading.dismiss();
 
         // ignore: use_build_context_synchronously
@@ -498,7 +502,7 @@ class _SearchPageState extends State<SearchPage> {
               );
             });
       } else {
-        List keywords = resultsBing["bestGuessList"];
+        List keywords = combinedResults;
         // for (var i = 0; i < resultsBing["bestGuessList"].length; i++) {
         //   keywords.add(MultiSelectItem(
         //       "https://tse4.mm.bing.net/th?q=Keeby+Kirby&pid=Api&mkt=en-US&cc=US&setlang=en&adlt=moderate",
@@ -571,8 +575,8 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                     items: keywords
                         .map((keyword) => MultiSelectItem(
-                              keyword["urls"],
-                              keyword["bestGuessLabel"],
+                              keyword["urls"] ?? keyword["link"],
+                              keyword["bestGuessLabel"] ?? keyword["link"],
                             ))
                         .toList(),
                     itemBuilder: (item, state) {
@@ -617,6 +621,12 @@ class _SearchPageState extends State<SearchPage> {
                                       item.value.toString(),
                                       // height: 100,
                                       // width: 100,
+                                      errorBuilder: (BuildContext context,
+                                          Object exception,
+                                          StackTrace? stackTrace) {
+                                        return const Text(
+                                            'Error loading image');
+                                      },
                                     ),
                                   ),
                                 ),
@@ -631,31 +641,6 @@ class _SearchPageState extends State<SearchPage> {
                           ),
                         ),
                       );
-                      // return GestureDetector(
-                      //   onTap: () {
-                      //     // log("selected: ${item.label}");
-                      //   },
-                      //   child: Container(
-                      //     padding: const EdgeInsets.all(10),
-                      //     child: Column(
-                      //       children: [
-                      //         ClipRRect(
-                      //           borderRadius: BorderRadius.circular(10),
-                      //           child: Image.network(
-                      //             item.value.toString(),
-                      //             // height: 50,
-                      //             // width: 50,
-                      //           ),
-                      //         ),
-                      //         const SizedBox(width: 10),
-                      //         Text(
-                      //           item.label,
-                      //           style: const TextStyle(fontSize: 16),
-                      //         ),
-                      //       ],
-                      //     ),
-                      //   ),
-                      // );
                     },
                     showHeader: false,
                     scroll: false,
@@ -665,7 +650,7 @@ class _SearchPageState extends State<SearchPage> {
                     // onTap: (values) {
                     //   log("selected: $values");
                     //   // selectedKeywords = values.join(" ").trim();
-                    //   // log("updated $selectedKeywords");
+                    //   // log("updated $selecßtedKeywords");
                     // },
                   ),
                 ),
@@ -702,73 +687,22 @@ class _SearchPageState extends State<SearchPage> {
         // widget.updateSearchText(selectedKeyword[0]);
         // await widget.mergeSearch(selectedPlatform);
         if (!abort) {
-          await widget.handleSearch(
-              selectedKeyword[0],
-              selectedPlatform == ""
-                  ? widget.currentPlatform
-                  : selectedPlatform);
+          if (selectedKeyword[0].toString().startsWith('http')) {
+            log("is image url");
+            EasyLoading.show(
+              status: 'Searching...',
+            );
+            _performImageSearch("", selectedKeyword[0]);
+          } else {
+            await widget.handleSearch(
+                selectedKeyword[0],
+                selectedPlatform == ""
+                    ? widget.currentPlatform
+                    : selectedPlatform);
+          }
         }
-        // await widget.mergeSearch(selectedPlatform);
-
-        // EasyLoading.dismiss();
-        // EasyLoading.show(
-        //   status: 'Merging Results',
-        // );
-        // String keyword = resultsGoogle["bestGuessLabel"];
-        // var results =
-        //     widget.mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
-        // log("image search results: $results");
-        // await widget.updateURLs("replace", keyword, "Webpage", results, true);
-
-        // Map results = {};
-        // if (_imageSearchPlatform == "Google") {
-        //   var items;
-        //   results = await widget.imageSearchGoogle(image, image.path);
-        //   if (results['urls'].length == 0) {
-        //     log("Google 000000000");
-
-        //     items =
-        //         await widget.performSearch(results["bestGuessLabel"], "Google");
-        //     await widget.updateURLs(
-        //         "replace", results['bestGuessLabel'], "Google", items, true);
-        //   } else {
-        //     log("Google not 000000000");
-        //     await widget.updateURLs("replace", results['bestGuessLabel'],
-        //         "Google", results['urls'], true);
-        //   }
-        // } else if (_imageSearchPlatform == "Bing") {
-        //   var items;
-        //   results = await widget.imageSearchBing(image, image.path);
-        //   if (results["urls"].length == 0) {
-        //     log("Bing 000000000");
-        //     items =
-        //         await widget.performSearch(results["urls"], _imageSearchPlatform);
-        //     await widget.updateURLs("replace", "Bing Image Search",
-        //         _imageSearchPlatform, items, true);
-        //   } else {
-        //     log("Bing not 000000000");
-        //     await widget.updateURLs("replace", "Bing Image Search",
-        //         _imageSearchPlatform, results['urls'], true);
-        //   }
-        // }
-        // }
-
-        // log("_imageSearchPlatform: $_imageSearchPlatform | image search $results");
-
-        // await widget.updateCurrentURLs();
         EasyLoading.dismiss();
       }
-
-      // EasyLoading.showToast('results length ${results['urls'].length}');
-
-      // final snackBar = SnackBar(
-      //   content: Text("results length ${results.length}"),
-      //   duration: const Duration(seconds: 3),
-      // );
-      // ScaffoldMessenger.of(context).showSnackBar(snackBar);
-
-      // await widget.moveSwiper(true);
-      // }
     }
     // } catch (e) {
     //   log("error image search $e");
@@ -1035,14 +969,14 @@ class _SearchPageState extends State<SearchPage> {
                           IconButton(
                             key: _cameraKey,
                             onPressed: () async {
-                              _performImageSearch("camera");
+                              _pickImage("camera");
                             },
                             icon: const Icon(Icons.photo_camera),
                           ),
                           IconButton(
                             key: _libraryKey,
                             onPressed: () async {
-                              _performImageSearch("gallery");
+                              _pickImage("gallery");
                             },
                             icon: const Icon(Icons.photo),
                           ),

@@ -5244,7 +5244,9 @@ class Order {
   Order({required this.area, required this.description});
 }
 
-_imageSearchGoogle(src, path, imgURL, [type]) async {
+_imageSearchGoogle(src, path, [imgURL = "", type]) async {
+  log("_imageSearchGoogle");
+
   Directory dir = (await getApplicationDocumentsDirectory());
   bool fileExists = false;
   String filename = "credential.json";
@@ -5265,8 +5267,12 @@ _imageSearchGoogle(src, path, imgURL, [type]) async {
   try {
     var _client = await CredentialsProvider().client;
 
-    final bytes = File(path).readAsBytesSync();
-    String img64 = base64Encode(bytes);
+    var bytes;
+    String img64 = "";
+    if (imgURL == "") {
+      bytes = File(path).readAsBytesSync();
+      img64 = base64Encode(bytes);
+    }
 
     Future logoDetection(String image, Map<String, dynamic> GoogleObj) async {
       var _vision = vision.VisionApi(await _client);
@@ -5377,18 +5383,19 @@ _imageSearchGoogle(src, path, imgURL, [type]) async {
       });
       if (entities == null) {
         log("No words is detected");
-        exit(1);
-      }
-      log("entities1: $entities");
-      List ocr = [];
-      for (int i = 0; i < entities!.length; i++) {
-        ocr.add(entities![i].description?.trim());
+        //exit(1);
+        return "null";
+      } else {
+        log("entities1: $entities");
+        List ocr = [];
+        for (int i = 0; i < entities!.length; i++) {
+          ocr.add(entities![i].description?.trim());
+        }
+        return ocr.join(' ').replaceAll('\n', '');
       }
 
       // log("ocr concat: ${ocr}");
       // log("ocr concat: ${ocr.join(' ').replaceAll('\n', '')}");
-
-      return ocr.join(' ').replaceAll('\n', '');
 
       // final acc = [0];
       // int count = 0;
@@ -5552,24 +5559,71 @@ _imageSearchGoogle(src, path, imgURL, [type]) async {
 
       Map results = {"bestGuessLabel": bestGuessLabel};
       List urls = [];
-      int len = pageWithSimilarImage?.length ?? 0;
-      for (j = 0; j < len; j++) {
-        // log("page with match image title=" +
-        //     page_with_match_image![j].pageTitle.toString());
-        // log("page with match image =" +
-        //     page_with_match_image![j].url.toString());
+      // int len = pageWithSimilarImage?.length ?? 0;
+      // for (j = 0; j < len; j++) {
+      //   // log("page with match image title=" +
+      //   //     page_with_match_image![j].pageTitle.toString());
+      //   // log("page with match image =" +
+      //   //     page_with_match_image![j].url.toString());
 
-        if (pageWithMatchImage != null) {
-          log("pageWithMatchImage: $pageWithMatchImage | len: $len | j: $j");
+      //   if (pageWithMatchImage != null) {
+      //     log("pageWithMatchImage: $pageWithMatchImage | len: $len | j: $j");
+      //     urls.add({
+      //       'title': pageWithMatchImage![j].pageTitle.toString(),
+      //       'link': pageWithMatchImage![j].url.toString()
+      //     });
+      //   } else {
+      //     urls.add({
+      //       'title': pageWithSimilarImage![j].toString(),
+      //       'link': pageWithSimilarImage![j].url.toString()
+      //     });
+      //   }
+      // }
+      int lens = partialMatchImage?.length ?? 0;
+
+      int len = pageWithSimilarImage?.length ?? 0;
+      if (lens == 0) {
+        for (j = 0; j < len; j++) {
+          // log("page with match image title=" +
+          //     page_with_match_image![j].pageTitle.toString());
+          // log("page with match image =" +
+          //     page_with_match_image![j].url.toString());
+
+          // if (pageWithMatchImage != null) {
+          //   log("pageWithMatchImage: $pageWithMatchImage | len: $len | j: $j");
+          //   urls.add({
+          //     'title': pageWithMatchImage![j].pageTitle.toString(),
+          //     'link': pageWithMatchImage![j].url.toString()
+          //   });
+          // } else //{
+          if (pageWithSimilarImage![j].url.toString().startsWith("http")) {
+            urls.add({
+              'title': pageWithSimilarImage![j].toString(),
+              'link': pageWithSimilarImage![j].url.toString()
+            });
+          }
+
+          //}
+        }
+      } else {
+        for (j = 0; j < lens; j++) {
+          // log("page with match image title=" +
+          //     page_with_match_image![j].pageTitle.toString());
+          // log("page with match image =" +
+          //     page_with_match_image![j].url.toString());
+
+          // if (pageWithMatchImage != null) {
+          //   log("pageWithMatchImage: $pageWithMatchImage | len: $len | j: $j");
+          //   urls.add({
+          //     'title': pageWithMatchImage![j].pageTitle.toString(),
+          //     'link': pageWithMatchImage![j].url.toString()
+          //   });
+          // } else //{
           urls.add({
-            'title': pageWithMatchImage![j].pageTitle.toString(),
-            'link': pageWithMatchImage![j].url.toString()
+            'title': partialMatchImage![j].toString(),
+            'link': partialMatchImage![j].url.toString()
           });
-        } else {
-          urls.add({
-            'title': pageWithSimilarImage![j].toString(),
-            'link': pageWithSimilarImage![j].url.toString()
-          });
+          //}
         }
       }
 
@@ -5624,72 +5678,21 @@ _imageSearchGoogle(src, path, imgURL, [type]) async {
   }
 }
 
-_imageSearch(src, path) async {
-  final bytes = File(path).readAsBytesSync();
-  String img64 = base64Encode(bytes);
-
-  // Future BingSearch(String imgpath, String img64) async {
-  //   final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
-  //   final imageData = base64.encode(File(imgpath).readAsBytesSync());
-
-  //   var uri =
-  //       Uri.parse('https://api.bing.microsoft.com/v7.0/images/visualsearch');
-  //   var headers = {
-  //     'Ocp-Apim-Subscription-Key': 'bb1d24eb3001462a9a8bd1b554ad59fa'
-  //   };
-
-  //   var request = http.MultipartRequest('POST', uri)
-  //     ..headers.addAll(headers)
-  //     ..files.add(await http.MultipartFile.fromPath('image', imgpath,
-  //         filename: 'myfile'));
-  //   var response = await request.send();
-  //   // Convert the base64 image to bytes
-
-  //   final String responseString = await response.stream.bytesToString();
-
-  //   log(responseString);
-
-  //   Map out = {};
-  //   List results = [];
-  //   // Convert the base64 image to bytes
-
-  //   if (response.statusCode == 200) {
-  //     final responseJson = jsonDecode(responseString);
-  //     final elements = responseJson['tags'][0]['actions'];
-  //     var bingVisualObject;
-
-  //     log("response code ${response.statusCode}");
-  //     elements.forEach((data) => {
-  //           if (data['actionType'] == "VisualSearch")
-  //             {bingVisualObject = data['data']['value']}
-  //         });
-
-  //     log("bingVisualObject $bingVisualObject");
-
-  //     if (bingVisualObject == null) {
-  //       log("bing search result null");
-  //       // return null;
-  //     } else {
-  //       bingVisualObject.forEach((value) {
-  //         log("Website name: ${value['name']}");
-  //         log("website: ${value['hostPageUrl']}");
-  //         results.add({
-  //           'title': value['name'].toString(),
-  //           'link': value['hostPageUrl'].toString(),
-  //         });
-  //       });
-  //     }
-  //   } else {
-  //     log('Failed to upload image. Error code: ${response.statusCode}');
-  //   }
-  //   out.addAll({'urls': results});
-  //   return out;
-  // }
+_imageSearch(src, path, [imgURI = ""]) async {
+  log("_imageSearch");
+  var bytes;
+  String img64 = "";
+  if (imgURI == "") {
+    bytes = File(path).readAsBytesSync();
+    img64 = base64Encode(bytes);
+  }
 
   List bestGuessLabel = [];
-  Future<Map> BingSearch(String imgpath, String img64, String imgURL) async {
+  Future<Map> BingSearch(String imgpath, String img64,
+      [String imgURL = ""]) async {
     final apiKey = "bb1d24eb3001462a9a8bd1b554ad59fa";
-    final imageData = base64.encode(File(imgpath).readAsBytesSync());
+    var imageData =
+        imgURL == "" ? base64.encode(File(imgpath).readAsBytesSync()) : "";
 
     //?mkt=zh-HK&setLang=EN
     var uri = Uri.parse(
@@ -5929,6 +5932,8 @@ _imageSearch(src, path) async {
         print(bestGuessList);
       }
 
+      log("bingVisualObject: ${bingVisualObject}");
+
       bingVisualObject.forEach((value) async {
         // print("fetch URL: ==============");
         //  print("Website name: ${value['name']}");
@@ -5967,7 +5972,6 @@ _imageSearch(src, path) async {
     return results;
   }
 
-  var imgURI = "";
   // "https://media.sketchfab.com/models/b2ac5c6f19414966bdf0498cddd3ab2f/thumbnails/5d4ec181cbb44969a7ad9097fc1f4a50/30190a307b5e472db8c63e9b71c596ab.jpeg";
 
   var bingVisualResult = BingSearch(path, img64, imgURI);
@@ -5998,8 +6002,8 @@ _imageSearch(src, path) async {
     logoDetect =
         await _imageSearchGoogle(img64, path, imgURI, "logo_detection");
   } else {
-    textOCR = await _imageSearchGoogle(img64, path, null, "text_detection");
-    logoDetect = await _imageSearchGoogle(img64, path, null, "logo_detection");
+    textOCR = await _imageSearchGoogle(img64, path, "", "text_detection");
+    logoDetect = await _imageSearchGoogle(img64, path, "", "logo_detection");
   }
 
   log("OCR:$textOCR");
@@ -6040,5 +6044,6 @@ _imageSearch(src, path) async {
 
   log("Merge List ${outputMerge}");
 
-  return bingVisualResult;
+  // return bingVisualResult;
+  return outputMerge;
 }
