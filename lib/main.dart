@@ -79,7 +79,7 @@ List<String> SearchAlgorithmList = [
   // "TEST HIGHLIGHT"
 ];
 
-List<String> MergeAlgorithmList = [
+List<String> GeneralMergeAlgorithmList = [
   "ABAB",
   "Frequency",
   "Original Rank",
@@ -286,7 +286,8 @@ class _WebViewContainerState extends State<WebViewContainer>
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
     final generalMergeAlgorithm =
-        await prefs.getString("generalMergeAlgorithm") ?? MergeAlgorithmList[0];
+        await prefs.getString("generalMergeAlgorithm") ??
+            GeneralMergeAlgorithmList[0];
 
     final videoMergeAlgorithm = await prefs.getString("videoMergeAlgorithm") ??
         VideoMergeAlgorithmList[0];
@@ -840,7 +841,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
     }
-
+    log("query: $query");
     return query;
   }
 
@@ -2140,7 +2141,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             updateSearchRecord: _updateSearchRecord,
             platformIconBuilder: _platformIconBuilder,
             imageSearchGoogle: _imageSearchGoogle,
-            imageSearchBing: _imageSearchBing,
+            imageSearch: _imageSearch,
             mergeResults: _mergeResults,
             updateCurrentImage: _updateCurrentImage,
             mergeSearch: _mergeSearch,
@@ -2251,7 +2252,7 @@ class _WebViewContainerState extends State<WebViewContainer>
             generalMergeAlgorithm: _mergeAlgorithm,
             videoMergeAlgorithm: _videoMergeAlgorithm,
             SearchAlgorithmList: SearchAlgorithmList,
-            MergeAlgorithmList: MergeAlgorithmList,
+            GeneralMergeAlgorithmList: GeneralMergeAlgorithmList,
             VideoMergeAlgorithmList: VideoMergeAlgorithmList,
             updatePreloadNumber: _updatePreloadNumber,
             preloadNumber: _preloadNumber,
@@ -2372,7 +2373,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         image.saveTo(path);
         log("image $image");
         // EasyLoading.show(status: "Searching...");
-        // Map results = await _imageSearchBing(image, path);
+        // Map results = await _imageSearch(image, path);
 
         // text detection
         // var detectedText =
@@ -2414,7 +2415,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("keyword length: ${keyword.split(' ').length}, ${keyword.length}");
 
     String selectedKeywords = "", selectedPlatform = "";
-    List<String> selectedPlatformList = [];
 
     bool abort = false;
     // false = contain non-english character
@@ -5171,7 +5171,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 //       EasyLoading.show(
 //         status: 'Searching on Bing',
 //       );
-//       resultsBing = await _imageSearchBing(image, path);
+//       resultsBing = await _imageSearch(image, path);
 //       log("image search 6");
 //       log("image search results Bing: $resultsBing");
 
@@ -5624,7 +5624,7 @@ _imageSearchGoogle(src, path, imgURL, [type]) async {
   }
 }
 
-_imageSearchBing(src, path) async {
+_imageSearch(src, path) async {
   final bytes = File(path).readAsBytesSync();
   String img64 = base64Encode(bytes);
 
@@ -5967,8 +5967,8 @@ _imageSearchBing(src, path) async {
     return results;
   }
 
-  var imgURI =
-      "https://media.sketchfab.com/models/b2ac5c6f19414966bdf0498cddd3ab2f/thumbnails/5d4ec181cbb44969a7ad9097fc1f4a50/30190a307b5e472db8c63e9b71c596ab.jpeg";
+  var imgURI = "";
+  // "https://media.sketchfab.com/models/b2ac5c6f19414966bdf0498cddd3ab2f/thumbnails/5d4ec181cbb44969a7ad9097fc1f4a50/30190a307b5e472db8c63e9b71c596ab.jpeg";
 
   var bingVisualResult = BingSearch(path, img64, imgURI);
   var webResults;
@@ -6038,7 +6038,7 @@ _imageSearchBing(src, path) async {
 
   outputMerge.addAll({'urls': mergeList});
 
-  print("Merge List ${outputMerge}");
+  log("Merge List ${outputMerge}");
 
   return bingVisualResult;
 }

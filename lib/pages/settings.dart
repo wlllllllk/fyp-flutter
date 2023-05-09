@@ -1,5 +1,9 @@
+import 'dart:developer';
+
 // import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_searchub/main.dart';
+import 'package:googleapis/chat/v1.dart';
 import 'package:icons_plus/icons_plus.dart';
 // import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +20,7 @@ class SettingsPage extends StatefulWidget {
     required this.updateVideoMergeAlgorithm,
     required this.generalMergeAlgorithm,
     required this.videoMergeAlgorithm,
-    required this.MergeAlgorithmList,
+    required this.GeneralMergeAlgorithmList,
     required this.VideoMergeAlgorithmList,
     required this.updatePreloadNumber,
     required this.preloadNumber,
@@ -41,7 +45,7 @@ class SettingsPage extends StatefulWidget {
   final updateReverseJoystick;
   final int autoSwitchPlatform;
   final List<String> SearchAlgorithmList;
-  final List<String> MergeAlgorithmList;
+  final List<String> GeneralMergeAlgorithmList;
   final List<String> VideoMergeAlgorithmList;
   final SharedPreferences prefs;
 
@@ -51,21 +55,38 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   var _searchAlgorithm;
-  var _mergeAlgorithm;
+  var _generalMergeAlgorithm;
   var _videoMergeAlgorithm;
   var _preloadNumber;
   var _reverseJoystick;
   var _autoSwitchPlatform;
+  final List<bool> _selectedExtractionMethods = <bool>[];
+  final List<bool> _selectedGeneralMergeAlgorithms = <bool>[];
+  final List<bool> _selectedVideoMergeAlgorithms = <bool>[];
 
   @override
   void initState() {
     super.initState();
     _searchAlgorithm = widget.searchAlgorithm;
-    _mergeAlgorithm = widget.generalMergeAlgorithm;
+    _generalMergeAlgorithm = widget.generalMergeAlgorithm;
     _videoMergeAlgorithm = widget.videoMergeAlgorithm;
     _preloadNumber = widget.preloadNumber;
     _reverseJoystick = widget.reverseJoystick;
     _autoSwitchPlatform = widget.autoSwitchPlatform;
+    for (int i = 0; i < widget.SearchAlgorithmList.length; i++) {
+      log("_searchAlgorithm: $_searchAlgorithm | ${widget.SearchAlgorithmList[i]}");
+      _selectedExtractionMethods
+          .add(_searchAlgorithm == widget.SearchAlgorithmList[i]);
+    }
+    log("_selectedExtractionMethods: $_selectedExtractionMethods");
+    for (int i = 0; i < widget.GeneralMergeAlgorithmList.length; i++) {
+      _selectedGeneralMergeAlgorithms
+          .add(_generalMergeAlgorithm == widget.GeneralMergeAlgorithmList[i]);
+    }
+    for (int i = 0; i < widget.VideoMergeAlgorithmList.length; i++) {
+      _selectedVideoMergeAlgorithms
+          .add(_videoMergeAlgorithm == widget.VideoMergeAlgorithmList[i]);
+    }
   }
 
   @override
@@ -77,7 +98,7 @@ class _SettingsPageState extends State<SettingsPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          // backgroundColor: Colors.white,
           title: Container(
             child: const Text("Settings"),
           ),
@@ -90,7 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         body: Container(
-          color: Colors.white,
+          // color: Colors.white,
           child: Align(
             alignment: Alignment.center,
             child: ListView(
@@ -143,7 +164,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         backgroundColor: Colors.blue,
                       ),
                       title: 'Reversed Joystick',
-                      // subtitle: "",
+                      subtitle: _reverseJoystick
+                          ? "Mimics swiping the webpage"
+                          : "Mimics dragging the joystick",
                       trailing: Switch.adaptive(
                         value: _reverseJoystick,
                         onChanged: (value) async {
@@ -162,221 +185,204 @@ class _SettingsPageState extends State<SettingsPage> {
                         },
                       ),
                     ),
+                    SettingsItem(
+                      backgroundColor: Colors.black,
+                      icons: Icons.exit_to_app,
+                      iconStyle: IconStyle(
+                        iconsColor: Colors.white,
+                        withBackground: true,
+                        backgroundColor: Colors.orange,
+                      ),
+                      title: 'Extraction Method',
+                      subtitle: _searchAlgorithm,
+                      onTap: () async {
+                        log("tapped");
+                        await showDialog<String>(
+                          // barrierDismissible: false,
+                          context: context,
+                          builder: (BuildContext context) {
+                            return StatefulBuilder(
+                              builder: (context, setAlertState) {
+                                return AlertDialog(
+                                  scrollable: true,
+                                  title: const Text('Extraction Method'),
+                                  content: ToggleButtons(
+                                    direction: Axis.vertical,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(8)),
+                                    isSelected: _selectedExtractionMethods,
+                                    children: [
+                                      ...widget.SearchAlgorithmList.map(
+                                          (e) => Text(e)).toList(),
+                                    ],
+                                    onPressed: (int index) async {
+                                      setAlertState(() {
+                                        // The button that is tapped is set to true, and the others to false.
+                                        for (int i = 0;
+                                            i <
+                                                _selectedExtractionMethods
+                                                    .length;
+                                            i++) {
+                                          _selectedExtractionMethods[i] =
+                                              i == index;
+                                        }
+                                      });
+
+                                      log("selected: ${SearchAlgorithmList[index]}");
+
+                                      widget.updateSearchAlgorithm(
+                                          SearchAlgorithmList[index]);
+
+                                      setState(() {
+                                        _searchAlgorithm =
+                                            SearchAlgorithmList[index];
+                                      });
+
+                                      await widget.prefs.setString(
+                                        "searchAlgorithm",
+                                        SearchAlgorithmList[index]!,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    SettingsItem(
+                      backgroundColor: Colors.black,
+                      icons: HeroIcons.globe_alt,
+                      iconStyle: IconStyle(
+                        iconsColor: Colors.white,
+                        withBackground: true,
+                        backgroundColor: Colors.green,
+                      ),
+                      title: 'General Merge Algorithm',
+                      subtitle: _generalMergeAlgorithm,
+                      onTap: () async {
+                        log("tapped");
+                        await showDialog<String>(
+                          // barrierDismissible: false,
+                          context: context,
+                          builder: (BuildContext context) {
+                            return StatefulBuilder(
+                              builder: (context, setAlertState) {
+                                return AlertDialog(
+                                  scrollable: true,
+                                  title: const Text('General Merge Algorithm'),
+                                  content: ToggleButtons(
+                                    direction: Axis.vertical,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(8)),
+                                    isSelected: _selectedGeneralMergeAlgorithms,
+                                    children: [
+                                      ...widget.GeneralMergeAlgorithmList.map(
+                                          (e) => Text(e)).toList(),
+                                    ],
+                                    onPressed: (int index) async {
+                                      setAlertState(() {
+                                        // The button that is tapped is set to true, and the others to false.
+                                        for (int i = 0;
+                                            i <
+                                                _selectedGeneralMergeAlgorithms
+                                                    .length;
+                                            i++) {
+                                          _selectedGeneralMergeAlgorithms[i] =
+                                              i == index;
+                                        }
+                                      });
+
+                                      widget.updateGeneralMergeAlgorithm(
+                                          GeneralMergeAlgorithmList[index]);
+
+                                      setState(() {
+                                        _generalMergeAlgorithm =
+                                            GeneralMergeAlgorithmList[index];
+                                      });
+
+                                      await widget.prefs.setString(
+                                        "generalMergeAlgorithm",
+                                        GeneralMergeAlgorithmList[index]!,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    SettingsItem(
+                      backgroundColor: Colors.black,
+                      icons: BoxIcons.bx_video,
+                      iconStyle: IconStyle(
+                        iconsColor: Colors.white,
+                        withBackground: true,
+                        backgroundColor: Colors.green,
+                      ),
+                      title: 'Video Merge Algorithm',
+                      subtitle: _videoMergeAlgorithm,
+                      onTap: () async {
+                        log("tapped");
+                        await showDialog<String>(
+                          // barrierDismissible: false,
+                          context: context,
+                          builder: (BuildContext context) {
+                            return StatefulBuilder(
+                              builder: (context, setAlertState) {
+                                return AlertDialog(
+                                  scrollable: true,
+                                  title: const Text('Video Merge Algorithm'),
+                                  content: ToggleButtons(
+                                    direction: Axis.vertical,
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(8)),
+                                    isSelected: _selectedVideoMergeAlgorithms,
+                                    children: [
+                                      ...widget.VideoMergeAlgorithmList.map(
+                                          (e) => Text(e)).toList(),
+                                    ],
+                                    onPressed: (int index) async {
+                                      setAlertState(() {
+                                        // The button that is tapped is set to true, and the others to false.
+                                        for (int i = 0;
+                                            i <
+                                                _selectedVideoMergeAlgorithms
+                                                    .length;
+                                            i++) {
+                                          _selectedVideoMergeAlgorithms[i] =
+                                              i == index;
+                                        }
+                                      });
+
+                                      widget.updateGeneralMergeAlgorithm(
+                                          VideoMergeAlgorithmList[index]);
+
+                                      setState(() {
+                                        _generalMergeAlgorithm =
+                                            VideoMergeAlgorithmList[index];
+                                      });
+
+                                      await widget.prefs.setString(
+                                        "videoMergeAlgorithm",
+                                        VideoMergeAlgorithmList[index]!,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ],
                 ),
-                ListTile(
-                  title: const Text("Extraction Method"),
-                  subtitle:
-                      const Text("How the drill-down content is extracted."),
-                  trailing: DropdownButton<String>(
-                    value: _searchAlgorithm,
-                    icon: const Icon(Icons.arrow_downward),
-                    elevation: 16,
-                    // style: const TextStyle(color: Colors.deepPurple),
-                    underline: Container(
-                      height: 2,
-                      // color: _appBarColor,
-                    ),
-                    onChanged: (String? value) async {
-                      print("value $value");
-
-                      widget.updateSearchAlgorithm(value);
-
-                      setState(() {
-                        _searchAlgorithm = value;
-                      });
-
-                      await widget.prefs.setString(
-                        "searchAlgorithm",
-                        value!,
-                      );
-                    },
-                    items: widget.SearchAlgorithmList.asMap().entries.map(
-                      (entry) {
-                        return DropdownMenuItem<String>(
-                          value: entry.value,
-                          child: Text(entry.value),
-                        );
-                      },
-                    ).toList(),
-                  ),
-                ),
-                ListTile(
-                  title: const Text("Merge Algorithm"),
-                  subtitle: const Text(
-                      "How the results from different platforms are merged."),
-                  trailing: DropdownButton<String>(
-                    value: _mergeAlgorithm,
-                    icon: const Icon(Icons.arrow_downward),
-                    elevation: 16,
-                    // style: const TextStyle(color: Colors.deepPurple),
-                    underline: Container(
-                      height: 2,
-                      // color: _appBarColor,
-                    ),
-                    onChanged: (String? value) async {
-                      print("value $value");
-
-                      widget.updateGeneralMergeAlgorithm(value);
-
-                      setState(() {
-                        _mergeAlgorithm = value;
-                      });
-
-                      await widget.prefs.setString(
-                        "generalMergeAlgorithm",
-                        value!,
-                      );
-                    },
-                    items: widget.MergeAlgorithmList.asMap().entries.map(
-                      (entry) {
-                        return DropdownMenuItem<String>(
-                          value: entry.value,
-                          child: Text(entry.value),
-                        );
-                      },
-                    ).toList(),
-                  ),
-                ),
-                ListTile(
-                  title: const Text("Video Merge Algorithm"),
-                  subtitle: const Text(
-                      "How the results from different platforms are merged."),
-                  trailing: DropdownButton<String>(
-                    value: _videoMergeAlgorithm,
-                    icon: const Icon(Icons.arrow_downward),
-                    elevation: 16,
-                    // style: const TextStyle(color: Colors.deepPurple),
-                    underline: Container(
-                      height: 2,
-                      // color: _appBarColor,
-                    ),
-                    onChanged: (String? value) async {
-                      print("value $value");
-
-                      widget.updateVideoMergeAlgorithm(value);
-
-                      setState(() {
-                        _videoMergeAlgorithm = value;
-                      });
-
-                      await widget.prefs.setString(
-                        "videoMergeAlgorithm",
-                        value!,
-                      );
-                    },
-                    items: widget.VideoMergeAlgorithmList.asMap().entries.map(
-                      (entry) {
-                        return DropdownMenuItem<String>(
-                          value: entry.value,
-                          child: Text(entry.value),
-                        );
-                      },
-                    ).toList(),
-                  ),
-                ),
-                // ListTile(
-                //   title: const Text("Result Preloading"),
-                //   subtitle: const Text(
-                //       "Number of results to be preloaded. More may increase data usage. Need to restart the app to take effect."),
-                //   trailing: DropdownButton<int>(
-                //     value: _preloadNumber,
-                //     icon: const Icon(Icons.arrow_downward),
-                //     elevation: 16,
-                //     // style: const TextStyle(color: Colors.deepPurple),
-                //     underline: Container(
-                //       height: 2,
-                //       // color: _appBarColor,
-                //     ),
-                //     onChanged: (int? value) async {
-                //       print("_preloadNumber $value");
-
-                //       widget.updatePreloading(value);
-
-                //       setState(() {
-                //         _preloadNumber = value;
-                //       });
-
-                //       await widget.prefs.setInt(
-                //         "preloadNumber",
-                //         value!,
-                //       );
-                //     },
-                //     items: [0, 1].asMap().entries.map(
-                //       (entry) {
-                //         return DropdownMenuItem<int>(
-                //           value: entry.value,
-                //           child: Text(entry.value.toString()),
-                //         );
-                //       },
-                //     ).toList(),
-                //   ),
-                // ),
-
-                // ListTile(
-                //   title: const Text("Auto Switch Platform"),
-                //   subtitle: const Text(
-                //       "Switch platform automatically when a new onw is selected."),
-                //   trailing: DropdownButton<int>(
-                //     value: _autoSwitchPlatform,
-                //     icon: const Icon(Icons.arrow_downward),
-                //     elevation: 16,
-                //     // style: const TextStyle(color: Colors.deepPurple),
-                //     underline: Container(
-                //       height: 2,
-                //       // color: _appBarColor,
-                //     ),
-                //     onChanged: (int? value) async {
-                //       print("autoSwitchPlatform $value");
-
-                //       widget.updateAutoSwitchPlatform(value);
-
-                //       setState(() {
-                //         _autoSwitchPlatform = value;
-                //       });
-
-                //       await widget.prefs.setInt(
-                //         "autoSwitchPlatform",
-                //         value!,
-                //       );
-                //     },
-                //     items: [0, 1].asMap().entries.map(
-                //       (entry) {
-                //         return DropdownMenuItem<int>(
-                //           value: entry.value,
-                //           child: Text(entry.value.toString()),
-                //         );
-                //       },
-                //     ).toList(),
-                //   ),
-                // ),
               ],
             ),
-            // SettingsList(
-            //   sections: [
-            //     SettingsSection(
-            //       title: const Text('Common'),
-            //       tiles: <SettingsTile>[
-            //         SettingsTile.navigation(
-            //           leading: const Icon(Icons.language),
-            //           title: const Text('Language'),
-            //           value: const Text('English'),
-            //         ),
-            //         SettingsTile.switchTile(
-            //           onToggle: (value) {
-            //             // setState(() {
-            //             //   _test = value;
-            //             // });
-            //           },
-            //           initialValue: false,
-            //           leading: const Icon(Icons.format_paint),
-            //           title: const Text('Enable custom theme'),
-            //           activeSwitchColor: _appBarColor,
-            //         ),
-            //       ],
-            //     ),
-            //   ],
-            // ),
           ),
         ),
       ),

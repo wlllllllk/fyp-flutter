@@ -78,7 +78,7 @@ class SearchPage extends StatefulWidget {
     required this.updateSearchRecord,
     required this.platformIconBuilder,
     required this.imageSearchGoogle,
-    required this.imageSearchBing,
+    required this.imageSearch,
     required this.mergeResults,
     required this.updateCurrentImage,
     required this.mergeSearch,
@@ -108,7 +108,7 @@ class SearchPage extends StatefulWidget {
   final updateSearchRecord;
   final platformIconBuilder;
   final imageSearchGoogle;
-  final imageSearchBing;
+  final imageSearch;
   final mergeResults;
   final updateCurrentImage;
   final mergeSearch;
@@ -468,9 +468,9 @@ class _SearchPageState extends State<SearchPage> {
       // EasyLoading.dismiss();
 
       EasyLoading.show(
-        status: 'Searching on Bing',
+        status: 'Searching...',
       );
-      resultsBing = await widget.imageSearchBing(image, image.path);
+      resultsBing = await widget.imageSearch(image, image.path);
       log("image search results Bing1: $resultsBing");
 
       // List test = resultsBing["bestGuessList"];
