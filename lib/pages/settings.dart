@@ -240,8 +240,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
                                       await widget.prefs.setString(
                                         "searchAlgorithm",
-                                        SearchAlgorithmList[index]!,
+                                        SearchAlgorithmList[index],
                                       );
+
+                                      Navigator.pop(context);
                                     },
                                   ),
                                 );
@@ -304,8 +306,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
                                       await widget.prefs.setString(
                                         "generalMergeAlgorithm",
-                                        GeneralMergeAlgorithmList[index]!,
+                                        GeneralMergeAlgorithmList[index],
                                       );
+
+                                      Navigator.pop(context);
                                     },
                                   ),
                                 );
@@ -362,14 +366,16 @@ class _SettingsPageState extends State<SettingsPage> {
                                           VideoMergeAlgorithmList[index]);
 
                                       setState(() {
-                                        _generalMergeAlgorithm =
+                                        _videoMergeAlgorithm =
                                             VideoMergeAlgorithmList[index];
                                       });
 
                                       await widget.prefs.setString(
                                         "videoMergeAlgorithm",
-                                        VideoMergeAlgorithmList[index]!,
+                                        VideoMergeAlgorithmList[index],
                                       );
+
+                                      Navigator.pop(context);
                                     },
                                   ),
                                 );
