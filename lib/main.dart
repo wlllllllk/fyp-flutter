@@ -190,6 +190,8 @@ class _WebViewContainerState extends State<WebViewContainer>
     initialPage: 0,
   );
 
+  PullToRefreshController? _testRefreshController;
+
   // search related
   // ignore: non_constant_identifier_names
   Map URLs = {};
@@ -330,6 +332,21 @@ class _WebViewContainerState extends State<WebViewContainer>
     //           await _refreshController!.endRefreshing();
     //         },
     //       );
+
+    _testRefreshController = PullToRefreshController(
+      settings: PullToRefreshSettings(
+        color: Colors.blue,
+      ),
+      onRefresh: () async {
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          _currentWebViewController?.reload();
+        } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+          _currentWebViewController?.loadUrl(
+              urlRequest:
+                  URLRequest(url: await _currentWebViewController?.getUrl()));
+        }
+      },
+    );
 
     _initTutorial("before");
   }
@@ -2021,120 +2038,120 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
   }
 
-  _showSelectMenu(BuildContext context) {
-    log("show menu");
-    return showModalBottomSheet(
-      isDismissible: false,
-      barrierColor: Colors.transparent,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(
-          Radius.circular(0),
-        ),
-      ),
-      context: context,
-      builder: (context) {
-        return SizedBox(
-          height: Platform.isIOS
-              ? (_loadingPercentage < 100 ? 65 : 60)
-              : (_loadingPercentage < 100 ? 55 : 50),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    onPressed: () async {
-                      log("close menu");
+  // _showSelectMenu(BuildContext context) {
+  //   log("show menu");
+  //   return showModalBottomSheet(
+  //     isDismissible: false,
+  //     barrierColor: Colors.transparent,
+  //     backgroundColor: Colors.yellow,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.all(
+  //         Radius.circular(0),
+  //       ),
+  //     ),
+  //     context: context,
+  //     builder: (context) {
+  //       return SizedBox(
+  //         height: Platform.isIOS
+  //             ? (_loadingPercentage < 100 ? 65 : 60)
+  //             : (_loadingPercentage < 100 ? 55 : 50),
+  //         child: Column(
+  //           children: [
+  //             Row(
+  //               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 IconButton(
+  //                   onPressed: () async {
+  //                     log("close menu");
 
-                      Navigator.pop(context);
+  //                     Navigator.pop(context);
 
-                      setState(() {
-                        _menuShown = false;
-                      });
-                    },
-                    // icon: const FaIcon(FontAwesomeIcons.xmark, size: 20),
-                    icon: const Icon(
-                      FontAwesome.xmark,
-                      size: 20,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () async {
-                      log("select all");
+  //                     setState(() {
+  //                       _menuShown = false;
+  //                     });
+  //                   },
+  //                   // icon: const FaIcon(FontAwesomeIcons.xmark, size: 20),
+  //                   icon: const Icon(
+  //                     FontAwesome.xmark,
+  //                     size: 20,
+  //                   ),
+  //                 ),
+  //                 // IconButton(
+  //                 //   onPressed: () async {
+  //                 //     log("select all");
 
-                      Navigator.pop(context);
+  //                 //     Navigator.pop(context);
 
-                      setState(() {
-                        _menuShown = false;
-                      });
-                    },
-                    // icon: const FaIcon(FontAwesomeIcons.borderAll, size: 20),
-                    icon: const Icon(
-                      FontAwesome.border_all,
-                      size: 20,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () async {
-                      log("copy");
-                      String? selectedText =
-                          await _currentWebViewController?.getSelectedText();
-                      await Clipboard.setData(
-                          ClipboardData(text: selectedText));
-                      log("selectedText: $selectedText");
+  //                 //     setState(() {
+  //                 //       _menuShown = false;
+  //                 //     });
+  //                 //   },
+  //                 //   // icon: const FaIcon(FontAwesomeIcons.borderAll, size: 20),
+  //                 //   icon: const Icon(
+  //                 //     FontAwesome.border_all,
+  //                 //     size: 20,
+  //                 //   ),
+  //                 // ),
+  //                 IconButton(
+  //                   onPressed: () async {
+  //                     log("copy");
+  //                     String? selectedText =
+  //                         await _currentWebViewController?.getSelectedText();
+  //                     await Clipboard.setData(
+  //                         ClipboardData(text: selectedText));
+  //                     log("selectedText: $selectedText");
 
-                      Navigator.pop(context);
+  //                     Navigator.pop(context);
 
-                      setState(() {
-                        _menuShown = false;
-                      });
+  //                     setState(() {
+  //                       _menuShown = false;
+  //                     });
 
-                      final snackBar = SnackBar(
-                        content: Text("Copied ${selectedText}"),
-                        duration: const Duration(seconds: 3),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                    },
-                    // icon: const FaIcon(FontAwesomeIcons.copy, size: 20),
-                    icon: const Icon(
-                      FontAwesome.copy,
-                      size: 20,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () async {
-                      log("drill");
-                      String? selectedText =
-                          await _currentWebViewController?.getSelectedText();
-                      log("selectedText: $selectedText");
+  //                     final snackBar = SnackBar(
+  //                       content: Text("Copied ${selectedText}"),
+  //                       duration: const Duration(seconds: 3),
+  //                     );
+  //                     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  //                   },
+  //                   // icon: const FaIcon(FontAwesomeIcons.copy, size: 20),
+  //                   icon: const Icon(
+  //                     FontAwesome.copy,
+  //                     size: 20,
+  //                   ),
+  //                 ),
+  //                 IconButton(
+  //                   onPressed: () async {
+  //                     log("drill");
+  //                     String? selectedText =
+  //                         await _currentWebViewController?.getSelectedText();
+  //                     log("selectedText: $selectedText");
 
-                      Navigator.pop(context);
+  //                     Navigator.pop(context);
 
-                      setState(() {
-                        _menuShown = false;
-                      });
+  //                     setState(() {
+  //                       _menuShown = false;
+  //                     });
 
-                      final snackBar = SnackBar(
-                        content: Text("Drilling ${selectedText}"),
-                        duration: const Duration(seconds: 3),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  //                     final snackBar = SnackBar(
+  //                       content: Text("Drilling ${selectedText}"),
+  //                       duration: const Duration(seconds: 3),
+  //                     );
+  //                     ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                      _performDrill(selectedText);
-                    },
-                    icon: const Icon(MyFlutterApp.drill, size: 20),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    // }
-  }
+  //                     _performDrill(selectedText);
+  //                   },
+  //                   icon: const Icon(MyFlutterApp.drill, size: 20),
+  //                 ),
+  //               ],
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  //   // }
+  // }
 
   _handlePageRefresh(position) async {
     // log("position: $position | _currentURLIndex: ${_currentURLIndex}");
@@ -2164,15 +2181,32 @@ class _WebViewContainerState extends State<WebViewContainer>
 
       // log("building... | bingo: ${bingo} | data: ${data}");
       // return Text("123");
+      PullToRefreshController? ptrc;
+      ptrc = PullToRefreshController(
+        settings: PullToRefreshSettings(
+          color: Colors.blue,
+        ),
+        onRefresh: () async {
+          if (defaultTargetPlatform == TargetPlatform.android) {
+            _currentWebViewController?.reload();
+          } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+            _currentWebViewController?.loadUrl(
+                urlRequest:
+                    URLRequest(url: await _currentWebViewController?.getUrl()));
+          }
+          ptrc?.endRefreshing();
+        },
+      );
+
       return SizedBox(
         width: MediaQuery.of(context).size.width,
         child: InAppWebView(
-          // pullToRefreshController: _refreshController,
           gestureRecognizers: {
             Factory<LongPressGestureRecognizer>(
                 () => LongPressGestureRecognizer()),
           },
           initialUrlRequest: URLRequest(url: WebUri(data['link'])),
+          pullToRefreshController: ptrc,
           onWebViewCreated: (controller) {
             controller.addJavaScriptHandler(
                 handlerName: 'getDrillText',
@@ -2182,9 +2216,11 @@ class _WebViewContainerState extends State<WebViewContainer>
                     _webpageContent = args[0];
                   });
                 });
+
             if (bingo) {
               _currentWebViewController = controller;
             }
+
             _webViewControllers.addAll({position: controller});
           },
           onLoadStart: (controller, url) {
@@ -2204,11 +2240,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                 _loadingPercentage = 100;
                 _currentWebViewTitle = data["title"];
                 _currentResult = data;
-                // _currentWebViewTitle = title;
               });
-              // _refreshController?.endRefreshing();
             }
-            // _handlePageRefresh(position);
           },
           onReceivedError: (controller, request, error) {},
           onProgressChanged: (controller, progress) {
@@ -2227,15 +2260,15 @@ class _WebViewContainerState extends State<WebViewContainer>
             // ),
             onCreateContextMenu: (hitTestResult) async {
               log("hitTestResult");
-              if (!_menuShown) {
-                log("show menu");
-                _showSelectMenu(context);
-                setState(() {
-                  _menuShown = true;
-                });
-              } else {
-                log("menu already shown");
-              }
+              // if (!_menuShown) {
+              //   log("show menu");
+              //   _showSelectMenu(context);
+              //   setState(() {
+              //     _menuShown = true;
+              //   });
+              // } else {
+              //   log("menu already shown");
+              // }
             },
             onContextMenuActionItemClicked: (contextMenuItemClicked) => {
               log("contextMenuItemClicked: ${contextMenuItemClicked.id}"),
@@ -2341,6 +2374,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           _currentResult = _currentURLs[position]!;
           _loadingPercentage = 100;
           _currentWebViewController = _webViewControllers[position];
+          // _currentRefreshController = _preloadPageController[position];
         });
 
         // fetch more results if we are almost at the end of the list
