@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-// import 'dart:ffi';
-import 'dart:io' show Directory, File, Platform, exit;
+import 'dart:io' show Directory, File, Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-// import 'package:flutter/rendering.dart';
-import 'package:fyp_searchub/pages/history.dart';
 import 'package:fyp_searchub/pages/search.dart';
 import 'package:fyp_searchub/pages/settings.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,9 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
-// import 'package:duration/duration.dart';
 import 'package:async/async.dart';
-// import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -28,8 +23,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:flutter_joystick/flutter_joystick.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
-// import 'package:flutter_native_splash/flutter_native_splash.dart';
-// import 'package:crypto/crypto.dart';
 import 'package:html/parser.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -38,7 +31,6 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/vision/v1.dart' as vision;
 
 import 'package:flutter/services.dart';
-import 'package:stats/stats.dart';
 
 import 'duck_duck_go_icons.dart';
 import 'my_flutter_app_icons.dart';
@@ -173,9 +165,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   // key
   var _marqueeKey = UniqueKey();
-  var _settingsPageKey = UniqueKey();
-  final _preloadPageKeys = [];
-  var _currentPreloadPageKey;
   final _preloadPlatformKey = GlobalKey();
   final _searchButtonKey = GlobalKey();
   final _drawerKey = GlobalKey();
@@ -192,24 +181,21 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   // controllers
   InAppWebViewController? _currentWebViewController;
-  Map _webViewControllers = {};
-  PullToRefreshController? _refreshController;
-  final _preloadPageControllers = [];
-  var _currentPreloadPageController;
+  final Map _webViewControllers = {};
   final PreloadPageController _preloadPlatformController =
       PreloadPageController(
     initialPage: 0,
   );
-  PreloadPageController _testPreloadPageController = PreloadPageController(
+  final PreloadPageController _preloadPageController = PreloadPageController(
     initialPage: 0,
   );
 
   // search related
   // ignore: non_constant_identifier_names
-  Map URLs = {},
-      _searchResult = {},
-      _activatedSearchPlatforms = {},
-      _searchHistory = {};
+  Map URLs = {};
+  Map _searchResult = {};
+  final Map _activatedSearchPlatforms = {};
+  final Map _searchHistory = {};
   String _searchText = "",
       _prevSearchText = "",
       _previousURL = "",
@@ -250,7 +236,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   bool _isFetching = false;
   var _currentImage;
   bool _isTutorial = false;
-  var _isDialOpen = ValueNotifier<bool>(false);
+  final _isDialOpen = ValueNotifier<bool>(false);
 
   //regex
   var containNonEnglish = RegExp(r'^[\p{ASCII}]+$');
@@ -272,13 +258,12 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   // include only first page
   // counting start, (page=2) => (start=11), (page=3) => (start=21), etc
-  int _start = (page - 1) * 10 + 1;
+  final int _start = (page - 1) * 10 + 1;
 
   // var _testPreloadPageKey = GlobalKey();
 
   void _init() async {
     final prefs = await SharedPreferences.getInstance();
-    // final algorithm = await prefs.getInt("searchAlgorithm") ?? SearchAlgorithm.Title.index;
     final algorithm =
         await prefs.getString("searchAlgorithm") ?? SearchAlgorithmList[0];
     final generalMergeAlgorithm =
@@ -296,7 +281,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         await prefs.getStringList("enabledSNSPlatforms") ?? SNSPlatformList;
 
     log("enabledGeneralPlatforms $enabledGeneralPlatforms | enabledVideoPlatforms: $enabledVideoPlatforms | enabledSNSPlatforms: $enabledSNSPlatforms");
-    // final preloadNumber = await prefs.getInt("preloadNumber") ?? 1;
     final preloadNumber = await prefs.getBool("preloadNumber") ?? true;
     final reverseJoystick = await prefs.getBool("reverseJoystick") ?? false;
     final autoSwitchPlatform = await prefs.getInt("autoSwitchPlatform") ?? 0;
@@ -478,13 +462,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -511,13 +488,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -544,13 +514,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -577,13 +540,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -610,13 +566,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin pulvinar tortor eget maximus iaculis.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
                 ],
               ),
             )
@@ -640,6 +589,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     });
 
     _tutorial = TutorialCoachMark(
+        hideSkip: true,
         targets: targets, // List<TargetFocus>
         colorShadow: Colors.blue, // DEFAULT Colors.black
         // alignSkip: Alignment.bottomRight,
@@ -685,6 +635,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("tutorialing after 3");
 
     TutorialCoachMark tutorial = TutorialCoachMark(
+        hideSkip: true,
         targets: targetsAfter, // List<TargetFocus>
         colorShadow: Colors.blue, // DEFAULT Colors.black
         // alignSkip: Alignment.bottomRight,
@@ -1106,83 +1057,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
         log("google items: $items");
 
-        // *test data
-        // items = [
-        //   {
-        //     "title": "The Chinese University of Hong Kong",
-        //     "link": "https://www.cuhk.edu.hk/",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the ",
-        //     "rank": 1
-        //   },
-        //   {
-        //     "title": "Postgraduate Admissions - CUHK Graduate School",
-        //     "link": "https://www.gs.cuhk.edu.hk/admissions/",
-        //     "snippet":
-        //         "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, ",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong - Wikipedia",
-        //     "link":
-        //         "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by ",
-        //     "rank": 3
-        //   },
-        //   {
-        //     "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
-        //     "link": "https://www.bschool.cuhk.edu.hk/",
-        //     "snippet":
-        //         "CUHK Business School is a global institution in Hong Kong. We offer various business programmes that help students embrace innovation and nurture their ",
-        //     "rank": 4
-        //   },
-        //   {
-        //     "title":
-        //         "Undergraduate Admissions - The Chinese University of Hong Kong ...",
-        //     "link": "https://admission.cuhk.edu.hk/",
-        //     "snippet":
-        //         "Getting Started · See Yourself in Us · Where Your Dream Can Be Found · A Day in CUHK · News and Activities.",
-        //     "rank": 5
-        //   },
-        //   {
-        //     "title": "CUHK School of Architecture",
-        //     "link": "https://www.arch.cuhk.edu.hk/",
-        //     "snippet":
-        //         "CUHK School of Architecture. ... ALUMNA WINS CUHK YOUNG SCHOLARS THESIS AWARD 2021. PROJECTS. AWARDS. Hong Kong. Local Engagement.",
-        //     "rank": 6
-        //   },
-        //   {
-        //     "title": "CUHK LibrarySearch",
-        //     "link": "https://julac-cuhk.primo.exlibrisgroup.com/",
-        //     "snippet":
-        //         " LibrarySearch provides simple, one-stop searching for CUHK library books, e-resources, videos, articles, dissertations, undergraduate past exam papers, ",
-        //     "rank": 7
-        //   },
-        //   {
-        //     "title": "CUHK LAW - The Chinese University of Hong Kong",
-        //     "link": "https://www.law.cuhk.edu.hk/app/",
-        //     "snippet":
-        //         "Doing the CUHK JD Programme has been a truly rewarding and enjoyable experience. What I especially love about the Programme are the highly qualified and ",
-        //     "rank": 8
-        //   },
-        //   {
-        //     "title": "Career Opportunities @ CUHK - CUHK - HRO",
-        //     "link":
-        //         "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
-        //     "snippet":
-        //         "Career Opportunities @ CUHK ... Copyright @ 2023. All Rights Reserved. The Chinese University of Hong Kong. Web Accessibility Recognition Scheme Family Friendly ",
-        //     "rank": 9
-        //   },
-        //   {
-        //     "title":
-        //         "CUHK MBA: Top MBA Programme in Hong Kong | Full-time MBA ...",
-        //     "link": " https://mba.cuhk.edu.hk/",
-        //     "snippet":
-        //         "Fast-track learning with the full-time CUHK MBA or part-time MBA programme offers leadership training, and global learning opportunities, ",
-        //     "rank": 10
-        //   }
-        // ];
         break;
       case 'Bing':
         int rank = 1;
@@ -1224,111 +1098,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
         log("bing2: ${items}");
 
-        // *test data
-        // items = [
-        //   {
-        //     "title": "The Chinese University of Hong Kong",
-        //     "link": "https://www.cuhk.edu.hk/english/index.html",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West. CUHK 60 th anniversary Strategic Plan 2021—2025 Search for Senior Academic Appointments",
-        //     "rank": 1
-        //   },
-        //   {
-        //     "title": "MyCUHK",
-        //     "link": "http://portal.cuhk.edu.hk/",
-        //     "snippet": "portal.cuhk.edu.hk",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Library",
-        //     "link": "https://www.lib.cuhk.edu.hk/en",
-        //     "snippet":
-        //         'CUHK Golden Jubilee Celestial Civilian Scholarship on Hong Kong Literature 2022/23 10:00 am - 11:00 pm 23 Mar 21 Apr "Chinese Classic Text Mining and Processing" Workshops (Mar-Apr 2023) 2:30 pm - 5:30 pm 23 Mar 21 Apr "Chinese Classic Text Mining ',
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "CUHK A-Z",
-        //     "link": "https://www.cuhk.edu.hk/english/cuhk-information.html",
-        //     "snippet":
-        //         "Directory of CUHK's Academic Units, Colleges, Professional and Administrative Services Units, Research Units, Students Organizations and Staff Organizations. A - E | F - M | N - Z Academic and Quality Section Academic Links, Office of Accountancy, The School",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Giving to CUHK",
-        //     "link": "https://www.cuhk.edu.hk/english/giving.html",
-        //     "snippet":
-        //         "Giving to CUHK Over the decades CUHK has benefitted from the goodwill and munificence of many of its friends, corporate allies and alumni. Such support, in various forms ranging from student scholarships, research sponsorships, endowed professorships to funding for infrastructural projects, has helped propel the University forward in its pursuit of excellence and the realization of its missions.",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Shortcuts",
-        //     "link": "https://www.gs.cuhk.edu.hk/admissions/",
-        //     "snippet":
-        //         "CUHK offers a wide range of study options in various disciplines to cater for the different needs of students, ranging from research degrees of PhD, MPhil to Taught Doctoral and Master's degrees, PG Diplomas and PG Certificate. CUHK offers a wide range of study ",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Career Opportunities",
-        //     "link":
-        //         "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
-        //     "snippet":
-        //         "Career Opportunities @ CUHK Professoriate, Teaching & Research Academic Posts Administrative, Professional, Executive, Clerical, Technical & Research Posts Junior Posts Applications Forms and Personal Information Collection Statement Back to top ",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Introducing CUHK",
-        //     "link":
-        //         "https://www.cuhk.edu.hk/english/aboutus/university-intro.html",
-        //     "snippet":
-        //         "Introducing CUHK. Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward-looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all around the world. CUHK graduates are connected worldwide ",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "往內容",
-        //     "link": "http://admission.cuhk.edu.hk/",
-        //     "snippet":
-        //         "WHY CUHK A Unique Learning Experience CUHK in Numbers Studying in Hong Kong Sharing EXPERIENCE CUHK Campus Environment Colleges All-Round Development Events PROGRAMMES New Programmes Individual Programmes CUHK (HK) and CUHK",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "香港中文大學 - Chinese University of Hong Kong",
-        //     "link": "https://www.cuhk.edu.hk/chinese/index.html",
-        //     "snippet":
-        //         "香港中文大學是一所研究型綜合大學，提供多類學士、碩士和博士課程。 香港中文大學60周年 策略計劃 2021–2025 高級教學人員徵聘 中大‧環球足跡 中大有晴 校長網誌 香港中文大學（深圳）",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong",
-        //     "link": "https://portal.cuhk.edu.hk/",
-        //     "snippet": "Chinese University of Hong Kong",
-        //     "rank": 3
-        //   },
-        //   {
-        //     "title":
-        //         "香港中文大學專業進修學院(CUSCS) - 短期課程, 學歷課程, 高級文憑課程, 研究生及學位銜接課程, 遙距課程及網 ...",
-        //     "link": "https://cms.scs.cuhk.edu.hk/tc",
-        //     "snippet":
-        //         "香港中文大學專業進修學院 (CUSCS): 短期課程, 兼讀制學歷課程, 全日制高級文憑課程, 研究生及學位銜接課程, 網上及遙距課程,持續進修基金課程",
-        //     "rank": 4
-        //   },
-        //   {
-        //     "title":
-        //         "Prospective Students | CUHK - Chinese University of Hong Kong",
-        //     "link":
-        //         "https://www.cuhk.edu.hk/english/university/prospective-students.html",
-        //     "snippet":
-        //         "Information about The Chinese University of Hong Kong for local and international prospective students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
-        //     "rank": 5
-        //   },
-        //   {
-        //     "title": "Students | CUHK - Chinese University of Hong Kong",
-        //     "link": "https://www.cuhk.edu.hk/english/university/students.html",
-        //     "snippet":
-        //         "Information about The Chinese University of Hong Kong for current CUHK students. About CUHK Message from the Vice-Chancellor and President Introducing CUHK Mission & Vision, Motto & Emblem Governance Strategic Plan 2021—2025",
-        //     "rank": 6
-        //   }
-        // ];
-
         break;
       case 'DuckDuckGo':
         String getActualUrl(String url) {
@@ -1369,216 +1138,6 @@ class _WebViewContainerState extends State<WebViewContainer>
             "rank": i + 1
           });
         }
-
-        // *test data
-        // items = [
-        //   {
-        //     "title": "The Chinese University of Hong Kong",
-        //     "link": "https://www.cuhk.edu.hk/english/index.html",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a top Hong Kong university with strong research emphasis. The university aims to bring together China and the West.",
-        //     "rank": 1
-        //   },
-        //   {
-        //     "title":
-        //         "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK)",
-        //     "link": "http://admission.cuhk.edu.hk/",
-        //     "snippet":
-        //         "Undergraduate Admissions - The Chinese University of Hong Kong (CUHK) 11. Professors Named. Most Highly Cited Researchers. 70 +. undergraduate. major programmes. No. 1. Asia Pacific's Most.",
-        //     "rank": 2
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong - Wikipedia",
-        //     "link":
-        //         "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a public research university in Ma Liu Shui, Hong Kong, formally established in 1963 by a charter granted by the Legislative Council of Hong Kong.It is the territory's second-oldest university and was founded as a federation of three existing colleges - Chung Chi College, New Asia College and United College - the oldest of which was founded in ",
-        //     "rank": 3
-        //   },
-        //   {
-        //     "title": "Home | CUHK-Shenzhen",
-        //     "link": "https://www.cuhk.edu.cn/en",
-        //     "snippet":
-        //         "CUHK-Shenzhen hosts world's leading scholars and cutting-edge research facilities, fostering an innovative research hub. Learn MORE Research News; Research Fields; Institutes and Laboratories; Scholars; Research Information System; Admissions. Admissions. As China's global university, CUHK-Shenzhen offers first-class education and life ",
-        //     "rank": 4
-        //   },
-        //   {
-        //     "title": "Faculty of Arts | Faculties | CUHK",
-        //     "link": "https://www.cuhk.edu.hk/english/faculties/arts.html",
-        //     "snippet":
-        //         "Faculty of Arts. Established in 1963, the same year the Chinese University of Hong Kong was founded, the Faculty of Arts has always been pivotal to CUHK's commitment to integrating Chinese and Western traditions, to bilingual education and innovative interdisciplinary research. Today, CUHK ARTS is the largest Faculty dedicated to humanities ",
-        //     "rank": 5
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong in Hong Kong - US News",
-        //     "link":
-        //         "https://www.usnews.com/education/best-global-universities/chinese-university-of-hong-kong-502973",
-        //     "snippet":
-        //         "Chinese University of Hong Kong Rankings. # 53. in Best Global Universities. # 5. in Best Global Universities in Asia. # 1. in Best Global Universities in Hong Kong.",
-        //     "rank": 6
-        //   },
-        //   {
-        //     "title": "The Chinese University of Hong Kong - LinkedIn",
-        //     "link":
-        //         "https://www.linkedin.com/school/the-chinese-university-of-hong-kong/",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence ",
-        //     "rank": 7
-        //   },
-        //   {
-        //     "title":
-        //         "The Chinese University of Hong Kong - CUHK's Tweets - Twitter",
-        //     "link": "https://twitter.com/cuhkofficial",
-        //     "snippet":
-        //         "The official twitter account for The Chinese University of Hong Kong Connect with us: linktr.ee/CUHK. Education Sha Tin District, Hong Kong cuhk.edu.hk Joined November 2017. 525 Following.",
-        //     "rank": 8
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong | UCEAP",
-        //     "link":
-        //         "https://uceap.universityofcalifornia.edu/programs/chinese-university-hong-kong",
-        //     "snippet":
-        //         "The CUHK mission is to combine tradition with modernity and bring together China and the West. With faculty and students from all around the world, CUHK is committed to bilingualism, biculturalism, and providing an international study experience. This forward-looking research university has an enviable reputation for quality research that ",
-        //     "rank": 9
-        //   },
-        //   {
-        //     "title": "Apply Now - The Chinese University of Hong Kong (CUHK)",
-        //     "link":
-        //         "http://admission.cuhk.edu.hk/international/application-details.html",
-        //     "snippet":
-        //         "To facilitate outstanding candidates in making informed decisions among all early offers they receive from various universities, candidates who apply to CUHK on or before 17 November 2022 will be considered for an advance offer. In this round, successful applicants may be given a firm or conditional offer depending on individual merits, and ",
-        //     "rank": 10
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong, Shenzhen - Wikipedia",
-        //     "link":
-        //         "https://en.wikipedia.org/wiki/Chinese_University_of_Hong_Kong,_Shenzhen",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong, Shenzhen (CUHK-Shenzhen) is a campus of the public research university, the Chinese University of Hong Kong.Located in Shenzhen, on the southern coast of China near Hong Kong, it is a joint venture between the Chinese University of Hong Kong and Shenzhen University, as the local partner. CUHK-Shenzhen was officially founded on 11 October 2012, and approved ",
-        //     "rank": 11
-        //   },
-        //   {
-        //     "title": "The Chinese University of Hong Kong (CUHK)",
-        //     "link":
-        //         "https://www.topuniversities.com/universities/chinese-university-hong-kong-cuhk",
-        //     "snippet":
-        //         "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
-        //     "rank": 12
-        //   },
-        //   {
-        //     "title": "Chinese University of Hong Kong | Global Experiences",
-        //     "link": "https://www.abroad.pitt.edu/cuhk",
-        //     "snippet":
-        //         "THIS PROGRAM IS TEMPORARILY UNAVAILABLE. The Chinese University of Hong Kong (CUHK) (香港中文大學) was founded in 1963 with a mission to combine tradition with modernity and to bring together China and the West.As a comprehensive institution, CUHK has been consistently ranked as one of the top 50 universities in the world by QS World University Ranking as well as one top instituions in Asia.",
-        //     "rank": 13
-        //   },
-        //   {
-        //     "title": "CUHK MBA Programmes - CUHK MBA",
-        //     "link": "https://mba.cuhk.edu.hk/eng/",
-        //     "snippet":
-        //         "CUHK Business School was the first in Hong Kong and in the region to offer BBA, MBA and EMBA programmes, with over 40,000 alumni worldwide. We are a global institution that embraces innovation, nurtures an entrepreneurial mindset and promotes social responsibility.",
-        //     "rank": 14
-        //   },
-        //   {
-        //     "title": "MY CUHK - Chinese University of Hong Kong",
-        //     "link":
-        //         "https://portal.cuhk.edu.hk/psp/EPPRD/?cmd=login&languageCd=ENG&",
-        //     "snippet":
-        //         "Sign in with your organizational account. User Account. Password",
-        //     "rank": 15
-        //   },
-        //   {
-        //     "title": "The Chinese University of Hong Kong 香港中文大學 - CUHK",
-        //     "link": "https://www.facebook.com/CUHKofficial/",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong 香港中文大學 - CUHK. 71,637 likes · 29,401 talking about this · 101,944 were here. The official Facebook page of The Chinese University of Hong Kong - CUHK.",
-        //     "rank": 16
-        //   },
-        //   {
-        //     "title": "CUHK - HRO - Career Opportunities @ CUHK",
-        //     "link":
-        //         "https://www.hro.cuhk.edu.hk/en-gb/career/career-opportunities",
-        //     "snippet":
-        //         "Career Opportunities @ CUHK. Senior Academic Appointments. Vice-Chancellor Early Career Professorship Scheme. Working @ CUHK. Positivity and Staff Wellness. Other Appointments.",
-        //     "rank": 17
-        //   },
-        //   {
-        //     "title": "About Us | CUHK-Shenzhen",
-        //     "link": "https://www.cuhk.edu.cn/en/about-us",
-        //     "snippet":
-        //         "About Us. The Chinese University of Hong Kong, Shenzhen （CUHK-Shenzhen）was founded in accordance with the Regulations of the People's Republic of China on Chinese-foreign Cooperation in Running Schools upon approval by the Ministry of Education. The University is committed to providing top-quality higher education that features an ",
-        //     "rank": 18
-        //   },
-        //   {
-        //     "title": "Application | Office of Academic Links",
-        //     "link": "https://www.oal.cuhk.edu.hk/application/",
-        //     "snippet":
-        //         'Send the personal particulars page of your passport with your application no. to iasp@cuhk.edu.hk and request for an online debit note by email. The processing time is normally 3 working days. After 3 working days, login to your online application form, view your debit note under "My Task" and pay online.',
-        //     "rank": 19
-        //   },
-        //   {
-        //     "title":
-        //         "Chinese University of Hong Kong | World University Rankings | THE",
-        //     "link":
-        //         "https://www.timeshighereducation.com/world-university-rankings/chinese-university-hong-kong",
-        //     "snippet":
-        //         "Mission and Vision. The Chinese University of Hong Kong (CUHK) is a research-oriented comprehensive university whose scholarly output and contributions to the community achieve the highest standards of excellence. Founded in 1963, CUHK has been guided by its mission to assist in the preservation, creation, application and dissemination of knowledge and a global vision to combine tradition with ",
-        //     "rank": 20
-        //   },
-        //   {
-        //     "title":
-        //         "The Chinese University of Hong Kong Online Courses | Coursera",
-        //     "link": "https://www.coursera.org/cuhk",
-        //     "snippet":
-        //         "Founded in 1963, The Chinese University of Hong Kong (CUHK) is a forward looking comprehensive research university with a global vision and a mission to combine tradition with modernity, and to bring together China and the West. CUHK teachers and students hail from all corners of the world.",
-        //     "rank": 21
-        //   },
-        //   {
-        //     "title": "Academic Staff Directory - CUHK Business School",
-        //     "link": "https://www.bschool.cuhk.edu.hk/staff/",
-        //     "snippet":
-        //         "Honorary Professor of CUHK Business School BCT Distinghished Research Fellow, Institute of Global Economics and Finance. igef@cuhk.edu.hk +852 3943 1660",
-        //     "rank": 22
-        //   },
-        //   {
-        //     "title": "CUHK Business School | BBA, MBA & EMBA in Hong Kong",
-        //     "link": "https://www.bschool.cuhk.edu.hk/cuhk-business-school/",
-        //     "snippet":
-        //         "Accreditation. CUHK Business School is one of the first two business schools in Asia accredited by The Association to Advance Collegiate Schools of Business (AACSB). CUHK Business School is accredited by The Association of MBAs (AMBA) for its programmes including EMBA, JD/MBA, MBA, MBA in Finance and MSc in Management.",
-        //     "rank": 23
-        //   },
-        //   {
-        //     "title": "CUHK Channel - YouTube",
-        //     "link": "https://www.youtube.com/user/CUHKchannel",
-        //     "snippet":
-        //         "The Chinese University of Hong Kong (CUHK) is a comprehensive research-led university in Hong Kong delivering high-quality education on both undergraduate and postgraduate levels and serving the ",
-        //     "rank": 24
-        //   },
-        //   {
-        //     "title":
-        //         "CUHK Postgraduate Application - CUHK Graduate School | Postgraduate ...",
-        //     "link":
-        //         "https://www.gs.cuhk.edu.hk/admissions/admissions/how-to-apply",
-        //     "snippet":
-        //         "Step 1: Explore CUHK Postgraduate Study Options. Browse the Postgraduate Programme List. Check the Admissions Requirements. Step 2: Prepare for your Application. Prepare the documents/additional information required for application. Check the Application Deadline. (Please refer to individual programme pages for the specific application deadlines.)",
-        //     "rank": 25
-        //   },
-        //   {
-        //     "title": "Job Search - Oracle",
-        //     "link":
-        //         "https://cuhk.taleo.net/careersection/cu_career_teach/jobsearch.ftl?lang=en&portal=10115020119&lang=en",
-        //     "snippet":
-        //         "Actions. 230000LD. Part-time Instructors (Part-time Programmes -General Courses and other Professional Continuing Education Programmes) School of Continuing and Professional Studies. Apply ‌. Save Job Save Job. Share. 230000LI. Part-time Instructors (Full-time - Higher Diploma and Diploma Programmes)",
-        //     "rank": 26
-        //   },
-        //   {
-        //     "title": "The Chinese University of Hong Kong | Piazza",
-        //     "link": "https://piazza.com/cuhk.edu.hk",
-        //     "snippet":
-        //         "Piazza is an intuitive platform for instructors to efficiently manage class Q&A. Students can post questions and collaborate to edit responses to these questions. Instructors can also answer questions, endorse student answers, and edit or delete any posted content. Piazza is designed to simulate real class discussion.",
-        //     "rank": 27
-        //   }
-        // ];
 
         log("ddg results: ${items}");
 
@@ -1672,10 +1231,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case 'Twitter':
-        // items = jsonResponse['items'] != null
-        //     ? jsonResponse['items'] as List<dynamic>
-        //     : [];
-
         var results = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
@@ -1685,9 +1240,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case 'Facebook':
-        // items = jsonResponse['items'] != null
-        //     ? jsonResponse['items'] as List<dynamic>
-        //     : [];
         var results = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
@@ -1697,9 +1249,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case 'Instagram':
-        // items = jsonResponse['items'] != null
-        //     ? jsonResponse['items'] as List<dynamic>
-        //     : [];
         var results = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
@@ -1709,9 +1258,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
       case 'LinkedIn':
-        // items = jsonResponse['items'] != null
-        //     ? jsonResponse['items'] as List<dynamic>
-        //     : [];
         var results = jsonResponse['items'] != null
             ? jsonResponse['items'] as List<dynamic>
             : [];
@@ -1721,78 +1267,14 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
         break;
     }
-
-    // var items = jsonResponse['items'] != null
-    //     ? jsonResponse['items'] as List<dynamic>
-    //     : [];
     log("items: ${items}");
 
-    // if (items.isEmpty) {
-    //   // setState(() {
-    //   //   _gg = true;
-    //   // });
-    //   log("no results found | _currentSearchPlatform: $_currentSearchPlatform | _prevSearchPlatform: $_prevSearchPlatform");
-
-    //   // ignore: use_build_context_synchronously
-    //   await showDialog(
-    //       context: context,
-    //       builder: (BuildContext context) {
-    //         return AlertDialog(
-    //           title: const Text("No results found"),
-    //           content: const Text("Please try to change the search query"),
-    //           actions: [
-    //             TextButton(
-    //               child: const Text("OK"),
-    //               onPressed: () {
-    //                 Navigator.of(context).pop();
-    //               },
-    //             )
-    //           ],
-    //         );
-    //       });
-
-    //   setState(() {
-    //     _searchHistory.remove(_searchText);
-    //     _searchText = _prevSearchText;
-    //   });
-
-    //   _changeSearchPlatform(_prevSearchPlatform);
-    //   return null;
-    // } else {
     setState(() {
       _prevSearchText = _searchText;
       _prevSearchPlatform = _currentSearchPlatform;
     });
-    // }
 
     return items;
-    // } else {
-    //   log('Request failed with status: ${response.statusCode}.');
-
-    //   // ignore: use_build_context_synchronously
-    //   await showDialog(
-    //       context: context,
-    //       builder: (BuildContext context) {
-    //         return AlertDialog(
-    //           title: const Text("Request Failed"),
-    //           content: Text("Status Code: ${response.statusCode}."),
-    //           actions: [
-    //             TextButton(
-    //               child: const Text("OK"),
-    //               onPressed: () {
-    //                 Navigator.of(context).pop();
-    //               },
-    //             )
-    //           ],
-    //         );
-    //       });
-    // return null;
-    //   }
-    // } else {
-    //   log("GG");
-    // }
-
-    // return null;
   }
 
   _updateLastViewedPlatform(keyword, platform) async {
@@ -1839,17 +1321,6 @@ class _WebViewContainerState extends State<WebViewContainer>
       log("reset view 3.2");
       URLs[keyword][platform]["list"] = [];
     }
-
-    // if (URLs[keyword][platform]["raw"] == null) {
-    //   log("reset view 4.1");
-    //   URLs[keyword][platform] = {
-    //     ...URLs[keyword][platform],
-    //     "raw": [],
-    //   };
-    // } else if (URLs[keyword][platform]["raw"] != null) {
-    //   log("reset view 4.2");
-    //   URLs[keyword][platform]["raw"] = [];
-    // }
   }
 
   _resetRawResults(keyword, platform) async {
@@ -1950,22 +1421,11 @@ class _WebViewContainerState extends State<WebViewContainer>
       case "raw":
         {
           if (list.length > 0) {
-            // log("platform replace: $platform");
             setState(() {
               _resetRawResults(keyword, platform);
-
-              // if (_currentSearchPlatform == "General" &&
-              //     (_mergeAlgorithm == "Original Rank" ||
-              //         _mergeAlgorithm == "Further Merge")) {
-              //   URLs[keyword][platform]["raw"] = list;
-              // }
-
               URLs[keyword][platform]["raw"] = list;
 
               log("URLs[raw] ${URLs[keyword][platform]['raw']}");
-
-              // URLs[keyword][platform]
-              //     .add({'title': 'manual', 'link': 'https://www.google.com'});
             });
           }
           break;
@@ -2008,19 +1468,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         }
       }
     });
-
-    // setState(() {
-    //   // _pageKey = GlobalKey();
-
-    //   if (_fabColor == Colors.amber[300]!) {
-    //     _fabColor = Colors.blue[100]!;
-    //     _appBarColor = _defaultAppBarColor;
-    //     log("white");
-    //   } else {
-    //     _fabColor = Colors.amber[300]!;
-    //     _appBarColor = Colors.amber[300]!;
-    //   }
-    // });
   }
 
   _moveSwiper([isImageSearch = false]) async {
@@ -2028,7 +1475,6 @@ class _WebViewContainerState extends State<WebViewContainer>
       if (_isSearching) {
         log("popping...");
         Navigator.of(context).pop();
-        // _marqueeKey = UniqueKey();
         _isSearching = false;
       }
 
@@ -2037,12 +1483,10 @@ class _WebViewContainerState extends State<WebViewContainer>
       _currentURLIndex = 0;
 
       // new key to refresh the preloaded webview
-      // _pageKey = GlobalKey();
       _activatedSearchPlatforms[_currentSearchPlatform] = GlobalKey();
       log("_activatedSearchPlatforms $_activatedSearchPlatforms");
 
       _appBarColor = _defaultAppBarColor;
-      // log("_appBarColor $_appBarColor");
     });
 
     if (isImageSearch && _activatedSearchPlatforms.length > 1) {
@@ -2073,8 +1517,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         newSearch = true;
       }
 
-      // _appBarColor = _defaultAppBarColor;
-      // _fabColor = Colors.blue[100]!;
       _appBarColor = _searchingAppBarColor;
       _searchHistory.addAll({value.toString(): false});
     });
@@ -2100,7 +1542,6 @@ class _WebViewContainerState extends State<WebViewContainer>
   void _updateSearchText(searchText) {
     setState(() {
       _searchText = searchText;
-      // _currentSearchPlatform = "Google";
     });
   }
 
@@ -2203,6 +1644,7 @@ class _WebViewContainerState extends State<WebViewContainer>
     _searchFieldController.text = _searchText;
     // log("_searchRecords: $_searchRecords");
 
+    // ignore: use_build_context_synchronously
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -2228,9 +1670,6 @@ class _WebViewContainerState extends State<WebViewContainer>
             mergeSearch: _mergeSearch,
             isTutorial: _isTutorial,
             updateIsTutorial: _updateIsTutorial,
-            // generalPlatformList: GeneralPlatformList,
-            // videoPlatformList: VideoPlatformList,
-            // SNSPlatformList: SNSPlatformList,
             enabledGeneralPlatforms: _enabledGeneralPlatforms,
             enabledVideoPlatforms: _enabledVideoPlatforms,
             enabledSNSPlatforms: _enabledSNSPlatforms,
@@ -2348,43 +1787,12 @@ class _WebViewContainerState extends State<WebViewContainer>
     );
   }
 
-  void _pushHistoryPage() async {
-    final data = await _getHistory();
-    final isar = await _getDatabase();
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) {
-          return HistoriesPage(
-            selectedPageIndex: _selectedPageIndex,
-            urlRecords: data,
-            isar: isar,
-          );
-        },
-      ),
-    );
-  }
-
   void _onItemTapped(int index) {
     log("index $index");
     setState(() {
       _selectedPageIndex = index;
-      // if (_selectedPageIndex == 1) {
-      //   _pushHistoryPage();
-      // } else if (_selectedPageIndex == 3) {
-      //   _pushSettingsPage();
-      // }
     });
-
-    // _getHistory();
   }
-
-  // final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
-  //   Factory(() => VerticalDragGestureRecognizer()),
-  //   Factory(() => HorizontalDragGestureRecognizer()),
-  //   Factory(() => LongPressGestureRecognizer()),
-  // };
 
   Future<bool> _onWillPop(BuildContext context) async {
     log("type ${_currentWebViewController?.runtimeType}");
@@ -2401,30 +1809,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     return Future.value(false);
   }
 
-  // JavascriptChannel _toasterJavascriptChannel(BuildContext context) {
-  //   return JavascriptChannel(
-  //     name: 'Print',
-  //     onMessageReceived: (JavascriptMessage message) {
-  //       log("Print ${message.message}");
-  //       // setState(() {
-  //       //   _webpageContent = message.message;
-  //       // });
-  //     },
-  //   );
-  // }
-
-  // JavascriptChannel _getDrillTextChannel(BuildContext context) {
-  //   return JavascriptChannel(
-  //     name: 'Drill',
-  //     onMessageReceived: (JavascriptMessage message) {
-  //       log("DrillText ${message.message}");
-  //       setState(() {
-  //         _webpageContent = message.message;
-  //       });
-  //     },
-  //   );
-  // }
-
   _performDrill([selectedText = null]) async {
     String currentSearchText = _searchText;
     String keyword = selectedText ?? await _getSearchQuery();
@@ -2437,34 +1821,13 @@ class _WebViewContainerState extends State<WebViewContainer>
         final tempDir = await getTemporaryDirectory();
         String path = tempDir.path + "/image.png";
         File file = await File(path).create();
-        // file.writeAsBytesSync(value!);
 
-        // final picker = ImagePicker();
-        // final XFile? image = await picker.pickImage(
-        //   source: ImageSource.gallery,
-        //   maxHeight: 1000,
-        //   maxWidth: 1000,
-        //   //imageQuality: 80,
-        // );
-        // XFile? image =
-        //     (await _currentWebViewController!.takeScreenshot()) as XFile?;
-        // log("image $image");
         var image = XFile.fromData(value!);
         log("path $path");
         image.saveTo(path);
         log("image $image");
-        // EasyLoading.show(status: "Searching...");
-        // Map results = await _imageSearch(image, path);
-
-        // text detection
-        // var detectedText =
-        //     await _imageSearchGoogle(image, path, "text_detection");
-        // log("detectedText: $detectedText");
-
-        // await _performImageSearch(image, path);
 
         EasyLoading.show(
-          // status: 'Perform Image Search',
           status: "Performing Text Detection",
         );
 
@@ -2472,21 +1835,12 @@ class _WebViewContainerState extends State<WebViewContainer>
         var resultsOCR =
             await _imageSearchGoogle(image, path, "", "text_detection");
         log("OCR:$resultsOCR");
-        // log("OCR toString: :${resultsOCR.toString()}");
-
         log("image search 4");
 
-        // var keywords = await _extractKeywords(resultsOCR.join(' ').toString());
         keyword = resultsOCR;
         log("OCR extracted: $keyword");
 
-        // Map results = await _imageSearchGoogle(image, path);
         EasyLoading.dismiss();
-        // log("results google $results");
-
-        // remove the screenshot
-        // await file.delete();
-        // return;
       });
     }
 
@@ -2502,9 +1856,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("regex: ${containNonEnglish.hasMatch(keyword)}");
 
     // auto keywords extraction if more than 7 words, or characters (non-english)
-    if (((containNonEnglish.hasMatch(keyword) && keyword.length > 7) ||
+    if (((!containNonEnglish.hasMatch(keyword) && keyword.length > 7) ||
         keyword.split(' ').length > 7)) {
       var extracted = await _extractKeywords(keyword);
+      extracted = <dynamic>{..._searchText.split(' '), ...extracted}.toList();
 
       List<MultiSelectItem> keywords = [];
       for (var i = 0; i < extracted.length; i++) {
@@ -2516,12 +1871,6 @@ class _WebViewContainerState extends State<WebViewContainer>
         platforms
             .add(MultiSelectItem(SearchPlatformList[i], SearchPlatformList[i]));
       }
-
-      // List<S2Choice<String>> keywords = [];
-      // for (var i = 0; i < extracted.length; i++) {
-      //   keywords
-      //       .add(S2Choice<String>(value: extracted[i], title: extracted[i]));
-      // }
 
       // ignore: use_build_context_synchronously
       await showDialog<String>(
@@ -2547,6 +1896,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       borderRadius: BorderRadius.circular(10),
                     ),
                     items: keywords,
+                    initialValue: [..._searchText.split(" ")],
                     showHeader: true,
                     scroll: false,
                     onTap: (values) {
@@ -2623,9 +1973,8 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     setState(() {
       _appBarColor = _searchingAppBarColor;
-      _searchText = selectedKeywords == ""
-          ? "$_searchText $keyword"
-          : "$_searchText $selectedKeywords";
+      _searchText =
+          selectedKeywords == "" ? "$_searchText $keyword" : selectedKeywords;
       _currentSearchPlatform =
           selectedPlatform == "" ? _currentSearchPlatform : selectedPlatform;
 
@@ -2637,14 +1986,6 @@ class _WebViewContainerState extends State<WebViewContainer>
       // _searchHistory.addAll({keyword.toString(): _searchText.toString()});
       _searchHistory
           .addAll({_searchText.toString(): currentSearchText.toString()});
-
-      // if (_fabColor == Colors.amber[300]!) {
-      //   _fabColor = Colors.blue[100]!;
-      //   _appBarColor = _defaultAppBarColor;
-      // } else {
-      //   _fabColor = Colors.amber[300]!;
-      //   _appBarColor = Colors.amber[300]!;
-      // }
     });
 
     log("_searchHistory ${_searchHistory.toString()}");
@@ -2656,31 +1997,18 @@ class _WebViewContainerState extends State<WebViewContainer>
       });
     }
 
-    // if (!_activatedSearchPlatforms.contains(_currentSearchPlatform)) {
-    //   setState(() {
-    //     _activatedSearchPlatforms.add(_currentSearchPlatform);
-    //     _activatedSearchPlatformKeys.add(GlobalKey());
-    //   });
-    // }
-
     if (URLs[_searchText] == null) {
       URLs[_searchText] = {};
     }
 
     if (URLs[_searchText][_currentSearchPlatform] == null) {
       // do search only if it has not been done before
-      // var items = await _performSearch(_searchText, _currentSearchPlatform);
       var items = await _mergeSearch(_currentSearchPlatform);
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
     }
 
     await _updateCurrentURLs();
 
-    // log(
-    //     "_currentURLs[_currentURLIndex]['link'] ${_currentURLs[_currentURLIndex]['link']}");
-
-    // log(
-    //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
     await _preloadPlatformController.animateToPage(
         // find the index of the current platform
         _activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform),
@@ -2692,158 +2020,10 @@ class _WebViewContainerState extends State<WebViewContainer>
     setState(() {
       _appBarColor = _defaultAppBarColor;
     });
-
-    // _currentPreloadPageController.jumpToPage(0);
-
-    // setState(() {
-    //   // _pageKey = GlobalKey();
-
-    //   if (_fabColor == Colors.amber[300]!) {
-    //     _fabColor = Colors.blue[100]!;
-    //     _appBarColor = _defaultAppBarColor;
-    //   } else {
-    //     _fabColor = Colors.amber[300]!;
-    //     _appBarColor = Colors.amber[300]!;
-    //   }
-    // });
-  }
-
-  // {
-  //   "search query 1": {}
-  // }
-
-  // ! FIX
-  _recordActivity() async {
-    log("begin record...");
-
-    // if (!_redirectStopwatch.isRunning) {
-    //   _redirectStopwatch.start();
-    //   log("1 onPageStarted");
-    // }
-
-    // first stop the activityStopwatch if it is running
-    if (activityStopwatch.isRunning) {
-      activityStopwatch.stop();
-    }
-
-    // get the database
-    final isar =
-        Isar.getInstance("url") ?? await Isar.open([URLSchema], name: "url");
-    log("isar: $isar");
-
-    // check if the record exist
-    final urlRecord = await isar.uRLs
-        .filter()
-        .urlEqualTo(_currentURLs[_currentURLIndex]["title"])
-        .findAll();
-    log("urlRecord: ${urlRecord}");
-
-    // log(
-    //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
-
-    // final Duration dur = parseDuration(
-    //     '2w 5d 23h 59m 59s 999ms 999us');
-    // log("dur $dur");
-
-    // record exists
-    if (urlRecord.isNotEmpty) {
-      await isar.writeTxn(() async {
-        final uRL = await isar.uRLs.get(urlRecord[0].id);
-
-        uRL!.duration = activityStopwatch.elapsed.toString();
-        uRL!.lastViewed = DateTime.now();
-        uRL!.viewCount = uRL!.viewCount++;
-
-        await isar.uRLs.put(uRL);
-      });
-    }
-    // new record
-    else {
-      final newURL = URL()
-        ..url = _previousURL
-        ..title = _currentURLs[_currentURLIndex]["title"]
-        ..duration = activityStopwatch.elapsed.toString()
-        ..viewCount = 1
-        ..lastViewed = DateTime.now();
-      await isar.writeTxn(() async {
-        await isar.uRLs.put(newURL);
-      });
-    }
-
-    // reset the activityStopwatch
-    activityStopwatch.reset();
-
-    // update current url and start activityStopwatch
-    setState(() {
-      _previousURL = _currentURLs[_currentURLIndex]["link"];
-      if (!activityStopwatch.isRunning) {
-        log("start activityStopwatch");
-        activityStopwatch.start();
-      }
-    });
-
-////////////////////////////////////
-    // final urlRecord = await isar.uRLs.filter().urlEqualTo(url).findAll();
-
-    // if (urlRecord.isNotEmpty) {
-    //   await isar.writeTxn(() async {
-    //     final uRL = await isar.uRLs.get(urlRecord[0].id);
-
-    //     uRL?.viewCount++;
-    //     uRL?.lastViewed = DateTime.now();
-    //     uRL?.title = await _controller[index].getTitle();
-
-    //     await isar.uRLs.put(uRL!);
-    //   });
-    // }
-    // // new record
-    // else {
-    //   final newURL = URL()
-    //     ..url = url
-    //     ..title = await _controller[index].getTitle();
-    //   await isar.writeTxn(() async {
-    //     await isar.uRLs.put(newURL);
-    //   });
-    // }
-
-    // if (_redirectStopwatch.elapsedMilliseconds < 100) {
-    //   log("1 redirect");
-
-    //   setState(() {
-    //     _redirecting = true;
-    //   });
-    // } else {
-    //   log("2 redirect");
-
-    //   _redirectStopwatch.stop();
-    //   _redirectStopwatch.reset();
-    //   setState(() {
-    //     _redirecting = false;
-    //   });
-    // }
-
-    // log("swiping $_swipe");
-
-    // setState(() {
-    //   _previousURL = url;
-    //   if (!activityStopwatch.isRunning) {
-    //     log("start activityStopwatch");
-    //     activityStopwatch.start();
-    //   }
-    //   _loadingPercentage = 100;
-    // });
-
-    // setState(() {
-    //   _swipe = false;
-    // });
   }
 
   _showSelectMenu(BuildContext context) {
-    // setState(() {
-    //   _menuShown = true;
-    // });
     log("show menu");
-    // if (!_menuShown) {
     return showModalBottomSheet(
       isDismissible: false,
       barrierColor: Colors.transparent,
@@ -2978,38 +2158,16 @@ class _WebViewContainerState extends State<WebViewContainer>
       );
     } else {
       bool bingo = false;
-      // if (_currentURLs[_currentURLIndex]['link'] == data['link']) {
       if (position == _currentURLIndex) {
         bingo = true;
-        // if (position == 0) _next = _currentURLs[_currentURLIndex + 1]['link'];
         log("bingo $bingo | $position");
-        // if (!activityStopwatch.isRunning) {
-        //   log("start activityStopwatch");
-        //   activityStopwatch.start();
-        // }
-        // _recordActivity();
       }
 
       // log("building... | bingo: ${bingo} | data: ${data}");
       // return Text("123");
       return SizedBox(
         width: MediaQuery.of(context).size.width,
-
-        // child: Text("test${index}"),
-        child:
-            //  MouseRegion(
-            //   cursor: SystemMouseCursors.click,
-            //   onEnter: (event) {
-            //     log("onEnter");
-            //   },
-            //   onExit: (event) {
-            //     log("onExit");
-            //   },
-            //   onHover: (event) {
-            //     log("onHover");
-            //   },
-            //   child:
-            InAppWebView(
+        child: InAppWebView(
           // pullToRefreshController: _refreshController,
           gestureRecognizers: {
             Factory<LongPressGestureRecognizer>(
@@ -3115,195 +2273,6 @@ class _WebViewContainerState extends State<WebViewContainer>
             ],
           ),
         ),
-        //     WebView(
-        //   gestureRecognizers: Set()
-        //     ..add(Factory<VerticalDragGestureRecognizer>(
-        //       () => VerticalDragGestureRecognizer(),
-        //     ))
-        //     ..add(Factory<HorizontalDragGestureRecognizer>(
-        //       () => HorizontalDragGestureRecognizer(),
-        //     ))
-        //     ..add(
-        //       (Factory<LongPressGestureRecognizer>(
-        //         () => LongPressGestureRecognizer(),
-        //       )),
-        //     ),
-        //   // ),
-        //   javascriptMode: JavascriptMode.unrestricted,
-        //   javascriptChannels: <JavascriptChannel>{
-        //     _toasterJavascriptChannel(context),
-        //     _getDrillTextChannel(context),
-        //   },
-        //   initialUrl: data['link'],
-        //   onWebViewCreated: (webViewController) async {
-        //     // for initial load only
-        //     if (bingo) {
-        //       // setState(() {
-        //       _currentWebViewController = webViewController;
-        //       // });
-
-        //       log(
-        //           "bingo ${await webViewController.currentUrl()} | ${data['link']}");
-        //     }
-        //     log(
-        //         "not bingo ${await webViewController.currentUrl()} | ${data['link']}");
-        //     _webViewControllers.addAll({position: webViewController});
-        //     log("webview controllers ${_webViewControllers}");
-        //   },
-        //   onPageStarted: (url) async {
-        //     log("1 onPageStarted");
-
-        //     /*
-        //         if (!_redirectStopwatch.isRunning) {
-        //           _redirectStopwatch.start();
-        //           log("1 onPageStarted");
-        //         }
-
-        //         final isar = Isar.getInstance("url") ??
-        //             await Isar.open([URLSchema], name: "url");
-
-        //         // check if the record exist
-        //         final urlRecord =
-        //             await isar.uRLs.filter().urlEqualTo(_previousURL).findAll();
-
-        //         // log("urlRecord: ${urlRecord}");
-        //         // log("_previousURL: ${_previousURL}");
-
-        //         if (activityStopwatch.isRunning && _previousURL != "") {
-        //           activityStopwatch.stop();
-        //           // log(
-        //           //     "activityStopwatch stopped: ${activityStopwatch.elapsed}");
-
-        //           // final Duration dur = parseDuration(
-        //           //     '2w 5d 23h 59m 59s 999ms 999us');
-        //           // log("dur $dur");
-
-        //           if (urlRecord.isNotEmpty) {
-        //             await isar.writeTxn(() async {
-        //               final uRL = await isar.uRLs.get(urlRecord[0].id);
-
-        //               uRL!.duration = activityStopwatch.elapsed.toString();
-
-        //               await isar.uRLs.put(uRL);
-        //             });
-        //           }
-        //           // new record
-        //           else {
-        //             final newURL = URL()
-        //               ..url = _previousURL
-        //               ..title = await _controller[index].getTitle()
-        //               ..duration = activityStopwatch.elapsed.toString();
-        //             await isar.writeTxn(() async {
-        //               await isar.uRLs.put(newURL);
-        //             });
-        //           }
-
-        //           activityStopwatch.reset();
-        //         }
-        // */
-        //     if (bingo) {
-        //       setState(() {
-        //         _loadingPercentage = 0;
-        //         _currentWebViewTitle = "Loading...";
-        //       });
-        //     }
-        //   },
-        //   onProgress: (progress) {
-        //     if (bingo) {
-        //       setState(() {
-        //         _loadingPercentage = progress;
-        //       });
-        //     }
-        //   },
-        //   onPageFinished: (url) async {
-        //     log("3 onPageFinished");
-
-        //     /*
-
-        //         _controller[index]
-        //             .runJavascript("""window.addEventListener('click', (e) => {
-        //                                     var x = e.clientX, y = e.clientY;
-        //                                     var elementMouseIsOver = document.elementFromPoint(x, y);
-        //                                     var content = elementMouseIsOver.innerText;
-        //                                     if (content == undefined || content == null)
-        //                                       Print.postMessage("");
-        //                                     else
-        //                                       Print.postMessage(content);
-        //                                 });
-        //                               """);
-
-        //         final isar = Isar.getInstance("url") ??
-        //             await Isar.open([URLSchema], name: "url");
-
-        //         log("isar: $isar");
-
-        //         final urlRecord =
-        //             await isar.uRLs.filter().urlEqualTo(url).findAll();
-
-        //         if (urlRecord.isNotEmpty) {
-        //           await isar.writeTxn(() async {
-        //             final uRL = await isar.uRLs.get(urlRecord[0].id);
-
-        //             uRL?.viewCount++;
-        //             uRL?.lastViewed = DateTime.now();
-        //             uRL?.title = await _controller[index].getTitle();
-
-        //             await isar.uRLs.put(uRL!);
-        //           });
-        //         }
-        //         // new record
-        //         else {
-        //           final newURL = URL()
-        //             ..url = url
-        //             ..title = await _controller[index].getTitle();
-        //           await isar.writeTxn(() async {
-        //             await isar.uRLs.put(newURL);
-        //           });
-        //         }
-
-        //         if (_redirectStopwatch.elapsedMilliseconds < 100) {
-        //           log("1 redirect");
-
-        //           setState(() {
-        //             _redirecting = true;
-        //           });
-        //         } else {
-        //           log("2 redirect");
-
-        //           _redirectStopwatch.stop();
-        //           _redirectStopwatch.reset();
-        //           setState(() {
-        //             _redirecting = false;
-        //           });
-        //         }
-
-        //         log("swiping $_swipe");
-
-        //         setState(() {
-        //           _previousURL = url;
-        //           if (!activityStopwatch.isRunning) {
-        //             log("start activityStopwatch");
-        //             activityStopwatch.start();
-        //           }
-        //           _loadingPercentage = 100;
-        //         });
-
-        //         setState(() {
-        //           _swipe = false;
-        //         });
-        //         */
-
-        //     if (bingo) {
-        //       String title = await _currentWebViewController.getTitle();
-        //       log("title: $title | data['title']: ${data['title']}");
-        //       setState(() {
-        //         _loadingPercentage = 100;
-        //         _currentWebViewTitle = data["title"];
-        //         // _currentWebViewTitle = title;
-        //       });
-        //     }
-        // },
-        // ),
       );
     }
   }
@@ -3322,7 +2291,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               _activatedSearchPlatforms.keys
                   .toList()
                   .indexOf(_currentSearchPlatform)
-          ? _testPreloadPageController
+          ? _preloadPageController
           : null,
       // _preloadPageControllers[
       //     platformPosition],
@@ -3373,23 +2342,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           _currentResult = _currentURLs[position]!;
           _loadingPercentage = 100;
           _currentWebViewController = _webViewControllers[position];
-
-          // log(
-          //     "_webViewControllers $_webViewControllers");
         });
-
-        // log(
-        //     "URLs[_searchText][_activatedSearchPlatforms[platformPosition]] ${URLs[_searchText][_activatedSearchPlatforms[platformPosition]]}");
-
-        // log(
-        //     "controller 1 ${_currentURLs[position]!['title']} |  ${_currentURLs[position]!['link']}");
-        // log(
-        //     "controller 2 ${await _currentWebViewController?.getTitle()} | ${await _currentWebViewController?.getUrl()}");
-        // log(
-        //     "controller 3 ${await _currentWebViewController}");
-
-        // log(
-        //     "same ${await _currentWebViewController?.currentUrl() == _currentURLs[position]!['link']}");
 
         // fetch more results if we are almost at the end of the list
         if (position + 1 >= _currentURLs.length) {
@@ -3428,14 +2381,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("new _currentSearchPlatform: $_currentSearchPlatform");
   }
 
-  var _platformActivationTimer = null;
-  // = RestartableTimer(
-  //   const Duration(seconds: 3),
-  //   () {
-  //     log("3 seconds passed | platform switched");
-  //   },
-  // );
-
   List _mergeResults(List itemsList) {
     List results = [];
     int maxLength = 0;
@@ -3449,8 +2394,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     while (mainCounter < maxLength) {
       for (int i = 0; i < itemsList.length; i++) {
         if (mainCounter < itemsList[i].length) {
-          // log("regex slash: ${itemsList[i][mainCounter]['link'].toString()} | ${endsWithSlash.hasMatch(itemsList[i][mainCounter]['link']).toString()}");
-
           // remove the trailing "/"
           if (endsWithSlash.hasMatch(itemsList[i][mainCounter]['link'])) {
             itemsList[i][mainCounter]['link'] = itemsList[i][mainCounter]
@@ -3467,45 +2410,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     return results;
   }
-
-  // _getWebpageHash(String link) async {
-  //   var response = await http.get(Uri.parse(link));
-  //   // log("hash0: ${response.statusCode}");
-  //   if (response.statusCode == 200) {
-  //     // Parse the HTML content
-  //     var document = parse(response.body);
-  //     // log("document: ${document.outerHtml}");
-
-  //     // // Inspect the meta-refresh tag
-  //     // var metaRefreshTag = document.querySelector('meta[http-equiv="Refresh"]');
-  //     // log("metaRefreshTag: $metaRefreshTag");
-  //     // if (metaRefreshTag != null) {
-  //     //   // Extract the "content" attribute value, which contains the redirect URL
-  //     //   var content = metaRefreshTag.attributes['content'];
-
-  //     //   // Extract the URL from the "content" attribute value
-  //     //   var redirectUrl = content?.split(';')[1].trim().substring(4);
-
-  //     //   // The web page is being client-side redirected
-  //     //   print('Redirect URL: $redirectUrl');
-  //     // }
-
-  //     // Convert the content to string
-  //     String content = utf8.decode(response.bodyBytes);
-  //     // log("hash1: $content");
-
-  //     // Generate an MD5 hash of the content
-  //     var hash = md5.convert(utf8.encode(content));
-  //     log("hash: $hash | link: $link");
-  //     return hash;
-
-  //     // Return the hexadecimal representation of the hash
-  //     // return hash.toString();
-  //   } else {
-  //     throw Exception(
-  //         'Failed to fetch web page content: ${response.statusCode}');
-  //   }
-  // }
 
   _toggleGeneralResults(String type) async {
     log("type: $type |${URLs[_searchText][_currentSearchPlatform]['original']}");
@@ -3550,15 +2454,9 @@ class _WebViewContainerState extends State<WebViewContainer>
         return mergedResults;
       case "Frequency":
         log("frqeuency merge");
+
         // merge identical results
         Map webpageFrequency = {};
-        // for (int i = 0; i < mergedResults.length; i++) {
-        //   if (webpageFrequency[mergedResults[i]["link"]] == null) {
-        //     webpageFrequency[mergedResults[i]["link"]] = 1;
-        //   } else {
-        //     webpageFrequency[mergedResults[i]["link"]] += 1;
-        //   }
-        // }
 
         for (int i = 0; i < mergedResults.length; i++) {
           if (webpageFrequency[mergedResults[i]["link"]] == null) {
@@ -3620,7 +2518,6 @@ class _WebViewContainerState extends State<WebViewContainer>
 
           http://admission.cuhk.edu.hk: {snippet: Undergraduate Admissions - The Chinese University of Hong Kong (CUHK) 11. Professors Named. Most Highly Cited Researchers. 70 +. undergraduate. major programmes. No. 1. Asia Pacific's Most., rank: [3], score: 4.888888888888888},
           https://admission.cuhk.edu.hk: {snippet: Getting Started · See Yourself in Us · Where Your Dream Can Be Found · A Day in CUHK · News and Activities., rank: [5], score: 2.933333333333333}
-
           */
 
         Map webpageScore = {};
@@ -4041,17 +2938,8 @@ class _WebViewContainerState extends State<WebViewContainer>
         URLs[_searchText][_currentSearchPlatform] == null ||
         refresh) {
       log("null OR refresh");
-      var items;
       // merge search (search on all platforms)
-      // if (_currentSearchPlatform == "Text") {
-      items = await _mergeSearch(_currentSearchPlatform);
-      // }
-
-      // only on one platform
-      // else {
-      //   items = await _performSearch(_searchText, _currentSearchPlatform);
-      //   log("_currentSearchPlatform 2 $_currentSearchPlatform");
-      // }
+      var items = await _mergeSearch(_currentSearchPlatform);
       await _updateURLs('replace', _searchText, _currentSearchPlatform, items);
     } else {
       log("not null");
@@ -4067,14 +2955,10 @@ class _WebViewContainerState extends State<WebViewContainer>
 
     await _moveSwiper();
 
-    // log(
-    //     "animate to: ${_activatedSearchPlatforms.indexOf(_currentSearchPlatform)}");
     log("_activatedSearchPlatforms: $_activatedSearchPlatforms");
     if (!newSearch && _activatedSearchPlatforms.length > 1) {
       log("animate to: ${_activatedSearchPlatforms.keys.toList().indexOf(_currentSearchPlatform)}");
       await _preloadPlatformController.animateToPage(
-          // _activatedSearchPlatforms
-          //     .indexOf(_currentSearchPlatform),
           _activatedSearchPlatforms.keys
               .toList()
               .indexOf(_currentSearchPlatform),
@@ -4101,52 +2985,29 @@ class _WebViewContainerState extends State<WebViewContainer>
       setState(() {
         _searchText = key.toString();
         _currentSearchPlatform = lastViewedPlatform;
-        // _activatedSearchPlatforms[lastViewedPlatform] = GlobalKey();
-        // _activatedSearchPlatforms.
       });
 
       _updateCurrentURLs();
 
-      // await _preloadPlatformController.animateToPage(
-      //     // _activatedSearchPlatforms.indexOf(lastViewedPlatform),
-      //     _activatedSearchPlatforms.keys.toList().indexOf(lastViewedPlatform),
-      //     duration: const Duration(milliseconds: 300),
-      //     curve: Curves.easeIn);
       _preloadPlatformController.jumpToPage(
           _activatedSearchPlatforms.keys.toList().indexOf(lastViewedPlatform));
 
       log("before ${lastViewedPlatform} | ${_activatedSearchPlatforms[lastViewedPlatform]}");
       setState(() {
-        // _currentPreloadPageKey = GlobalKey();
-        // _testPreloadPageKey = GlobalKey();
         _activatedSearchPlatforms[lastViewedPlatform] = GlobalKey();
       });
       log("after ${lastViewedPlatform} | ${_activatedSearchPlatforms[lastViewedPlatform]}");
 
-      // log("page before: ${_currentPreloadPageController.page}");
-
       // need 2 times
-      // if (_loadingPercentage != 100){
-
-      // }
-
-      await _testPreloadPageController.animateToPage(lastViewedIndex,
+      await _preloadPageController.animateToPage(lastViewedIndex,
           duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
 
-      // _testPreloadPageController.jumpToPage(lastViewedIndex);
-
-      await _testPreloadPageController.animateToPage(lastViewedIndex,
+      await _preloadPageController.animateToPage(lastViewedIndex,
           duration: const Duration(milliseconds: 300), curve: Curves.easeIn);
 
       setState(() {
-        // _currentURLIndex = lastViewedIndex;
-        // _currentWebViewTitle = _currentURLs[lastViewedIndex]!['title'];
-        // _currentWebViewController = _webViewControllers[lastViewedIndex];
         _marqueeKey = UniqueKey();
       });
-
-      // log("page after: ${_currentPreloadPageController.page}");
-      // log("page after: ${_testPreloadPageController.page}");
     }
 
     double position = 0;
@@ -4181,13 +3042,7 @@ class _WebViewContainerState extends State<WebViewContainer>
           visualDensity: VisualDensity(horizontal: 0, vertical: -4),
           // dense: true,
           horizontalTitleGap: 0,
-          leading:
-              // const FaIcon(
-              //   FontAwesomeIcons.arrowTrendDown,
-              //   size: 18,
-              //   color: Colors.black87,
-              // ),
-              const Icon(FontAwesome.arrow_trend_down, size: 18),
+          leading: const Icon(FontAwesome.arrow_trend_down, size: 18),
 
           title: Text(
               "${key.toString()} ($lastViewedPlatform #${lastViewedIndex + 1})"),
@@ -4337,27 +3192,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                   Navigator.pop(context);
                 },
               ),
-              // ListTile(
-              //   trailing: _selectedPageIndex == 1
-              //       ? Icon(Icons.history, color: Colors.blue[900])
-              //       : const Icon(Icons.history_outlined),
-              //   title: const Text('History'),
-              //   onTap: () {
-              //     _onItemTapped(1);
-              //     Navigator.pop(context);
-              //     _pushHistoryPage();
-              //   },
-              // ),
-              // ListTile(
-              //   trailing: _selectedPageIndex == 2
-              //       ? Icon(Icons.bookmark, color: Colors.blue[900])
-              //       : const Icon(Icons.bookmark_outline),
-              //   title: const Text('Bookmarked'),
-              //   onTap: () {
-              //     _onItemTapped(2);
-              //     Navigator.pop(context);
-              //   },
-              // ),
               ListTile(
                 trailing: _selectedPageIndex == 1
                     ? Icon(Icons.settings, color: Colors.blue[900])
@@ -4437,15 +3271,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                     feedback: Container(
                       width: 30,
                       height: 30,
-                      // margin: EdgeInsets.all(0),
-                      // padding: EdgeInsets.only(right: 20),
-                      // decoration: BoxDecoration(
-                      //     borderRadius: BorderRadius.circular(0),
-                      //     border:
-                      //         Border.all(width: 2, color: Colors.blue[900]!)),
-                      // child: RotationTransition(
-                      //   turns: new AlwaysStoppedAnimation(-45 / 360),
-                      //   child: FittedBox(
                       child: Transform(
                         transform: Matrix4.translationValues(-15, 5, 0)
                           ..rotateZ(-30 * 3.1415927 / 180),
@@ -4459,35 +3284,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                         ),
                       ),
                     ),
-
-                    // FloatingActionButton.extended(
-                    //   isExtended: true,
-                    //   label: Text("123"),
-                    //   onPressed: () {
-                    //     if (_searchMode == "Default") {
-                    //       log("drill ONCE");
-                    //       // drill logic
-                    //     } else {
-                    //       log("already in drill-down mode");
-                    //     }
-                    //   },
-                    //   backgroundColor: _fabColor,
-                    //   splashColor: Colors.amber[100],
-                    // child: AnimatedBuilder(
-                    //   animation: _drillingAnimationController,
-                    //   builder: (_, child) {
-                    //     return Transform.rotate(
-                    //       angle: _drilling
-                    //           ? _drillingAnimationController.value *
-                    //               2 *
-                    //               math.pi
-                    //           : 0.0,
-                    //       child: child,
-                    //     );
-                    //   },
-                    //   child: const Icon(MyFlutterApp.drill),
-                    // ),
-                    // ),
                     childWhenDragging: Container(),
                     onDragStarted: () {
                       setState(() {
@@ -4510,10 +3306,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                       double webViewY = webViewPosition.dy;
                       double webViewWidth = webViewBox.size.width;
                       double webViewHeight = webViewBox.size.height;
-
-                      // log(
-                      //     "webViewX: $webViewPosition.dx, webViewY: $webViewPosition.dy, webViewHeight: $webViewHeight");
-                      // log(details.offset);
 
                       setState(() {
                         if (details.offset.dx < webViewX) {
@@ -4541,56 +3333,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                         }
                       });
 
-                      // log("hoverX: $_hoverX, hoverY: $_hoverY");
-
-                      // await _controller_test!.runJavascript("""
-                      //     var x = window.innerWidth/2;
-                      //     var y = window.innerHeight/2;
-                      //     var centre = document.elementFromPoint($_hoverX, $_hoverY);
-                      //     Drill.postMessage(centre.innerText);
-                      //   """);
-
                       // _hoverY >= 0 ? await _getSearchQuery() : log("cancel");
                       _hoverY >= 0 ? _performDrill() : log("cancel");
                     },
-                    child:
-                        // FloatingActionButton(
-                        //   onPressed: () {
-                        //     log("fab tapped");
-                        //     // _changeSearchPlatform();
-
-                        //     // // count down 5 seconds
-                        //     // if (_autoSwitchPlatform == 1) {
-                        //     //   if (_platformActivationTimer == null) {
-                        //     //     _platformActivationTimer = RestartableTimer(
-                        //     //         const Duration(seconds: 2), () async {
-                        //     //       _normalSearch();
-                        //     //     });
-                        //     //   } else {
-                        //     //     _platformActivationTimer!.reset();
-                        //     //   }
-                        //     // }
-                        //   },
-                        //   // label: Text(_currentSearchPlatform),
-                        //   backgroundColor: _fabColor,
-                        //   splashColor: Colors.amber[100],
-                        //   child: const Icon(MyFlutterApp.drill),
-                        //   // child: AnimatedBuilder(
-                        //   //   animation: _drillingAnimationController,
-                        //   //   builder: (_, child) {
-                        //   //     return Transform.rotate(
-                        //   //       angle: _drilling
-                        //   //           ? _drillingAnimationController.value *
-                        //   //               2 *
-                        //   //               math.pi
-                        //   //           : 0.0,
-                        //   //       child: child,
-                        //   //     );
-                        //   //   },
-                        //   //   child: const Icon(MyFlutterApp.drill),
-                        //   // ),
-                        // ),
-                        SpeedDial(
+                    child: SpeedDial(
                       spacing: 10,
                       spaceBetweenChildren: 10,
                       openCloseDial: _isDialOpen,
@@ -4672,13 +3418,14 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                 ],
                                                 onPressed: (int index) async {
                                                   log("pressed ${GeneralMergeAlgorithmList[index]}");
+                                                  Navigator.pop(context);
+
                                                   switch (
                                                       _currentSearchPlatform) {
                                                     case "General":
                                                       if (_mergeAlgorithm ==
                                                           GeneralMergeAlgorithmList[
                                                               index]) {
-                                                        Navigator.pop(context);
                                                         return;
                                                       }
 
@@ -4697,8 +3444,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         GeneralMergeAlgorithmList[
                                                             index],
                                                       );
-
-                                                      Navigator.pop(context);
 
                                                       log("on99: ${URLs[_searchText][_currentSearchPlatform]['raw']}");
                                                       List results = _reRank(
@@ -4724,7 +3469,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       if (_videoMergeAlgorithm ==
                                                           VideoMergeAlgorithmList[
                                                               index]) {
-                                                        Navigator.pop(context);
                                                         return;
                                                       }
 
@@ -4743,8 +3487,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         VideoMergeAlgorithmList[
                                                             index],
                                                       );
-
-                                                      Navigator.pop(context);
 
                                                       List results = _reRank(
                                                           _videoMergeAlgorithm,
@@ -4852,139 +3594,142 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                 scrollable: true,
                                                 title: const Text(
                                                     'Re-rank results by'),
-                                                content: ToggleButtons(
-                                                  direction: Axis.vertical,
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(8)),
-                                                  isSelected: _currentSearchPlatform ==
-                                                          "General"
-                                                      ? GeneralMergeAlgorithmList
-                                                          .map((e) => e ==
-                                                                  _mergeAlgorithm
-                                                              ? true
-                                                              : false).toList()
-                                                      : _currentSearchPlatform ==
-                                                              "Video"
-                                                          ? VideoMergeAlgorithmList
-                                                              .map((e) => e ==
-                                                                      _videoMergeAlgorithm
-                                                                  ? true
-                                                                  : false).toList()
-                                                          : [],
-                                                  children: [
-                                                    ..._currentSearchPlatform ==
+                                                content: SizedBox(
+                                                  width: MediaQuery.of(context)
+                                                      .size
+                                                      .width,
+                                                  child: ToggleButtons(
+                                                    direction: Axis.vertical,
+                                                    borderRadius:
+                                                        const BorderRadius.all(
+                                                            Radius.circular(8)),
+                                                    isSelected: _currentSearchPlatform ==
                                                             "General"
                                                         ? GeneralMergeAlgorithmList
-                                                                .map((e) =>
-                                                                    Text(e))
+                                                                .map((e) => e ==
+                                                                        _mergeAlgorithm
+                                                                    ? true
+                                                                    : false)
                                                             .toList()
                                                         : _currentSearchPlatform ==
                                                                 "Video"
                                                             ? VideoMergeAlgorithmList
-                                                                    .map((e) =>
-                                                                        Text(e))
-                                                                .toList()
-                                                            : []
-                                                  ],
-                                                  onPressed: (int index) async {
-                                                    log("pressed ${GeneralMergeAlgorithmList[index]}");
-                                                    switch (
-                                                        _currentSearchPlatform) {
-                                                      case "General":
-                                                        if (_mergeAlgorithm ==
-                                                            GeneralMergeAlgorithmList[
-                                                                index]) {
-                                                          Navigator.pop(
-                                                              context);
-                                                          return;
-                                                        }
+                                                                .map((e) => e ==
+                                                                        _videoMergeAlgorithm
+                                                                    ? true
+                                                                    : false).toList()
+                                                            : [],
+                                                    children: [
+                                                      ..._currentSearchPlatform ==
+                                                              "General"
+                                                          ? GeneralMergeAlgorithmList
+                                                                  .map((e) =>
+                                                                      Text(e))
+                                                              .toList()
+                                                          : _currentSearchPlatform ==
+                                                                  "Video"
+                                                              ? VideoMergeAlgorithmList
+                                                                      .map((e) =>
+                                                                          Text(
+                                                                              e))
+                                                                  .toList()
+                                                              : []
+                                                    ],
+                                                    onPressed:
+                                                        (int index) async {
+                                                      log("pressed ${GeneralMergeAlgorithmList[index]}");
+                                                      Navigator.pop(context);
 
-                                                        setState(() {
-                                                          _mergeAlgorithm =
+                                                      switch (
+                                                          _currentSearchPlatform) {
+                                                        case "General":
+                                                          if (_mergeAlgorithm ==
                                                               GeneralMergeAlgorithmList[
-                                                                  index];
-                                                        });
+                                                                  index]) {
+                                                            return;
+                                                          }
 
-                                                        final prefs =
-                                                            await SharedPreferences
-                                                                .getInstance();
+                                                          setState(() {
+                                                            _mergeAlgorithm =
+                                                                GeneralMergeAlgorithmList[
+                                                                    index];
+                                                          });
 
-                                                        await prefs.setString(
-                                                          "generalMergeAlgorithm",
-                                                          GeneralMergeAlgorithmList[
-                                                              index],
-                                                        );
+                                                          final prefs =
+                                                              await SharedPreferences
+                                                                  .getInstance();
 
-                                                        Navigator.pop(context);
+                                                          await prefs.setString(
+                                                            "generalMergeAlgorithm",
+                                                            GeneralMergeAlgorithmList[
+                                                                index],
+                                                          );
 
-                                                        List results = _reRank(
-                                                            _mergeAlgorithm,
-                                                            URLs[_searchText][
-                                                                    _currentSearchPlatform]
-                                                                ["raw"],
-                                                            _enabledGeneralPlatforms
-                                                                .length);
+                                                          List results = _reRank(
+                                                              _mergeAlgorithm,
+                                                              URLs[_searchText][
+                                                                      _currentSearchPlatform]
+                                                                  ["raw"],
+                                                              _enabledGeneralPlatforms
+                                                                  .length);
 
-                                                        log("reranked results: $results");
+                                                          log("reranked results: $results");
 
-                                                        await _updateURLs(
-                                                            'replace',
-                                                            _searchText,
-                                                            _currentSearchPlatform,
-                                                            results);
-                                                        await _updateCurrentURLs();
-                                                        await _moveSwiper();
+                                                          await _updateURLs(
+                                                              'replace',
+                                                              _searchText,
+                                                              _currentSearchPlatform,
+                                                              results);
+                                                          await _updateCurrentURLs();
+                                                          await _moveSwiper();
 
-                                                        break;
-                                                      case "Video":
-                                                        if (_videoMergeAlgorithm ==
-                                                            VideoMergeAlgorithmList[
-                                                                index]) {
-                                                          Navigator.pop(
-                                                              context);
-                                                          return;
-                                                        }
-
-                                                        setState(() {
-                                                          _videoMergeAlgorithm =
+                                                          break;
+                                                        case "Video":
+                                                          if (_videoMergeAlgorithm ==
                                                               VideoMergeAlgorithmList[
-                                                                  index];
-                                                        });
+                                                                  index]) {
+                                                            return;
+                                                          }
 
-                                                        final prefs =
-                                                            await SharedPreferences
-                                                                .getInstance();
+                                                          setState(() {
+                                                            _videoMergeAlgorithm =
+                                                                VideoMergeAlgorithmList[
+                                                                    index];
+                                                          });
 
-                                                        await prefs.setString(
-                                                          "videoMergeAlgorithm",
-                                                          VideoMergeAlgorithmList[
-                                                              index],
-                                                        );
+                                                          final prefs =
+                                                              await SharedPreferences
+                                                                  .getInstance();
 
-                                                        Navigator.pop(context);
+                                                          await prefs.setString(
+                                                            "videoMergeAlgorithm",
+                                                            VideoMergeAlgorithmList[
+                                                                index],
+                                                          );
 
-                                                        List results = _reRank(
-                                                            _videoMergeAlgorithm,
-                                                            URLs[_searchText][
-                                                                    _currentSearchPlatform]
-                                                                ["raw"],
-                                                            _enabledVideoPlatforms
-                                                                .length);
+                                                          List results = _reRank(
+                                                              _videoMergeAlgorithm,
+                                                              URLs[_searchText][
+                                                                      _currentSearchPlatform]
+                                                                  ["raw"],
+                                                              _enabledVideoPlatforms
+                                                                  .length);
 
-                                                        log("reranked results: $results");
+                                                          log("reranked results: $results");
 
-                                                        await _updateURLs(
-                                                            'replace',
-                                                            _searchText,
-                                                            _currentSearchPlatform,
-                                                            results);
-                                                        await _updateCurrentURLs();
-                                                        await _moveSwiper();
+                                                          await _updateURLs(
+                                                              'replace',
+                                                              _searchText,
+                                                              _currentSearchPlatform,
+                                                              results);
+                                                          await _updateCurrentURLs();
+                                                          await _moveSwiper();
 
-                                                        break;
-                                                    }
-                                                  },
+                                                          break;
+                                                      }
+                                                      EasyLoading.dismiss();
+                                                    },
+                                                  ),
                                                 ),
                                               );
                                             },
@@ -5008,66 +3753,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                           // child: PieCanvas(
                           child: Stack(
                             children: <Widget>[
-                              // WebView
-                              // Expanded(
-                              // child:
-                              // GestureDetector(
-                              //   onTap: () {
-                              //     log("webview tapped");
-                              //   },
-                              //   onLongPress: () {
-                              //     log("webview long pressed");
-                              //   },
-
                               // TODO: show currently searching image
-                              // if (_currentImage != null)
-                              //   Positioned(
-                              //     top: 0,
-                              //     child: Image.file(
-                              //       File(_currentImage.path),
-                              //       fit: BoxFit.cover,
-                              //       width: MediaQuery.of(context).size.width,
-                              //       height: MediaQuery.of(context).size.height,
-                              //     ),
-                              //   ),
-
-                              // TabBar(
-                              //   tabs: [
-                              //     Tab(icon: Icon(Icons.directions_car)),
-                              //     Tab(icon: Icon(Icons.directions_transit)),
-                              //     Tab(icon: Icon(Icons.directions_bike)),
-                              //   ],
-                              // ),
-                              // Positioned(
-                              //   top: 0,
-                              //   width: MediaQuery.of(context).size.width,
-                              //   child: Padding(
-                              //     padding: const EdgeInsets.only(
-                              //         left: 16.0, right: 16.0, bottom: 16.0),
-                              //     child: SegmentedButton(
-                              //       // key: _platformsKey,
-                              //       segments: GeneralResultType.map(
-                              //         (e) => ButtonSegment(
-                              //           value: e,
-                              //           label: Text(e),
-                              //           // icon: widget.platformIconBuilder(e),
-                              //         ),
-                              //       ).toList(),
-                              //       selected: {_generalResultType},
-                              //       onSelectionChanged: (newSelection) {
-                              //         log("newSelection $newSelection");
-
-                              //         setState(() {
-                              //           // By default there is only a single segment that can be
-                              //           // selected at one time, so its value is always the first
-                              //           // item in the selected set.
-                              //           _generalResultType =
-                              //               newSelection.first.toString();
-                              //         });
-                              //       },
-                              //     ),
-                              //   ),
-                              // ),
 
                               // Title Bar
                               Positioned(
@@ -5101,9 +3787,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 ),
                               ),
 
-                              // WebView
-                              // Flexible(
-                              //   child:
                               Padding(
                                 padding: EdgeInsets.only(
                                   top: 30,
@@ -5115,12 +3798,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   onPageChanged: (value) {
                                     log("platform changed: $value");
                                     log("${URLs[_searchText][SearchPlatformList[value]]}");
-                                    // setState(() {
-                                    //   _currentPreloadPageController =
-                                    //       _preloadPageControllers[value];
-                                    //   _currentPreloadPageKey =
-                                    //       _preloadPageKeys[value];
-                                    // });
                                   },
                                   scrollDirection: Axis.vertical,
                                   physics: const NeverScrollableScrollPhysics(),
@@ -5132,7 +3809,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                           int platformPosition) =>
                                       _buildPlatform(context, platformPosition),
                                 ),
-                                // ),
                               ),
 
                               // Bottom Bar
@@ -5216,14 +3892,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                         ),
                                                       );
                                                     },
-                                                    icon:
-                                                        // FaIcon(
-                                                        //   FontAwesomeIcons.stairs,
-                                                        //   size: 20,
-                                                        // ),
-                                                        const Icon(
-                                                            FontAwesome.stairs,
-                                                            size: 20),
+                                                    icon: const Icon(
+                                                        FontAwesome.stairs,
+                                                        size: 20),
                                                   ),
                                                   IconButton(
                                                     key: _firstResultButtonKey,
@@ -5231,26 +3902,15 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       if (_currentURLIndex >
                                                           0) {
                                                         log("jump to first page");
-                                                        // setState(() {
-                                                        //   _swipe = true;
-                                                        // });
 
-                                                        _testPreloadPageController
+                                                        _preloadPageController
                                                             .jumpToPage(0);
-                                                        // _currentPreloadPageController
-                                                        //     .jumpToPage(0);
                                                       }
                                                     },
-                                                    icon:
-                                                        // const FaIcon(
-                                                        //   FontAwesomeIcons
-                                                        //       .backwardFast,
-                                                        //   size: 20,
-                                                        // ),
-                                                        const Icon(
-                                                            FontAwesome
-                                                                .backward_fast,
-                                                            size: 20),
+                                                    icon: const Icon(
+                                                        FontAwesome
+                                                            .backward_fast,
+                                                        size: 20),
                                                   ),
                                                   IconButton(
                                                     key: _backButtonKey,
@@ -5258,15 +3918,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       await _currentWebViewController!
                                                           .goBack();
                                                     },
-                                                    icon:
-                                                        // const FaIcon(
-                                                        //     FontAwesomeIcons
-                                                        //         .arrowLeft,
-                                                        //     size: 20),
-                                                        const Icon(
-                                                            FontAwesome
-                                                                .arrow_left,
-                                                            size: 20),
+                                                    icon: const Icon(
+                                                        FontAwesome.arrow_left,
+                                                        size: 20),
                                                   ),
                                                   IconButton(
                                                     key: _shareButtonKey,
@@ -5281,16 +3935,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                                                       await Share.share(
                                                           '${title!}\n${url!}');
                                                     },
-                                                    icon:
-                                                        // const FaIcon(
-                                                        //     FontAwesomeIcons
-                                                        //         .shareNodes,
-                                                        //     size: 20),
-
-                                                        const Icon(
-                                                            FontAwesome
-                                                                .share_nodes,
-                                                            size: 20),
+                                                    icon: const Icon(
+                                                        FontAwesome.share_nodes,
+                                                        size: 20),
                                                   ),
                                                 ],
                                               ),
@@ -5408,8 +4055,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   period: const Duration(milliseconds: 150),
                                   listener: (details) async {
                                     log("joystick:  ${details.x}, ${details.y}");
-                                    // _joystickX = details.x;
-                                    // _joystickY = details.y;
+
                                     var posX = _reverseJoystick
                                         ? details.x * -1
                                         : details.x;
@@ -5417,20 +4063,17 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       log("next");
                                       if (_currentURLIndex <
                                           _currentURLs.length - 1) {
-                                        // await _currentPreloadPageController
-                                        await _testPreloadPageController
-                                            .nextPage(
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                curve: Curves.easeIn);
+                                        await _preloadPageController.nextPage(
+                                            duration: const Duration(
+                                                milliseconds: 200),
+                                            curve: Curves.easeIn);
                                       }
                                     } else if (posX < -0.5) {
                                       log("prev");
                                       if (_currentURLIndex > 0) {
                                         log("decrease");
 
-                                        // await _currentPreloadPageController
-                                        await _testPreloadPageController
+                                        await _preloadPageController
                                             .previousPage(
                                                 duration: const Duration(
                                                     milliseconds: 200),
@@ -5554,67 +4197,6 @@ class _WebViewContainerState extends State<WebViewContainer>
       ),
     );
   }
-
-//   _performImageSearch(image, path) async {
-//     // final snackBar = SnackBar(
-//     //   content: Text("image $image"),
-//     //   duration: const Duration(seconds: 3),
-//     // );
-//     // ScaffoldMessenger.of(context).showSnackBar(snackBar);
-//     log("image search 1");
-//     if (image != null) {
-//       log("image search 2");
-
-//       // // _updateCurrentImage(image);
-//       // log("image search 3");
-
-//       EasyLoading.show(
-//         status: 'Perform Image Search',
-//       );
-
-//       // // try OCR first
-//       // var resultsOCR = await _imageSearchGoogle(image, path, "text_detection");
-//       // log("OCR:$resultsOCR");
-//       // // log("OCR toString: :${resultsOCR.toString()}");
-
-//       // log("image search 4");
-
-//       // // EasyLoading.show(
-//       // //   // status: 'Perform Image Search',
-//       // //   status: "Searching on Google",
-//       // // );
-
-//       // var keywords = _extractKeywords(resultsOCR.toString());
-//       // log("OCR extracted: $keywords");
-
-//       // return;
-
-//       var resultsGoogle, resultsBing;
-//       resultsGoogle = await _imageSearchGoogle(image, path, "text_detection");
-//       log("image search 5");
-//       log("image search results Google: $resultsGoogle");
-
-//       EasyLoading.show(
-//         status: 'Searching on Bing',
-//       );
-//       resultsBing = await _imageSearch(image, path);
-//       log("image search 6");
-//       log("image search results Bing: $resultsBing");
-
-//       EasyLoading.show(
-//         status: 'Merging Results',
-//       );
-//       String keyword = resultsGoogle["bestGuessLabel"];
-//       var results = _mergeResults([resultsGoogle['urls'], resultsBing['urls']]);
-//       log("image search results: $results");
-//       await _updateURLs("replace", keyword, "Webpage", results, true);
-
-//       await _updateCurrentURLs();
-//       EasyLoading.dismiss();
-
-//       await _moveSwiper(true);
-//     }
-//   }
 }
 
 // flutter pub run build_runner build
