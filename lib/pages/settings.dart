@@ -206,45 +206,48 @@ class _SettingsPageState extends State<SettingsPage> {
                                 return AlertDialog(
                                   scrollable: true,
                                   title: const Text('Extraction Method'),
-                                  content: ToggleButtons(
-                                    direction: Axis.vertical,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(8)),
-                                    isSelected: _selectedExtractionMethods,
-                                    children: [
-                                      ...widget.SearchAlgorithmList.map(
-                                          (e) => Text(e)).toList(),
-                                    ],
-                                    onPressed: (int index) async {
-                                      setAlertState(() {
-                                        // The button that is tapped is set to true, and the others to false.
-                                        for (int i = 0;
-                                            i <
-                                                _selectedExtractionMethods
-                                                    .length;
-                                            i++) {
-                                          _selectedExtractionMethods[i] =
-                                              i == index;
-                                        }
-                                      });
+                                  content: SizedBox(
+                                    width: MediaQuery.of(context).size.width,
+                                    child: ToggleButtons(
+                                      direction: Axis.vertical,
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(8)),
+                                      isSelected: _selectedExtractionMethods,
+                                      children: [
+                                        ...widget.SearchAlgorithmList.map(
+                                            (e) => Text(e)).toList(),
+                                      ],
+                                      onPressed: (int index) async {
+                                        setAlertState(() {
+                                          // The button that is tapped is set to true, and the others to false.
+                                          for (int i = 0;
+                                              i <
+                                                  _selectedExtractionMethods
+                                                      .length;
+                                              i++) {
+                                            _selectedExtractionMethods[i] =
+                                                i == index;
+                                          }
+                                        });
 
-                                      log("selected: ${SearchAlgorithmList[index]}");
+                                        log("selected: ${SearchAlgorithmList[index]}");
 
-                                      widget.updateSearchAlgorithm(
-                                          SearchAlgorithmList[index]);
+                                        widget.updateSearchAlgorithm(
+                                            SearchAlgorithmList[index]);
 
-                                      setState(() {
-                                        _searchAlgorithm =
-                                            SearchAlgorithmList[index];
-                                      });
+                                        setState(() {
+                                          _searchAlgorithm =
+                                              SearchAlgorithmList[index];
+                                        });
 
-                                      await widget.prefs.setString(
-                                        "searchAlgorithm",
-                                        SearchAlgorithmList[index],
-                                      );
+                                        await widget.prefs.setString(
+                                          "searchAlgorithm",
+                                          SearchAlgorithmList[index],
+                                        );
 
-                                      Navigator.pop(context);
-                                    },
+                                        Navigator.pop(context);
+                                      },
+                                    ),
                                   ),
                                 );
                               },
@@ -274,43 +277,47 @@ class _SettingsPageState extends State<SettingsPage> {
                                 return AlertDialog(
                                   scrollable: true,
                                   title: const Text('General Merge Algorithm'),
-                                  content: ToggleButtons(
-                                    direction: Axis.vertical,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(8)),
-                                    isSelected: _selectedGeneralMergeAlgorithms,
-                                    children: [
-                                      ...widget.GeneralMergeAlgorithmList.map(
-                                          (e) => Text(e)).toList(),
-                                    ],
-                                    onPressed: (int index) async {
-                                      setAlertState(() {
-                                        // The button that is tapped is set to true, and the others to false.
-                                        for (int i = 0;
-                                            i <
-                                                _selectedGeneralMergeAlgorithms
-                                                    .length;
-                                            i++) {
-                                          _selectedGeneralMergeAlgorithms[i] =
-                                              i == index;
-                                        }
-                                      });
+                                  content: SizedBox(
+                                    width: MediaQuery.of(context).size.width,
+                                    child: ToggleButtons(
+                                      direction: Axis.vertical,
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(8)),
+                                      isSelected:
+                                          _selectedGeneralMergeAlgorithms,
+                                      children: [
+                                        ...widget.GeneralMergeAlgorithmList.map(
+                                            (e) => Text(e)).toList(),
+                                      ],
+                                      onPressed: (int index) async {
+                                        setAlertState(() {
+                                          // The button that is tapped is set to true, and the others to false.
+                                          for (int i = 0;
+                                              i <
+                                                  _selectedGeneralMergeAlgorithms
+                                                      .length;
+                                              i++) {
+                                            _selectedGeneralMergeAlgorithms[i] =
+                                                i == index;
+                                          }
+                                        });
 
-                                      widget.updateGeneralMergeAlgorithm(
-                                          GeneralMergeAlgorithmList[index]);
+                                        widget.updateGeneralMergeAlgorithm(
+                                            GeneralMergeAlgorithmList[index]);
 
-                                      setState(() {
-                                        _generalMergeAlgorithm =
-                                            GeneralMergeAlgorithmList[index];
-                                      });
+                                        setState(() {
+                                          _generalMergeAlgorithm =
+                                              GeneralMergeAlgorithmList[index];
+                                        });
 
-                                      await widget.prefs.setString(
-                                        "generalMergeAlgorithm",
-                                        GeneralMergeAlgorithmList[index],
-                                      );
+                                        await widget.prefs.setString(
+                                          "generalMergeAlgorithm",
+                                          GeneralMergeAlgorithmList[index],
+                                        );
 
-                                      Navigator.pop(context);
-                                    },
+                                        Navigator.pop(context);
+                                      },
+                                    ),
                                   ),
                                 );
                               },
@@ -340,43 +347,46 @@ class _SettingsPageState extends State<SettingsPage> {
                                 return AlertDialog(
                                   scrollable: true,
                                   title: const Text('Video Merge Algorithm'),
-                                  content: ToggleButtons(
-                                    direction: Axis.vertical,
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(8)),
-                                    isSelected: _selectedVideoMergeAlgorithms,
-                                    children: [
-                                      ...widget.VideoMergeAlgorithmList.map(
-                                          (e) => Text(e)).toList(),
-                                    ],
-                                    onPressed: (int index) async {
-                                      setAlertState(() {
-                                        // The button that is tapped is set to true, and the others to false.
-                                        for (int i = 0;
-                                            i <
-                                                _selectedVideoMergeAlgorithms
-                                                    .length;
-                                            i++) {
-                                          _selectedVideoMergeAlgorithms[i] =
-                                              i == index;
-                                        }
-                                      });
+                                  content: SizedBox(
+                                    width: MediaQuery.of(context).size.width,
+                                    child: ToggleButtons(
+                                      direction: Axis.vertical,
+                                      borderRadius: const BorderRadius.all(
+                                          Radius.circular(8)),
+                                      isSelected: _selectedVideoMergeAlgorithms,
+                                      children: [
+                                        ...widget.VideoMergeAlgorithmList.map(
+                                            (e) => Text(e)).toList(),
+                                      ],
+                                      onPressed: (int index) async {
+                                        setAlertState(() {
+                                          // The button that is tapped is set to true, and the others to false.
+                                          for (int i = 0;
+                                              i <
+                                                  _selectedVideoMergeAlgorithms
+                                                      .length;
+                                              i++) {
+                                            _selectedVideoMergeAlgorithms[i] =
+                                                i == index;
+                                          }
+                                        });
 
-                                      widget.updateGeneralMergeAlgorithm(
-                                          VideoMergeAlgorithmList[index]);
+                                        widget.updateGeneralMergeAlgorithm(
+                                            VideoMergeAlgorithmList[index]);
 
-                                      setState(() {
-                                        _videoMergeAlgorithm =
-                                            VideoMergeAlgorithmList[index];
-                                      });
+                                        setState(() {
+                                          _videoMergeAlgorithm =
+                                              VideoMergeAlgorithmList[index];
+                                        });
 
-                                      await widget.prefs.setString(
-                                        "videoMergeAlgorithm",
-                                        VideoMergeAlgorithmList[index],
-                                      );
+                                        await widget.prefs.setString(
+                                          "videoMergeAlgorithm",
+                                          VideoMergeAlgorithmList[index],
+                                        );
 
-                                      Navigator.pop(context);
-                                    },
+                                        Navigator.pop(context);
+                                      },
+                                    ),
                                   ),
                                 );
                               },

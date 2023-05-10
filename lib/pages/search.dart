@@ -415,140 +415,143 @@ class _SearchPageState extends State<SearchPage> {
           builder: (BuildContext context) => AlertDialog(
             scrollable: true,
             title: const Text('Are you looking for one of these?'),
-            content: Column(
-              children: <Widget>[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: MultiSelectChipField(
-                    title: const Text(
-                      "Look for",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.white),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: Column(
+                children: <Widget>[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: MultiSelectChipField(
+                      title: const Text(
+                        "Look for",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      items: platforms,
+                      showHeader: true,
+                      scroll: false,
+                      validator: (value) {
+                        log("validating $value");
+                      },
+                      onTap: (values) {
+                        log("selected: $values");
+                        selectedPlatform = values.isNotEmpty
+                            ? values[values.length - 1].toString()
+                            : "";
+                        log("updated $selectedPlatform");
+                      },
                     ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    items: platforms,
-                    showHeader: true,
-                    scroll: false,
-                    validator: (value) {
-                      log("validating $value");
-                    },
-                    onTap: (values) {
-                      log("selected: $values");
-                      selectedPlatform = values.isNotEmpty
-                          ? values[values.length - 1].toString()
-                          : "";
-                      log("updated $selectedPlatform");
-                    },
                   ),
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: MultiSelectChipField(
-                    // key: selectKey,
-                    title: const Text(
-                      "Suggested Items",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    decoration: const BoxDecoration(
-                      border: null,
-                    ),
-                    items: keywords
-                        .map((keyword) => MultiSelectItem(
-                              keyword["urls"] ?? keyword["link"],
-                              keyword["bestGuessLabel"] ?? keyword["link"],
-                            ))
-                        .toList(),
-                    itemBuilder: (item, state) {
-                      return InkWell(
-                        onTap: () {
-                          log("selected: ${item.label}");
-                          if (selectedKeyword.contains(item.label)) {
-                            selectedKeyword.clear();
-                          } else {
-                            selectedKeyword.clear();
-                            selectedKeyword.add(item.label);
-                          }
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: MultiSelectChipField(
+                      // key: selectKey,
+                      title: const Text(
+                        "Suggested Items",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      decoration: const BoxDecoration(
+                        border: null,
+                      ),
+                      items: keywords
+                          .map((keyword) => MultiSelectItem(
+                                keyword["urls"] ?? keyword["link"],
+                                keyword["bestGuessLabel"] ?? keyword["link"],
+                              ))
+                          .toList(),
+                      itemBuilder: (item, state) {
+                        return InkWell(
+                          onTap: () {
+                            log("selected: ${item.label}");
+                            if (selectedKeyword.contains(item.label)) {
+                              selectedKeyword.clear();
+                            } else {
+                              selectedKeyword.clear();
+                              selectedKeyword.add(item.label);
+                            }
 
-                          log("selectedKeyword: ${selectedKeyword}");
+                            log("selectedKeyword: ${selectedKeyword}");
 
-                          state.didChange(selectedKeyword);
-                          // selectKey.currentState?.validate();
-                        },
-                        child: ClipRRect(
-                          // borderRadius: BorderRadius.circular(10),
-                          child: AnimatedContainer(
-                            // width: 100,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: selectedKeyword.contains(item.label)
-                                  ? const Color.fromRGBO(158, 158, 158, 0.475)
-                                  : Colors.transparent,
-                            ),
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Opacity(
-                                    opacity:
-                                        selectedKeyword.contains(item.label)
-                                            ? 0.5
-                                            : 1,
-                                    child: Image.network(
-                                      item.value.toString(),
-                                      // height: 100,
-                                      // width: 100,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                        if (loadingProgress == null) {
-                                          return child;
-                                        }
-                                        return const Center(
-                                          child: CircularProgressIndicator(),
-                                        );
-                                      },
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        log("error: $error");
-                                        return const Center(
-                                          child: Icon(Icons.error),
-                                        );
-                                      },
+                            state.didChange(selectedKeyword);
+                            // selectKey.currentState?.validate();
+                          },
+                          child: ClipRRect(
+                            // borderRadius: BorderRadius.circular(10),
+                            child: AnimatedContainer(
+                              // width: 100,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: selectedKeyword.contains(item.label)
+                                    ? const Color.fromRGBO(158, 158, 158, 0.475)
+                                    : Colors.transparent,
+                              ),
+                              duration: const Duration(milliseconds: 300),
+                              padding: const EdgeInsets.all(10),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Opacity(
+                                      opacity:
+                                          selectedKeyword.contains(item.label)
+                                              ? 0.5
+                                              : 1,
+                                      child: Image.network(
+                                        item.value.toString(),
+                                        // height: 100,
+                                        // width: 100,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                          if (loadingProgress == null) {
+                                            return child;
+                                          }
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          log("error: $error");
+                                          return const Center(
+                                            child: Icon(Icons.error),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  item.label,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(width: 10),
-                              ],
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    item.label,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                  const SizedBox(width: 10),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                    showHeader: false,
-                    scroll: false,
-                    // validator: (value) {
-                    //   log("value: $value");
-                    // },
-                    // onTap: (values) {
-                    //   log("selected: $values");
-                    //   // selectedKeywords = values.join(" ").trim();
-                    //   // log("updated $selecßtedKeywords");
-                    // },
+                        );
+                      },
+                      showHeader: false,
+                      scroll: false,
+                      // validator: (value) {
+                      //   log("value: $value");
+                      // },
+                      // onTap: (values) {
+                      //   log("selected: $values");
+                      //   // selectedKeywords = values.join(" ").trim();
+                      //   // log("updated $selecßtedKeywords");
+                      // },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             actions: <Widget>[
               TextButton(
@@ -636,103 +639,109 @@ class _SearchPageState extends State<SearchPage> {
               return AlertDialog(
                 scrollable: true,
                 title: const Text('Platforms to be searched on'),
-                content: ToggleButtons(
-                  direction: Axis.vertical,
-                  borderRadius: const BorderRadius.all(Radius.circular(8)),
-                  isSelected: tempEnabled,
-                  children: [
-                    ...temp
-                        .map(
-                          (e) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              children: [
-                                widget.platformIconBuilder(e),
-                                const SizedBox(width: 10),
-                                Text(e),
-                              ],
+                content: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: ToggleButtons(
+                    direction: Axis.vertical,
+                    borderRadius: const BorderRadius.all(Radius.circular(8)),
+                    isSelected: tempEnabled,
+                    children: [
+                      ...temp
+                          .map(
+                            (e) => Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                children: [
+                                  widget.platformIconBuilder(e),
+                                  const SizedBox(width: 10),
+                                  Text(e),
+                                ],
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
-                  ],
-                  onPressed: (int index) async {
-                    log("pressed $index | ${tempEnabled[index]} | ${tempEnabled.length} | $numOfEnabled");
+                          )
+                          .toList(),
+                    ],
+                    onPressed: (int index) async {
+                      log("pressed $index | ${tempEnabled[index]} | ${tempEnabled.length} | $numOfEnabled");
 
-                    if (numOfEnabled == 1 && tempEnabled[index] == true) {
-                      EasyLoading.showToast(
-                          "At least one platform must be enabled");
-                      return;
-                    }
+                      if (numOfEnabled == 1 && tempEnabled[index] == true) {
+                        EasyLoading.showToast(
+                            "At least one platform must be enabled");
+                        return;
+                      }
 
-                    if (type == "General") {
-                      setAlertState(() {
-                        _selectedGeneralPlatforms[index] =
-                            !_selectedGeneralPlatforms[index];
+                      if (type == "General") {
+                        setAlertState(() {
+                          _selectedGeneralPlatforms[index] =
+                              !_selectedGeneralPlatforms[index];
 
-                        numOfEnabled = _selectedGeneralPlatforms
-                            .where((element) => element == true)
-                            .length;
-                      });
+                          numOfEnabled = _selectedGeneralPlatforms
+                              .where((element) => element == true)
+                              .length;
+                        });
 
-                      List<String> newEnabledPlatforms =
-                          GeneralPlatformList.where((element) =>
-                              _selectedGeneralPlatforms[
-                                  GeneralPlatformList.indexOf(element)] ==
-                              true).toList();
+                        List<String> newEnabledPlatforms =
+                            GeneralPlatformList.where((element) =>
+                                _selectedGeneralPlatforms[
+                                    GeneralPlatformList.indexOf(element)] ==
+                                true).toList();
 
-                      log("test: $newEnabledPlatforms");
+                        log("test: $newEnabledPlatforms");
 
-                      widget.updateEnabledPlatforms(type, newEnabledPlatforms);
+                        widget.updateEnabledPlatforms(
+                            type, newEnabledPlatforms);
 
-                      await widget.prefs.setStringList(
-                          "enabledGeneralPlatforms", newEnabledPlatforms);
-                    } else if (type == "Video") {
-                      setAlertState(() {
-                        _selectedVideoPlatforms[index] =
-                            !_selectedVideoPlatforms[index];
+                        await widget.prefs.setStringList(
+                            "enabledGeneralPlatforms", newEnabledPlatforms);
+                      } else if (type == "Video") {
+                        setAlertState(() {
+                          _selectedVideoPlatforms[index] =
+                              !_selectedVideoPlatforms[index];
 
-                        numOfEnabled = _selectedVideoPlatforms
-                            .where((element) => element == true)
-                            .length;
-                      });
+                          numOfEnabled = _selectedVideoPlatforms
+                              .where((element) => element == true)
+                              .length;
+                        });
 
-                      List<String> newEnabledPlatforms =
-                          VideoPlatformList.where((element) =>
-                              _selectedVideoPlatforms[
-                                  VideoPlatformList.indexOf(element)] ==
-                              true).toList();
+                        List<String> newEnabledPlatforms =
+                            VideoPlatformList.where((element) =>
+                                _selectedVideoPlatforms[
+                                    VideoPlatformList.indexOf(element)] ==
+                                true).toList();
 
-                      log("test: $newEnabledPlatforms");
+                        log("test: $newEnabledPlatforms");
 
-                      widget.updateEnabledPlatforms(type, newEnabledPlatforms);
+                        widget.updateEnabledPlatforms(
+                            type, newEnabledPlatforms);
 
-                      await widget.prefs.setStringList(
-                          "enabledVideoPlatforms", newEnabledPlatforms);
-                    } else if (type == "SNS") {
-                      setAlertState(() {
-                        _selectedSNSPlatforms[index] =
-                            !_selectedSNSPlatforms[index];
+                        await widget.prefs.setStringList(
+                            "enabledVideoPlatforms", newEnabledPlatforms);
+                      } else if (type == "SNS") {
+                        setAlertState(() {
+                          _selectedSNSPlatforms[index] =
+                              !_selectedSNSPlatforms[index];
 
-                        numOfEnabled = _selectedSNSPlatforms
-                            .where((element) => element == true)
-                            .length;
-                      });
+                          numOfEnabled = _selectedSNSPlatforms
+                              .where((element) => element == true)
+                              .length;
+                        });
 
-                      List<String> newEnabledPlatforms = SNSPlatformList.where(
-                          (element) =>
-                              _selectedSNSPlatforms[
-                                  SNSPlatformList.indexOf(element)] ==
-                              true).toList();
+                        List<String> newEnabledPlatforms =
+                            SNSPlatformList.where((element) =>
+                                _selectedSNSPlatforms[
+                                    SNSPlatformList.indexOf(element)] ==
+                                true).toList();
 
-                      log("test: $newEnabledPlatforms");
+                        log("test: $newEnabledPlatforms");
 
-                      widget.updateEnabledPlatforms(type, newEnabledPlatforms);
+                        widget.updateEnabledPlatforms(
+                            type, newEnabledPlatforms);
 
-                      await widget.prefs.setStringList(
-                          "enabledSNSPlatforms", newEnabledPlatforms);
-                    }
-                  },
+                        await widget.prefs.setStringList(
+                            "enabledSNSPlatforms", newEnabledPlatforms);
+                      }
+                    },
+                  ),
                 ),
                 actions: <Widget>[
                   // TextButton(
@@ -763,27 +772,30 @@ class _SearchPageState extends State<SearchPage> {
           await showDialog(
               context: context,
               builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text("Tutorial in progress"),
-                  content: const Text("Do you want to end it?"),
-                  actions: [
-                    TextButton(
-                      child: const Text("No"),
-                      onPressed: () {
-                        pop = false;
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    TextButton(
-                      child: const Text("Yes"),
-                      onPressed: () {
-                        // pop = true;
-                        _tutorial.finish();
-                        widget.updateIsTutorial(false);
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
+                return SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: AlertDialog(
+                    title: const Text("Tutorial in progress"),
+                    content: const Text("Do you want to end it?"),
+                    actions: [
+                      TextButton(
+                        child: const Text("No"),
+                        onPressed: () {
+                          pop = false;
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      TextButton(
+                        child: const Text("Yes"),
+                        onPressed: () {
+                          // pop = true;
+                          _tutorial.finish();
+                          widget.updateIsTutorial(false);
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
                 );
               });
         }

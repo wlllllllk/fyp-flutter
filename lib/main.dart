@@ -82,7 +82,10 @@ List<String> GeneralMergeAlgorithmList = [
   "ABAB",
   "Frequency",
   "Original Rank",
-  "Further Merge",
+  "Further Merge - Snippet & Weighted",
+  "Further Merge - Title & Weighted",
+  "Further Merge - Snippet & !Weighted",
+  "Further Merge - Title & !Weighted",
 ];
 
 // ignore: non_constant_identifier_names
@@ -1931,8 +1934,8 @@ class _WebViewContainerState extends State<WebViewContainer>
               }
 
               if (_currentSearchPlatform == "General" &&
-                  (_mergeAlgorithm == "Original Rank" ||
-                      _mergeAlgorithm == "Further Merge")) {
+                  (_mergeAlgorithm != "ABAB" ||
+                      _mergeAlgorithm != "Frequency")) {
                 URLs[keyword][platform]["original"] = list;
               }
 
@@ -2527,59 +2530,62 @@ class _WebViewContainerState extends State<WebViewContainer>
         builder: (BuildContext context) => AlertDialog(
           scrollable: true,
           title: const Text('Are you interested in these keywords?'),
-          content: Column(
-            children: <Widget>[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: MultiSelectChipField(
-                  title: const Text(
-                    "Suggested Keywords",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Column(
+              children: <Widget>[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: MultiSelectChipField(
+                    title: const Text(
+                      "Suggested Keywords",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    items: keywords,
+                    showHeader: true,
+                    scroll: false,
+                    onTap: (values) {
+                      log("selected: $values");
+                      selectedKeywords = values.join(" ").trim();
+                      log("updated $selectedKeywords");
+                    },
                   ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  items: keywords,
-                  showHeader: true,
-                  scroll: false,
-                  onTap: (values) {
-                    log("selected: $values");
-                    selectedKeywords = values.join(" ").trim();
-                    log("updated $selectedKeywords");
-                  },
                 ),
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: MultiSelectChipField(
-                  title: const Text(
-                    "Available Platforms",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: MultiSelectChipField(
+                    title: const Text(
+                      "Available Platforms",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    items: platforms,
+                    showHeader: true,
+                    scroll: false,
+                    validator: (value) {
+                      log("validating $value");
+                    },
+                    onTap: (values) {
+                      log("selected: $values");
+                      selectedPlatform = values.isNotEmpty
+                          ? values[values.length - 1].toString()
+                          : "";
+                      log("updated $selectedPlatform");
+                    },
                   ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  items: platforms,
-                  showHeader: true,
-                  scroll: false,
-                  validator: (value) {
-                    log("validating $value");
-                  },
-                  onTap: (values) {
-                    log("selected: $values");
-                    selectedPlatform = values.isNotEmpty
-                        ? values[values.length - 1].toString()
-                        : "";
-                    log("updated $selectedPlatform");
-                  },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -3676,21 +3682,24 @@ class _WebViewContainerState extends State<WebViewContainer>
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
         return finalSortedList;
 
-      case "Further Merge":
+      case "Further Merge - Snippet & Weighted":
+      case "Further Merge - Title & Weighted":
+      case "Further Merge - Snippet & !Weighted":
+      case "Further Merge - Title & !Weighted":
         log("further merge");
 
         Map webpageScore = {};
         double baseScore = mergedResults.length / length;
         log("baseScore: $baseScore");
 
-        // for every appearance, score will be added
+        // for every exact appearance, score will be added
         for (int i = 0; i < mergedResults.length; i++) {
           if (webpageScore[mergedResults[i]["link"]] == null) {
             webpageScore[mergedResults[i]["link"]] = {
               "snippet": mergedResults[i]["snippet"],
               "rank": [mergedResults[i]["rank"]],
               "score": baseScore / mergedResults[i]["rank"],
-              "title": [mergedResults[i]["title"]],
+              "title": mergedResults[i]["title"],
             };
           } else {
             webpageScore[mergedResults[i]["link"]] = {
@@ -3701,32 +3710,32 @@ class _WebViewContainerState extends State<WebViewContainer>
               ],
               "score": webpageScore[mergedResults[i]["link"]]["score"] +
                   (baseScore / mergedResults[i]["rank"]),
-              "title": [mergedResults[i]["title"]],
+              "title": mergedResults[i]["title"],
             };
           }
         }
 
         Iterable keys = webpageScore.keys;
 
-        log("test $keys");
-
+        // pre-process the URL
         for (int i = 0; i < keys.length; i++) {
           var current = keys.elementAt(i);
           var shortCurrent = current
               .toString()
               .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
-          // log("current $current");
+
           for (int j = i + 1; j < webpageScore.length; j++) {
             var compare = keys.elementAt(j);
             var shortCompare = compare
                 .toString()
                 .replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "");
-            // log("compare $compare");
 
-            // log("regex ${current.toString().replaceFirst(RegExp(r'^(http:\/\/)|^(https:\/\/)'), "")}");
-
+            // compare URL first
+            // exact match
             if (shortCurrent == shortCompare) {
               log("same merged: ${current} ${compare}");
+
+              // keep the longer one (longest prefix match)
               if (current.length > compare.length) {
                 webpageScore.update(
                   current,
@@ -3777,19 +3786,27 @@ class _WebViewContainerState extends State<WebViewContainer>
                 );
               }
             }
-            // keep the longer one (longest prefix match)
+
+            // substring match
             else if (shortCompare.contains(shortCurrent)) {
-              // log("same 1 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
-              // log("same 1 $current(${webpageScore[current]['title']}) is substring of $compare(${webpageScore[compare]['title']})");
+              String currentComparator = "", compareComparator = "";
+              if (type == "Further Merge - Title & Weighted" ||
+                  type == "Further Merge - Title & !Weighted") {
+                currentComparator =
+                    webpageScore[current]['title'].toString().trim();
+                compareComparator =
+                    webpageScore[compare]['title'].toString().trim();
+              } else if (type == "Further Merge - Snippet & Weighted" ||
+                  type == "Further Merge - Snippet & !Weighted") {
+                currentComparator =
+                    webpageScore[current]['snippet'].toString().trim();
+                compareComparator =
+                    webpageScore[compare]['snippet'].toString().trim();
+              }
 
-              if (webpageScore[current]['snippet'].toString().trim().contains(
-                      webpageScore[compare]['snippet'].toString().trim()) ||
-                  webpageScore[compare]['snippet'].toString().trim().contains(
-                      webpageScore[current]['snippet'].toString().trim())) {
-                log("same merged 1: $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-                // log("real same 1.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['title'].toString().trim())}");
-                // log("real same 1.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['title'].toString().trim())}");
-
+              if (currentComparator.contains(compareComparator) ||
+                  compareComparator.contains(currentComparator)) {
+                log("same merged 1: $current(${currentComparator}) is substring of $compare(${compareComparator})");
                 log("same merged 1.1: ${current} ${compare}}");
 
                 webpageScore.update(
@@ -3817,18 +3834,24 @@ class _WebViewContainerState extends State<WebViewContainer>
                 );
               }
             } else if (shortCurrent.contains(shortCompare)) {
-              // log("same 2 $current(${webpageScore[current]['rank'][0]}) is substring of $compare(${webpageScore[compare]['rank'][0]})");
+              String currentComparator = "", compareComparator = "";
+              if (type == "Further Merge - Title & Weighted" ||
+                  type == "Further Merge - Title & !Weighted") {
+                currentComparator =
+                    webpageScore[current]['title'].toString().trim();
+                compareComparator =
+                    webpageScore[compare]['title'].toString().trim();
+              } else if (type == "Further Merge - Snippet & Weighted" ||
+                  type == "Further Merge - Snippet & !Weighted") {
+                currentComparator =
+                    webpageScore[current]['snippet'].toString().trim();
+                compareComparator =
+                    webpageScore[compare]['snippet'].toString().trim();
+              }
 
-              if (webpageScore[current]['snippet'].toString().trim().contains(
-                      webpageScore[compare]['snippet'].toString().trim()) ||
-                  webpageScore[compare]['snippet'].toString().trim().contains(
-                      webpageScore[current]['snippet'].toString().trim())) {
-                // log("real same 2 $current(${webpageScore[current]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-                // log("real same 2.1 ${webpageScore[current]['snippet'].toString().trim().contains(webpageScore[compare]['snippet'].toString().trim())}");
-                // log("real same 2.2 ${webpageScore[compare]['snippet'].toString().trim().contains(webpageScore[current]['snippet'].toString().trim())}");
-
-                log("same merged 2.1: $compare(${webpageScore[compare]['snippet'].toString().trim()}) is substring of $compare(${webpageScore[compare]['snippet'].toString().trim()})");
-
+              if (currentComparator.contains(compareComparator) ||
+                  compareComparator.contains(currentComparator)) {
+                log("same merged 2.1: $compare(${currentComparator}) is substring of $compare(${compareComparator})");
                 log("same merged 2.2: ${current} ${compare}}");
                 webpageScore.update(
                   current,
@@ -3861,9 +3884,29 @@ class _WebViewContainerState extends State<WebViewContainer>
         // remove the duplicate results as it has been merged above
         webpageScore.removeWhere((key, value) => value["rank"][0] == 0);
 
-        // sort in descending order
+        // re-calculate the score for no-weighting mode
+        if (type == "Further Merge - Title & !Weighted" ||
+            type == "Further Merge - Snippet & !Weighted") {
+          log("fm no weighting");
+
+          webpageScore.forEach((key, value) {
+            log("rankk: ${value['rank']}");
+            int scoreSum = value['rank'].reduce((a, b) => a + b);
+            log("rankk new: $scoreSum");
+            value["score"] = scoreSum / value["rank"].length;
+          });
+        }
+
+        // sort
+        // descending order with weighting
+        // ascending order with no-weighting
         List<MapEntry> entries = webpageScore.entries.toList();
-        entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
+        if (type == "Further Merge - Title & !Weighted" ||
+            type == "Further Merge - Snippet & !Weighted") {
+          entries.sort((a, b) => a.value["score"].compareTo(b.value["score"]));
+        } else {
+          entries.sort((a, b) => b.value["score"].compareTo(a.value["score"]));
+        }
         Map sortedWebpageScore = Map.fromEntries(entries);
 
         log("webpageScore: $webpageScore");
@@ -3976,9 +4019,9 @@ class _WebViewContainerState extends State<WebViewContainer>
     log("URLs: ${URLs[_searchText][_currentSearchPlatform]}");
 
     if (type == "General") {
-      return _reRank(_mergeAlgorithm, mergedResults);
+      return _reRank(_mergeAlgorithm, mergedResults, platforms.length);
     } else if (type == "Video") {
-      return _reRank(_videoMergeAlgorithm, mergedResults);
+      return _reRank(_videoMergeAlgorithm, mergedResults, platforms.length);
     } else if (type == "SNS") {
       return mergedResults;
     }
@@ -4557,8 +4600,8 @@ class _WebViewContainerState extends State<WebViewContainer>
                       // onOpen: () => debugPrint('OPENING DIAL'),
                       // onClose: () => debugPrint('DIAL CLOSED'),
                       children: _currentSearchPlatform == "General" &&
-                              (_mergeAlgorithm == "Original Rank" ||
-                                  _mergeAlgorithm == "Further Merge")
+                              (_mergeAlgorithm != "ABAB" &&
+                                  _mergeAlgorithm != "Frequency")
                           ? [
                               SpeedDialChild(
                                 child: const Icon(BoxIcons.bx_refresh),
@@ -4589,137 +4632,142 @@ class _WebViewContainerState extends State<WebViewContainer>
                                             scrollable: true,
                                             title: const Text(
                                                 'Re-rank results by'),
-                                            content: ToggleButtons(
-                                              direction: Axis.vertical,
-                                              borderRadius:
-                                                  const BorderRadius.all(
-                                                      Radius.circular(8)),
-                                              isSelected: _currentSearchPlatform ==
-                                                      "General"
-                                                  ? GeneralMergeAlgorithmList
-                                                      .map((e) =>
-                                                          e == _mergeAlgorithm
-                                                              ? true
-                                                              : false).toList()
-                                                  : _currentSearchPlatform ==
-                                                          "Video"
-                                                      ? VideoMergeAlgorithmList
-                                                          .map((e) => e ==
-                                                                  _videoMergeAlgorithm
-                                                              ? true
-                                                              : false).toList()
-                                                      : [],
-                                              children: [
-                                                ..._currentSearchPlatform ==
+                                            content: SizedBox(
+                                              width: MediaQuery.of(context)
+                                                  .size
+                                                  .width,
+                                              child: ToggleButtons(
+                                                direction: Axis.vertical,
+                                                borderRadius:
+                                                    const BorderRadius.all(
+                                                        Radius.circular(8)),
+                                                isSelected: _currentSearchPlatform ==
                                                         "General"
                                                     ? GeneralMergeAlgorithmList
-                                                            .map((e) => Text(e))
-                                                        .toList()
+                                                        .map((e) => e ==
+                                                                _mergeAlgorithm
+                                                            ? true
+                                                            : false).toList()
                                                     : _currentSearchPlatform ==
                                                             "Video"
                                                         ? VideoMergeAlgorithmList
-                                                                .map((e) =>
-                                                                    Text(e))
-                                                            .toList()
-                                                        : []
-                                              ],
-                                              onPressed: (int index) async {
-                                                log("pressed ${GeneralMergeAlgorithmList[index]}");
-                                                switch (
-                                                    _currentSearchPlatform) {
-                                                  case "General":
-                                                    if (_mergeAlgorithm ==
-                                                        GeneralMergeAlgorithmList[
-                                                            index]) {
-                                                      Navigator.pop(context);
-                                                      return;
-                                                    }
-
-                                                    setState(() {
-                                                      _mergeAlgorithm =
+                                                            .map((e) => e ==
+                                                                    _videoMergeAlgorithm
+                                                                ? true
+                                                                : false).toList()
+                                                        : [],
+                                                children: [
+                                                  ..._currentSearchPlatform ==
+                                                          "General"
+                                                      ? GeneralMergeAlgorithmList
+                                                          .map((e) =>
+                                                              Text(e)).toList()
+                                                      : _currentSearchPlatform ==
+                                                              "Video"
+                                                          ? VideoMergeAlgorithmList
+                                                                  .map((e) =>
+                                                                      Text(e))
+                                                              .toList()
+                                                          : []
+                                                ],
+                                                onPressed: (int index) async {
+                                                  log("pressed ${GeneralMergeAlgorithmList[index]}");
+                                                  switch (
+                                                      _currentSearchPlatform) {
+                                                    case "General":
+                                                      if (_mergeAlgorithm ==
                                                           GeneralMergeAlgorithmList[
-                                                              index];
-                                                    });
+                                                              index]) {
+                                                        Navigator.pop(context);
+                                                        return;
+                                                      }
 
-                                                    final prefs =
-                                                        await SharedPreferences
-                                                            .getInstance();
+                                                      setState(() {
+                                                        _mergeAlgorithm =
+                                                            GeneralMergeAlgorithmList[
+                                                                index];
+                                                      });
 
-                                                    await prefs.setString(
-                                                      "generalMergeAlgorithm",
-                                                      GeneralMergeAlgorithmList[
-                                                          index],
-                                                    );
+                                                      final prefs =
+                                                          await SharedPreferences
+                                                              .getInstance();
 
-                                                    Navigator.pop(context);
+                                                      await prefs.setString(
+                                                        "generalMergeAlgorithm",
+                                                        GeneralMergeAlgorithmList[
+                                                            index],
+                                                      );
 
-                                                    log("on99: ${URLs[_searchText][_currentSearchPlatform]['raw']}");
-                                                    List results = _reRank(
-                                                        _mergeAlgorithm,
-                                                        URLs[_searchText][
-                                                                _currentSearchPlatform]
-                                                            ["raw"],
-                                                        _enabledGeneralPlatforms
-                                                            .length);
-
-                                                    log("reranked results: $results");
-
-                                                    await _updateURLs(
-                                                        'replace',
-                                                        _searchText,
-                                                        _currentSearchPlatform,
-                                                        results);
-                                                    await _updateCurrentURLs();
-                                                    await _moveSwiper();
-
-                                                    break;
-                                                  case "Video":
-                                                    if (_videoMergeAlgorithm ==
-                                                        VideoMergeAlgorithmList[
-                                                            index]) {
                                                       Navigator.pop(context);
-                                                      return;
-                                                    }
 
-                                                    setState(() {
-                                                      _videoMergeAlgorithm =
+                                                      log("on99: ${URLs[_searchText][_currentSearchPlatform]['raw']}");
+                                                      List results = _reRank(
+                                                          _mergeAlgorithm,
+                                                          URLs[_searchText][
+                                                                  _currentSearchPlatform]
+                                                              ["raw"],
+                                                          _enabledGeneralPlatforms
+                                                              .length);
+
+                                                      log("reranked results: $results");
+
+                                                      await _updateURLs(
+                                                          'replace',
+                                                          _searchText,
+                                                          _currentSearchPlatform,
+                                                          results);
+                                                      await _updateCurrentURLs();
+                                                      await _moveSwiper();
+
+                                                      break;
+                                                    case "Video":
+                                                      if (_videoMergeAlgorithm ==
                                                           VideoMergeAlgorithmList[
-                                                              index];
-                                                    });
+                                                              index]) {
+                                                        Navigator.pop(context);
+                                                        return;
+                                                      }
 
-                                                    final prefs =
-                                                        await SharedPreferences
-                                                            .getInstance();
+                                                      setState(() {
+                                                        _videoMergeAlgorithm =
+                                                            VideoMergeAlgorithmList[
+                                                                index];
+                                                      });
 
-                                                    await prefs.setString(
-                                                      "videoMergeAlgorithm",
-                                                      VideoMergeAlgorithmList[
-                                                          index],
-                                                    );
+                                                      final prefs =
+                                                          await SharedPreferences
+                                                              .getInstance();
 
-                                                    Navigator.pop(context);
+                                                      await prefs.setString(
+                                                        "videoMergeAlgorithm",
+                                                        VideoMergeAlgorithmList[
+                                                            index],
+                                                      );
 
-                                                    List results = _reRank(
-                                                        _videoMergeAlgorithm,
-                                                        URLs[_searchText][
-                                                                _currentSearchPlatform]
-                                                            ["raw"],
-                                                        _enabledVideoPlatforms
-                                                            .length);
+                                                      Navigator.pop(context);
 
-                                                    log("reranked results: $results");
+                                                      List results = _reRank(
+                                                          _videoMergeAlgorithm,
+                                                          URLs[_searchText][
+                                                                  _currentSearchPlatform]
+                                                              ["raw"],
+                                                          _enabledVideoPlatforms
+                                                              .length);
 
-                                                    await _updateURLs(
-                                                        'replace',
-                                                        _searchText,
-                                                        _currentSearchPlatform,
-                                                        results);
-                                                    await _updateCurrentURLs();
-                                                    await _moveSwiper();
+                                                      log("reranked results: $results");
 
-                                                    break;
-                                                }
-                                              },
+                                                      await _updateURLs(
+                                                          'replace',
+                                                          _searchText,
+                                                          _currentSearchPlatform,
+                                                          results);
+                                                      await _updateCurrentURLs();
+                                                      await _moveSwiper();
+
+                                                      break;
+                                                  }
+                                                },
+                                              ),
                                             ),
                                           );
                                         },
