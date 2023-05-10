@@ -1993,7 +1993,6 @@ class _WebViewContainerState extends State<WebViewContainer>
     if (!_activatedSearchPlatforms.containsKey(_currentSearchPlatform)) {
       setState(() {
         _activatedSearchPlatforms.addAll({_currentSearchPlatform: GlobalKey()});
-        // _activatedSearchPlatformKeys.add(GlobalKey());
       });
     }
 
