@@ -150,13 +150,13 @@ class _SearchPageState extends State<SearchPage> {
                         color: Colors.white,
                         fontSize: 20.0),
                   ),
-                  // Padding(
-                  //   padding: EdgeInsets.only(top: 10.0),
-                  //   child: Text(
-                  //     "This is where you access the settings page as well as showing this tutorial again.",
-                  //     style: TextStyle(color: Colors.white),
-                  //   ),
-                  // )
+                  Padding(
+                    padding: EdgeInsets.only(top: 10.0),
+                    child: Text(
+                      "You can long-press to select specific platforms to be used",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
                 ],
               ),
             )

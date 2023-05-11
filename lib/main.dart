@@ -360,6 +360,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   void _initTutorial(String status) {
     if (status == "before") {
+      targets = [];
       targets.add(
         TargetFocus(
           identify: "Menu",
@@ -427,6 +428,7 @@ class _WebViewContainerState extends State<WebViewContainer>
         ),
       );
     } else if (status == "after") {
+      targetsAfter = [];
       targetsAfter.add(
         TargetFocus(
           identify: "Joystick",
@@ -496,7 +498,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: const <Widget>[
                   Text(
                     "Click to see the search records within the current search session",
@@ -522,7 +524,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: const <Widget>[
                   Text(
                     "Click to go back to the first result",
@@ -548,7 +550,7 @@ class _WebViewContainerState extends State<WebViewContainer>
               align: ContentAlign.top,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: const <Widget>[
                   Text(
                     "Click to go back",
@@ -644,10 +646,10 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   void _showTutorialAfter() async {
     log("tutorialing after 1");
-    await Future.delayed(const Duration(milliseconds: 3000), () {});
-    log("tutorialing after 2");
-
-    _initTutorial("after");
+    await Future.delayed(const Duration(milliseconds: 3000), () {
+      _initTutorial("after");
+      log("tutorialing after 2");
+    });
 
     log("tutorialing after 3");
 
@@ -3205,48 +3207,123 @@ class _WebViewContainerState extends State<WebViewContainer>
       onWillPop: () => _onWillPop(context),
       child: Scaffold(
         drawer: Drawer(
-          child: ListView(
-            // Important: Remove any padding from the ListView.
-            padding: EdgeInsets.zero,
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: _themedAppBarColor,
+          child: Container(
+            child: Column(
+              children: [
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: _themedAppBarColor,
+                  ),
+                  child: Row(
+                    children: const [
+                      CircleAvatar(
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: NetworkImage(
+                            "https://wlsk.design/fyp/image/searchub_icon.png"),
+                        radius: 46.0,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Text("Searchub",
+                            style: TextStyle(
+                              fontSize: 20.0,
+                              fontWeight: FontWeight.w600,
+                            )),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text('Menu'),
-              ),
-              ListTile(
-                trailing: _selectedPageIndex == 0
-                    ? Icon(Icons.explore, color: Colors.blue[900])
-                    : const Icon(Icons.explore_outlined),
-                title: const Text('Explore'),
-                onTap: () {
-                  _onItemTapped(0);
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                trailing: _selectedPageIndex == 1
-                    ? Icon(Icons.settings, color: Colors.blue[900])
-                    : const Icon(Icons.settings_outlined),
-                title: const Text('Settings'),
-                onTap: () {
-                  _onItemTapped(3);
-                  Navigator.pop(context);
-                  _pushSettingsPage();
-                },
-              ),
-              ListTile(
-                trailing: const Icon(BoxIcons.bx_chalkboard),
-                title: const Text('Tutorial'),
-                onTap: () {
-                  // _onItemTapped(3);
-                  Navigator.pop(context);
-                  _showTutorial();
-                },
-              ),
-            ],
+                Expanded(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    children: [
+                      ListTile(
+                        trailing: _selectedPageIndex == 0
+                            ? Icon(Icons.explore, color: Colors.blue[900])
+                            : const Icon(Icons.explore_outlined),
+                        title: const Text('Explore'),
+                        onTap: () {
+                          _onItemTapped(0);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      ListTile(
+                        trailing: _selectedPageIndex == 1
+                            ? Icon(Icons.settings, color: Colors.blue[900])
+                            : const Icon(Icons.settings_outlined),
+                        title: const Text('Settings'),
+                        onTap: () {
+                          _onItemTapped(3);
+                          Navigator.pop(context);
+                          _pushSettingsPage();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 35),
+                    child: ListTile(
+                      trailing: const Icon(BoxIcons.bx_chalkboard),
+                      title: const Text('Tutorial'),
+                      onTap: () {
+                        // _onItemTapped(3);
+                        Navigator.pop(context);
+                        _showTutorial();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+
+          // child: ListView(
+          //   // Important: Remove any padding from the ListView.
+          //   padding: EdgeInsets.zero,
+          //   children: [
+          //     DrawerHeader(
+          //       decoration: BoxDecoration(
+          //         color: _themedAppBarColor,
+          //       ),
+          //       child: const Text('Menu'),
+          //     ),
+          //     ListTile(
+          //       trailing: _selectedPageIndex == 0
+          //           ? Icon(Icons.explore, color: Colors.blue[900])
+          //           : const Icon(Icons.explore_outlined),
+          //       title: const Text('Explore'),
+          //       onTap: () {
+          //         _onItemTapped(0);
+          //         Navigator.pop(context);
+          //       },
+          //     ),
+          //     ListTile(
+          //       trailing: _selectedPageIndex == 1
+          //           ? Icon(Icons.settings, color: Colors.blue[900])
+          //           : const Icon(Icons.settings_outlined),
+          //       title: const Text('Settings'),
+          //       onTap: () {
+          //         _onItemTapped(3);
+          //         Navigator.pop(context);
+          //         _pushSettingsPage();
+          //       },
+          //     ),
+          //     ListTile(
+          //       trailing: const Icon(BoxIcons.bx_chalkboard),
+          //       title: const Text('Tutorial'),
+          //       onTap: () {
+          //         // _onItemTapped(3);
+          //         Navigator.pop(context);
+          //         _showTutorial();
+          //       },
+          //     ),
+          //   ],
+          // ),
         ),
         appBar: AppBar(
           backgroundColor: _appBarColor,
