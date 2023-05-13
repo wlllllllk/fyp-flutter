@@ -356,7 +356,7 @@ class _SearchPageState extends State<SearchPage> {
       List combinedResults = [];
 
       EasyLoading.show(
-        status: 'Searching...',
+        status: 'Searching',
       );
       results = imgURI == ""
           ? await widget.imageSearch(image, image.path)
@@ -484,57 +484,62 @@ class _SearchPageState extends State<SearchPage> {
                           },
                           child: ClipRRect(
                             // borderRadius: BorderRadius.circular(10),
-                            child: AnimatedContainer(
-                              // width: 100,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: selectedKeyword.contains(item.label)
-                                    ? const Color.fromRGBO(158, 158, 158, 0.475)
-                                    : Colors.transparent,
-                              ),
-                              duration: const Duration(milliseconds: 300),
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  ClipRRect(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                AnimatedContainer(
+                                  decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
-                                    child: Opacity(
-                                      opacity:
-                                          selectedKeyword.contains(item.label)
-                                              ? 0.5
-                                              : 1,
-                                      child: Image.network(
-                                        item.value.toString(),
-                                        // height: 100,
-                                        // width: 100,
-                                        loadingBuilder:
-                                            (context, child, loadingProgress) {
-                                          if (loadingProgress == null) {
-                                            return child;
-                                          }
-                                          return const Center(
-                                            child: CircularProgressIndicator(),
-                                          );
-                                        },
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          log("error: $error");
-                                          return const Center(
-                                            child: Icon(Icons.error),
-                                          );
-                                        },
+                                    color: selectedKeyword.contains(item.label)
+                                        ? const Color.fromRGBO(
+                                            158, 158, 158, 0.475)
+                                        : Colors.transparent,
+                                  ),
+                                  width: MediaQuery.of(context).size.width / 3 -
+                                      10,
+                                  duration: const Duration(milliseconds: 300),
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    children: [
+                                      Opacity(
+                                        opacity:
+                                            selectedKeyword.contains(item.label)
+                                                ? 0.5
+                                                : 1,
+                                        child: Image.network(
+                                          item.value.toString(),
+                                          // height: 100,
+                                          width:
+                                              MediaQuery.of(context).size.width,
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            );
+                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            log("error: $error");
+                                            return const Center(
+                                              child: Icon(Icons.error),
+                                            );
+                                          },
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        item.label,
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    item.label,
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                  const SizedBox(width: 10),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
                             ),
                           ),
                         );
@@ -588,7 +593,7 @@ class _SearchPageState extends State<SearchPage> {
           if (selectedKeyword[0].toString().startsWith('http')) {
             log("is image url");
             EasyLoading.show(
-              status: 'Searching...',
+              status: 'Searching',
             );
             _performImageSearch("", selectedKeyword[0]);
           } else {

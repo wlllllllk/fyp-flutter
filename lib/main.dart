@@ -5000,7 +5000,7 @@ _imageSearch(src, path, [imgURI = ""]) async {
           });
       print("Bing gust: ${bingBestRepresentation}");
 
-      if (bingIncludedPage.length != 0) {
+      if (bingIncludedPage != null && bingIncludedPage.length != 0) {
         bingIncludedName = bingIncludedPage[0]['name'].toString();
         bingIncludedPage.forEach((value) async {
           // final isShopping = isShoppingWebsite(value['hostPageUrl']);
