@@ -358,7 +358,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                         }
                                       });
 
-                                      widget.updateGeneralMergeAlgorithm(
+                                      widget.updateVideoMergeAlgorithm(
                                           VideoMergeAlgorithmList[index]);
 
                                       setState(() {
